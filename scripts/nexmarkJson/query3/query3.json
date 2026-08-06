@@ -1,0 +1,147 @@
+{
+  "QueryName": "nexmark_query3",
+  "WorkDir": "~/disaggregated-streaming",
+  "AllNodeIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.4",
+    "10.10.1.5",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+    "10.10.1.13"
+  ],
+  "KafkaClusterIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.4",
+    "10.10.1.5"
+  ],
+  "ProducerIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.4",
+    "10.10.1.5"
+  ],
+  "TIKVIPs":[
+    "10.10.1.15",
+    "10.10.1.16",
+    "10.10.1.17",
+    "10.10.1.18",
+    "10.10.1.19"
+  ],
+  "WorkerIPs": [
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+    "10.10.1.13",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+    "10.10.1.13",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+    "10.10.1.13",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+    "10.10.1.13",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+    "10.10.1.13",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+    "10.10.1.13",
+    "10.10.1.13"
+  ],
+  "NexmarkLogicalSourceConfigs":[
+    {
+      "EventType": "Person",
+      "NexmarkSourceConfig":{
+        "OutputEventNumber": 73000000,
+        "RateLimiterConfig": {
+          "UseRateLimit": true,
+          "RateLimit": [
+            1000,2000,1000
+          ],
+          "RateChangeInterval": [
+            1500,3600
+          ]
+        }
+      }
+    },
+    {
+      "EventType": "Auction",
+      "NexmarkSourceConfig":{
+        "OutputEventNumber": 219000000,
+        "NumActivePeople": 10000,
+        "RateLimiterConfig": {
+          "UseRateLimit": true,
+          "RateLimit": [
+            3000,6000,3000
+          ],
+          "RateChangeInterval": [
+            1500,3600
+          ]
+        }
+      }
+    }
+  ],
+  "TotalRuntimeSeconds": 1740,
+  "ReconfigProtocol": "lazy",
+  "LazyProtocolVersion": "optimized",
+  "NumBuckets": 1638400,
+  "PartitionPolicy": "consistent-hashing",
+  "BufferSize": 400,
+  "BatchSize": 4096,
+  "StateBackendType": "pebble",
+  "LoadWarmUpData": true,
+  "WarmUpDataFolder": {
+    "Pebble": "pebble_warmup_data/nexmark_q3/1638400_consistent",
+    "TiKV": "tikv_warmup_data/nexmark_q3/1638400_consistent"
+  },
+  "Reconfigurations": [
+    {
+      "TriggerTimeSeconds": 420,
+      "Type": "scaleup",
+      "TargetOperator": "join",
+      "TargetParrallelism": 8
+    },
+    {
+      "TriggerTimeSeconds": 1140,
+      "Type": "scaledown",
+      "TargetOperator": "join",
+      "TargetParrallelism": 4
+    }
+  ],
+  "PersonFilterParallelism": 4,
+  "AuctionFilterParallelism": 4,
+  "JoinParallelism": 4,
+  "SinkParallelism": 1,
+  "InitialCustomTaskPlacement": [
+    "personSource: 10.10.1.10",
+    "personSource: 10.10.1.11",
+    "personSource: 10.10.1.12",
+    "personSource: 10.10.1.13",
+    "auctionSource: 10.10.1.10",
+    "auctionSource: 10.10.1.11",
+    "auctionSource: 10.10.1.12",
+    "auctionSource: 10.10.1.13",
+    "personFilter: 10.10.1.10",
+    "personFilter: 10.10.1.11",
+    "personFilter: 10.10.1.12",
+    "personFilter: 10.10.1.13",
+    "auctionFilter: 10.10.1.10",
+    "auctionFilter: 10.10.1.11",
+    "auctionFilter: 10.10.1.12",
+    "auctionFilter: 10.10.1.13",
+    "join: 10.10.1.10",
+    "join: 10.10.1.11",
+    "join: 10.10.1.12",
+    "join: 10.10.1.13",
+    "sink: 10.10.1.13"
+  ]
+}

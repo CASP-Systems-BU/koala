@@ -14,7 +14,7 @@ import (
 	"github.com/CASP-Systems-BU/disaggregated-streaming/coordinator"
 	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constants"
 	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/state/stateBackend"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/worker"
@@ -74,7 +74,7 @@ func TestLazyReconfigWordCount(t *testing.T) {
 	}
 	log.Printf("Job rescale response: %v\n", resp.Info)
 
-	// Wait for the test to be completed
+	// Wait for the test to be compeleted
 	time.Sleep(15 * time.Second)
 
 	/*************************************************
@@ -193,7 +193,7 @@ func checkCorrectness(
 			key := iter.Key()
 			value := iter.Value()
 
-			keyI, _, _ := varint.UnmarshalInt64(key[constant.KeyPrefixSize:])
+			keyI, _, _ := varint.UnmarshalInt64(key[constants.KeyPrefixSize:])
 			valueI, _, _ := varint.UnmarshalInt(value)
 
 			val, exist := results[keyI]
@@ -206,7 +206,7 @@ func checkCorrectness(
 
 				// This is a key that is affected by the repartition
 				workerId := coordinator.KeyPartitions["statefulMapper"].KeyToWorkerID(
-					key[constant.KeyPrefixSize:],
+					key[constants.KeyPrefixSize:],
 				)
 
 				// Check if the repartitioned key is processed by the new worker

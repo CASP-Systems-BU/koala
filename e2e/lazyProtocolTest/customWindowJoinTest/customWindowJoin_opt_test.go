@@ -26,10 +26,10 @@ func TestCustomWindowJoinLazyOpt(t *testing.T) {
 	config := configuration.Default()
 	config.ReconfigProtocol = "lazy"
 	config.LazyProtocolVersion = "optimized"
-	numWorkers := 5
+	numWorkers := 6
 	client, workers, coordinator := testutils.DeployJob(
 		numWorkers,
-		func() *dataflow.Dataflow { return query(1) },
+		func() *dataflow.Dataflow { return query(2) },
 		config,
 	)
 
@@ -50,11 +50,10 @@ func TestCustomWindowJoinLazyOpt(t *testing.T) {
 		)
 	}
 
-	// Wait for 8s before rescaling
-	time.Sleep(8 * time.Second)
+	time.Sleep(7 * time.Second)
 	rescaleConfig := &pb.RescaleConfig{
 		TargetRescaleOp:   "customWindowJoin",
-		TargetParallelism: 2,
+		TargetParallelism: 3,
 	}
 	resp, err := client.Rescale(context.Background(), rescaleConfig)
 	if err != nil {

@@ -11,8 +11,8 @@ import (
 )
 
 func Query3Join(
-	personFilter dataflow.OperatorWith1OutputStream[*models.PersonEvent],
-	auctionFilter dataflow.OperatorWith1OutputStream[*models.AuctionEvent],
+	personSource dataflow.OperatorWith1OutputStream[*models.PersonEvent],
+	auctionSource dataflow.OperatorWith1OutputStream[*models.AuctionEvent],
 	useDummyField bool,
 	dummyFieldSize int,
 ) *dataflow.Join[
@@ -42,7 +42,7 @@ func Query3Join(
 
 	join := dataflow.NewJoin[*tuple.Tuple4[string, string, string, int64]](
 		"join",
-		personFilter,
+		personSource,
 		personKeyAssigner,
 		// Processing PersonEvent
 		func(
@@ -53,6 +53,7 @@ func Query3Join(
 			state2 *stateType.ListState[*tuple.Tuple1[int64]],
 			co collector.Collector,
 		) {
+
 			if useDummyField {
 				dummyFieldContent = dummyFieldGenerator.GenerateDummyField()
 				state1.Set(&tuple.Tuple4[string, string, string, string]{
@@ -85,7 +86,7 @@ func Query3Join(
 			}
 			state2.Clear()
 		},
-		auctionFilter,
+		auctionSource,
 		auctionKeyAssigner,
 		// Processing AuctionEvent
 		func(

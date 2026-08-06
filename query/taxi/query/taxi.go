@@ -1,4 +1,4 @@
-package query
+package taxi
 
 import (
 	"encoding/json"
@@ -125,10 +125,10 @@ func Taxi(configFile string) *dataflow.Dataflow {
 	calculateCellId.SetParallelism(config.CalculateCellIdParallelism)
 	dataflow.AddOperator(df, calculateCellId)
 
-	//Key by routeId and round
+	//Key by routeId and VendorId
 	routeKeyAssigner := ka.NewKeyAssigner(
 		func(t *models.RouteInfo) string {
-			return strconv.FormatInt(t.V17, 10) + "Vendor" + t.V3
+			return strconv.FormatInt(t.V17, 10)
 		},
 	)
 

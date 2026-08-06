@@ -1,0 +1,145 @@
+{
+  "QueryName": "nexmark_query6_modified",
+  "WorkDir": "~/disaggregated-streaming",
+  "AllNodeIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4",
+    "10.10.1.5",
+    "10.10.1.6",
+    "10.10.1.7",
+    "10.10.1.8",
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12"
+  ],
+  "KafkaClusterIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4"
+  ],
+  "ProducerIPs": [
+    "10.10.1.1",
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.3",
+    "10.10.1.4",
+    "10.10.1.4",
+    
+    "10.10.1.1",
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.3",
+    "10.10.1.4",
+    "10.10.1.4"
+  ],
+  "WorkerIPs": [
+    "10.10.1.9",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12"
+  ],
+  "NexmarkLogicalSourceConfigs": [
+    {
+      "EventType": "ClosedAuction",
+      "NexmarkSourceConfig": {
+        "NumEvents":625000,
+        "NumActivePeople": 1000,
+        "WarmupRun":true,
+        "HotSellerRatio": 0.25,
+        "HotSellerRange": 100,
+        "RateLimiterConfig": {
+          "UseRateLimit": false,
+          "RateLimit": [
+            2800, 5600
+          ],
+          "RateChangeInterval": [
+            600
+          ]
+        }
+      } 
+    }
+  ],
+  "TotalRuntimeSeconds": 90000,
+  "ReconfigProtocol": "lazy",
+  "LazyProtocolVersion": "drrs",
+  "NumBuckets": 128,
+  "PartitionPolicy": "uniform",
+  "BufferSize": 50,
+  "BatchSize": 4096,
+  "StateBackendType": "pebble",
+  "PebbleEnableConcurrentGetMany": true,
+  "PebbleGetManyMaxConcurrency": 8,
+  "PebbleGetManyBatchSize": 32,
+  "IsWarmUp": true,
+  "LoadWarmUpData": false,
+  "WarmUpDataFolder": {
+    "Pebble": "pebble_warmup_data/nexmark_q6_mod/128_uniform_10GB"
+  },
+  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/nexmark_q6_mod/128ByKey_uniform_10GB",
+  "StatefulMapperParallelism": 4,
+  "SinkParallelism": 1,
+  "DummyFieldSize": 4096,
+  "InitialCustomTaskPlacement": [
+    "source: 10.10.1.9",
+    "source: 10.10.1.10",
+    "source: 10.10.1.11",
+    "source: 10.10.1.12",
+
+    "source: 10.10.1.9",
+    "source: 10.10.1.10",
+    "source: 10.10.1.11",
+    "source: 10.10.1.12",
+
+    "source: 10.10.1.9",
+    "source: 10.10.1.10",
+    "source: 10.10.1.11",
+    "source: 10.10.1.12",
+
+    "source: 10.10.1.9",
+    "source: 10.10.1.10",
+    "source: 10.10.1.11",
+    "source: 10.10.1.12",
+
+    "statefulMapper: 10.10.1.9",
+    "statefulMapper: 10.10.1.10",
+    "statefulMapper: 10.10.1.11",
+    "statefulMapper: 10.10.1.12",
+
+    "sink:10.10.1.9"
+  ]
+}

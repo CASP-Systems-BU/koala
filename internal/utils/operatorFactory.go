@@ -35,9 +35,8 @@ type OperatorSetupParas struct {
 	// This considers upstream connections from all SubSuppliers
 	ExpectNumUpstream int
 
-	// KeybyCollector Partition table (only apply for operators with keyed
-	// output)
-	KeybyCollectorRoutingTable *keyby.PartitionTable
+	// KeybyCollector Routing table (only apply for operators with keyed output)
+	KeybyCollectorRoutingTable *keyby.KeyLookupTable
 
 	// If the operator is a source operator, the coordinator will supply
 	// the replica id for the source operator. Each source operator's id is

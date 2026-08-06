@@ -58,8 +58,6 @@ func (c *Coordinator) InitKeyPartitions() {
 				policy = partition.NewHashPartitionPolicy(c.Config)
 			case "uniform":
 				policy = partition.NewUniformPartitionPolicy(c.Config)
-			case "consistent-even":
-				policy = partition.NewEvenPartitionPolicy(c.Config)
 			default:
 				log.Fatalf(
 					"Unsupported partition policy: %s\n",
@@ -67,36 +65,29 @@ func (c *Coordinator) InitKeyPartitions() {
 				)
 			}
 
-			c.KeyPartitions[operatorId] = keyby.NewPartitionTable(
+			c.KeyPartitions[operatorId] = keyby.NewKeyLookupTable(
 				policy,
 				workerIds,
 				c.Config,
 			)
 
 			// Print out the number of buckets assigned to each worker
-			bucketCountPerWorker := make(map[uint16]int)
 			table := c.KeyPartitions[operatorId]
+			bucketCountPerWorker := make(map[uint16]int)
 			for _, br := range table.Buckets {
-				bucketCountPerWorker[br] += 1
+				bucketCountPerWorker[br.WorkerID] += 1
 			}
 			log.Printf(
-				"[Bucket Partition INFO] bucket count per worker: %+v\n",
+				"[KeyPartition INFO] operator %s bucket count per worker: %+v\n",
+				operatorId,
 				bucketCountPerWorker,
 			)
-
-			// [eventual migration for cancelling task] Record initial bucket
-			// ownership in history
-			history := make([]map[uint16]bool, len(table.Buckets))
-			for i, ownerWorker := range table.Buckets {
-				history[i] = map[uint16]bool{ownerWorker: true}
-			}
-			c.BucketOwnerHistory[operatorId] = history
 
 			// [lazy protocol] Initialize state lookup tables
 			// StateLookupTable can differ from KeyPartition based on actual
 			// state location
 			if c.Config.ReconfigProtocol == "lazy" {
-				c.StateLookupTables[operatorId] = keyby.NewPartitionTable(
+				c.StateLookupTables[operatorId] = keyby.NewKeyLookupTable(
 					policy,
 					workerIds,
 					c.Config,
@@ -120,13 +111,10 @@ func (c *Coordinator) StartJob() {
 		// Get the upstream info: number of expected upstream tasks
 		numUpstream := int32(0)
 		if len(c.Dataflow.Streams[operatorId].UpstreamOperators) > 0 {
-
-			// Go over all upstream operators and sum up their parallelism
-			for _, upOpId := range c.Dataflow.Streams[operatorId].UpstreamOperators {
-				numUpstream += int32(
-					c.Dataflow.Operators[upOpId].GetParallelism(),
-				)
-			}
+			upstreamOp := c.Dataflow.Streams[operatorId].UpstreamOperators[0]
+			numUpstream = int32(
+				c.Dataflow.Operators[upstreamOp].GetParallelism(),
+			)
 		}
 
 		// Get the downstream info: worker ids and data plane addresses
@@ -147,7 +135,7 @@ func (c *Coordinator) StartJob() {
 
 		// Get downstream key partition table for operators with keyed output
 		// stream
-		var downstreamKeyPartition *pb.SerializedPartitionTable
+		var downstreamKeyPartition *pb.SerializedKeyLookupTable
 		if len(downstreamOpIds) > 0 {
 			// This is a non-sink operator. Now we guarantee there is at most 1
 			// downstream operator - at idx 0
@@ -159,7 +147,7 @@ func (c *Coordinator) StartJob() {
 						"KeyPartition is not available for downstream stateful operator\n",
 					)
 				}
-				downstreamKeyPartition = &pb.SerializedPartitionTable{
+				downstreamKeyPartition = &pb.SerializedKeyLookupTable{
 					BucketRanges: keyPartition.Serialize(),
 				}
 			}
@@ -167,13 +155,13 @@ func (c *Coordinator) StartJob() {
 
 		// Send StateLookupTable and PeerStateService for lazy protocol and
 		// stateful operator
-		var stateLookupTable *pb.SerializedPartitionTable
+		var stateLookupTable *pb.SerializedKeyLookupTable
 		var peerStateService *pb.PeerStateService
 		if c.Config.ReconfigProtocol == "lazy" &&
 			c.Dataflow.Operators[operatorId].IsStatefulOperator() {
 
 			// Get the state lookup table
-			stateLookupTable = &pb.SerializedPartitionTable{
+			stateLookupTable = &pb.SerializedKeyLookupTable{
 				BucketRanges: c.StateLookupTables[operatorId].Serialize(),
 			}
 

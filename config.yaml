@@ -16,23 +16,39 @@ PebbleDisableWAL: true
 PebbleMemTableSize: 67108864
 PebbleSyncOnWrite: false
 PebbleEnableConcurrentGetMany: true
-
-# [pebble] Max number of concurrency for GetMany() parallel reads
 PebbleGetManyMaxConcurrency: 8
-
-# [pebble] Expected batch size per GetMany() routine executor
 PebbleGetManyBatchSize: 32
+
+# [pebble] Max number of concurrent compactions (pebble default: 1)
+PebbleMaxConcurrentCompactions: 1
+
+# [pebble] Target size of the base level (L-Base) in bytes (pebble default: 64MB = 67108864)
+PebbleLBaseMaxBytes: 67108864
+
+# [pebble] Number of memtables before writes are stopped to allow flushing (pebble default: 2)
+PebbleMemTableStopWritesThreshold: 2
 
 # [remote-pebble] list of remote pebble addresses (host:port)
 RemotePebbleAddrs: []
+
+# [tikv] config DB address
 TiKVAddr: 192.168.1.101:2379
+
+# [State Comm Service] State migration gRPC message chunk size (1MB)
+# State is truncated into chunks of this size for migration
 StateMigrationChunkSize: 1048576
-NumBuckets: 128
+NumBuckets: 256
 HashFuncType: murmurhash
 KeyHashSeed: 1234
-PartitionPolicy: consistent-even
-HashPartitionNumTokens: 256
+PartitionPolicy: uniform
+HashPartitionNumTokens: 200
 HashPartitionSeeds:
+- 37015
+- 37062
+- 37104
+- 37148
+- 37189
+- 37233
 - 37277
 - 37319
 - 37368
@@ -155,32 +171,83 @@ HashPartitionSeeds:
 - 42563
 - 42606
 - 42651
+- 42695
+- 42741
+- 42785
+- 42828
+- 42871
+- 42916
+- 42960
+- 43003
+- 43046
+- 43091
+- 43135
+- 43180
+- 43225
+- 43267
+- 43311
+- 43356
+- 43400
+- 43445
+- 43489
+- 43532
+- 43575
+- 43620
+- 43663
+- 43708
+- 43751
+- 43794
+- 43839
+- 43883
+- 43926
+- 43969
+- 44012
+- 44057
+- 44101
+- 44144
+- 44189
+- 44234
+- 44279
+- 44322
+- 44365
+- 44408
+- 44452
+- 44496
+- 44539
+- 44582
+- 44626
+- 44670
+- 44713
+- 44757
+- 44801
+- 44845
+- 44888
+- 44931
+- 44975
+- 45018
+- 45061
+- 45104
+- 45149
+- 45192
+- 45235
+- 45279
+- 45324
+- 45367
+- 45410
+- 45454
+- 45498
+- 45542
+- 45586
+- 45630
+- 45673
+- 45716
+- 45761
+- 45804
 MetricsInterval: 1s
 ReconfigProtocol: lazy
-LazyProtocolVersion: by-key
-StateFlushRoutinePoolSize: 1
-StateReadRoutinePoolSize: 1
-LazyOptBucketMigrationChunkSize: 4096
-
-# [lazy-by-key] State comm API type for state fetch: "grpc" or "tcp"
-LazyByKeyStateCommAPIType: tcp
-
-# [lazy-by-key] Migration mode for buckets from a cancelling task:
-# "fetch-on-demand" or "eventual"
-LazyByKeyCancellingTaskMigrationMode: fetch-on-demand
-
-# [lazy-by-key] Max number of additional keys to fetch per batch during
-# eventual migration from cancelling tasks. Set to -1 to fetch all keys at
-# once. Only used when mode is "eventual"
-LazyByKeyGradualMigrationBatchSize: 100
-
-###############################################################################
-#                                  DEBUG Flag                                 #
-###############################################################################
-
-# Debug mode: print general debug messages
+LazyProtocolVersion: drrs
 DebugMode: false
 WatermarkDebug: false
-IsWarmup: false
-LoadWarmupData: true
-LookupTableWarmUpDataFolder: pebbleLookUpTable/nexmark_q6_mod/128ByKey_consistent_40GB
+NumSubscales: -1
+MigrationProgressGranularity: 1
+WaitBufferSize: 50

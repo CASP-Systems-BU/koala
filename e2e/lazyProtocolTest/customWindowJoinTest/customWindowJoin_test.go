@@ -15,7 +15,7 @@ import (
 	"github.com/CASP-Systems-BU/disaggregated-streaming/coordinator"
 	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constants"
 	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/worker"
 	"github.com/mus-format/mus-go/varint"
@@ -76,10 +76,10 @@ func TestCustomWindowJoin(t *testing.T) {
 	log.Println("[E2E] Starting the deployment")
 	config := configuration.Default()
 	config.ReconfigProtocol = "lazy"
-	numWorkers := 5
+	numWorkers := 6
 	client, workers, coordinator := testutils.DeployJob(
 		numWorkers,
-		func() *dataflow.Dataflow { return query(1) },
+		func() *dataflow.Dataflow { return query(2) },
 		config,
 	)
 
@@ -100,11 +100,10 @@ func TestCustomWindowJoin(t *testing.T) {
 		)
 	}
 
-	// Wait for 8s before rescaling
-	time.Sleep(8 * time.Second)
+	time.Sleep(6 * time.Second)
 	rescaleConfig := &pb.RescaleConfig{
 		TargetRescaleOp:   "customWindowJoin",
-		TargetParallelism: 2,
+		TargetParallelism: 3,
 	}
 	resp, err := client.Rescale(context.Background(), rescaleConfig)
 	if err != nil {
@@ -187,15 +186,16 @@ func checkCorrectness(
 		iter := newWorker.StateService.StateBackendImpl.GetIterator()
 
 		// For the new worker, all state should be removed at the end except the
-		// -1 key in the case that -1 is transferred to the new worker
+		// -1
+		// key in the case that -1 is transferred to the new worker
 		for iter.First(); iter.Valid(); iter.Next() {
 			serializedKey := iter.Key()
 			key, _, _ := varint.UnmarshalInt(
-				serializedKey[constant.KeyPrefixSize:],
+				serializedKey[constants.KeyPrefixSize:],
 			)
 
 			workerId := coordinator.KeyPartitions["customWindowJoin"].KeyToWorkerID(
-				serializedKey[constant.KeyPrefixSize:],
+				serializedKey,
 			)
 			if workerId != newWorker.WorkerId || key != -1 {
 				t.Errorf(
@@ -235,6 +235,9 @@ func query(joinParallelism int) *dataflow.Dataflow {
 					})
 				}
 			}
+
+			// Before src 1 ends too early
+			time.Sleep(35 * time.Second)
 
 			// Now send a record with ending timestamp to trigger the watermark
 			// for final timers
@@ -282,6 +285,9 @@ func query(joinParallelism int) *dataflow.Dataflow {
 					}
 				}
 			}
+
+			// Before src 2 ends too early
+			time.Sleep(30 * time.Second)
 
 			// Now send a record with ending timestamp to trigger the watermark
 			// for final timers

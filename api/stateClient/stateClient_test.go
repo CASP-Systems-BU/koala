@@ -12,7 +12,7 @@ import (
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
 	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constants"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/keyby/hash"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/network"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/state"
@@ -219,7 +219,7 @@ func TestSimpleStateClient_FetchAndFlushPebble(t *testing.T) {
 		key := iterator.Key()
 		value := iterator.Value()
 
-		keyStr, _, _ := ord.UnmarshalString(nil, key[constant.KeyPrefixSize:])
+		keyStr, _, _ := ord.UnmarshalString(nil, key[constants.KeyPrefixSize:])
 		valueInt, _, _ := varint.UnmarshalInt(value)
 		storedStates[keyStr] = valueInt
 	}
@@ -253,7 +253,7 @@ func TestSimpleStateClient_FetchAndFlushPebble(t *testing.T) {
 		key := iterator.Key()
 		value := iterator.Value()
 
-		keyStr, _, _ := ord.UnmarshalString(nil, key[constant.KeyPrefixSize:])
+		keyStr, _, _ := ord.UnmarshalString(nil, key[constants.KeyPrefixSize:])
 		valueInt, _, _ := varint.UnmarshalInt(value)
 		storedStates[keyStr] = valueInt
 	}
@@ -316,7 +316,7 @@ func TestSimpleStateClient_KeyPrefixFormat(t *testing.T) {
 			// utils under stateClientUtils, but we want to test the encoding
 			// here explicitly
 			ptr := unsafe.Pointer(&key)
-			buf := make([]byte, constant.KeyPrefixSize+network.SizeString(ptr))
+			buf := make([]byte, constants.KeyPrefixSize+network.SizeString(ptr))
 
 			// 1. Encode op_id
 			binary.BigEndian.PutUint16(buf[sc.OperatorIDOffset:], operatorId)
@@ -470,7 +470,7 @@ func TestSimpleStateClient_MultiState(t *testing.T) {
 		stateId := binary.BigEndian.Uint16(
 			key[sc.StateIDOffset : sc.StateIDOffset+2],
 		)
-		keyStr, _, _ := ord.UnmarshalString(nil, key[constant.KeyPrefixSize:])
+		keyStr, _, _ := ord.UnmarshalString(nil, key[constants.KeyPrefixSize:])
 		valueInt, _, _ := varint.UnmarshalInt(value)
 
 		if _, ok := storedStates[stateId]; !ok {
@@ -867,10 +867,10 @@ func TestWindowStateClient_FetchAndFlushPebble2(t *testing.T) {
 
 		keyStr, numBytesRead, _ := ord.UnmarshalString(
 			nil,
-			key[constant.KeyPrefixSize:],
+			key[constants.KeyPrefixSize:],
 		)
 		windowStartTime, _, _ := varint.UnmarshalInt64(
-			key[constant.KeyPrefixSize+numBytesRead:],
+			key[constants.KeyPrefixSize+numBytesRead:],
 		)
 		valueInt, _, _ := varint.UnmarshalInt(value)
 
@@ -956,7 +956,7 @@ func TestWindowStateClient_KeyPrefixFormat(t *testing.T) {
 			timestampPtr := unsafe.Pointer(&timestamp)
 			buf := make(
 				[]byte,
-				constant.KeyPrefixSize+network.SizeString(
+				constants.KeyPrefixSize+network.SizeString(
 					keyPtr,
 				)+network.SizeInt64(
 					timestampPtr,
@@ -1131,10 +1131,10 @@ func TestWindowStateClient_MultiState(t *testing.T) {
 		)
 		keyStr, numBytesRead, _ := ord.UnmarshalString(
 			nil,
-			key[constant.KeyPrefixSize:],
+			key[constants.KeyPrefixSize:],
 		)
 		windowStartTime, _, _ := varint.UnmarshalInt64(
-			key[constant.KeyPrefixSize+numBytesRead:],
+			key[constants.KeyPrefixSize+numBytesRead:],
 		)
 		valueInt, _, _ := varint.UnmarshalInt(value)
 
@@ -1447,111 +1447,5 @@ func TestWindowStateClient_ListStateWithAggregator(t *testing.T) {
 	}
 
 	// Cleanup
-	testutils.CleanUpDataFolder()
-}
-
-/******************************************************************************
-					  		 Test Remote Pebble
-******************************************************************************/
-
-func TestSimpleStateClient_FetchAndFlushRemotePebble(t *testing.T) {
-
-	addrs, _, stopRemotePebbleServers := testutils.StartRemotePebbleTestServers(
-		3,
-	)
-	defer stopRemotePebbleServers()
-
-	config := configuration.Default()
-	config.StateBackendType = "remote-pebble"
-	config.RemotePebbleAddrs = addrs
-	config.NumBuckets = 64
-	config.DataPlanePort = "8790"
-	remoteBackend := stateBackend.NewRemotePebbleStateBackend(config)
-	stateService := &state.StateService{
-		Config:           config,
-		StateBackendImpl: remoteBackend,
-	}
-	operatorId := uint16(1)
-
-	// Init StateClient and register a state
-	stateClient := sc.NewStateClient[string](
-		sc.SimpleStateClient,
-	)
-	stateId := sc.RegisterState[*stateType.ValueState[*tuple.Tuple1[int]]](
-		stateClient,
-	)
-	stateClient.Setup(operatorId, stateService, config)
-
-	// Fetch empty state service
-	keys := []string{"key1", "key2"}
-	numFetched := stateClient.FetchSimpleState(keys, []uint16{stateId})
-	if numFetched != 2 {
-		t.Fatalf("expected to fetch 2 states, got %v\n", numFetched)
-	}
-
-	// Set value for "key1"
-	state1, ok := stateClient.GetSimpleState(stateId, "key1").(*stateType.ValueState[*tuple.Tuple1[int]])
-	if !ok {
-		t.Fatalf("type assertion failed\n")
-	}
-	state1.Set(tuple.NewTuple1(100))
-
-	// Set value for "key2"
-	state2, ok := stateClient.GetSimpleState(stateId, "key2").(*stateType.ValueState[*tuple.Tuple1[int]])
-	if !ok {
-		t.Fatalf("type assertion failed\n")
-	}
-	state2.Set(tuple.NewTuple1(200))
-
-	// Flush cache to state service
-	numOverwrite, numMerge, numDelete := stateClient.FlushSimpleState()
-	if numOverwrite != 2 || numMerge != 0 || numDelete != 0 {
-		t.Errorf(
-			"Expect to overwrite 2 states, merge 0 states, delete 0 states, but got overwrite=%v, merge=%v, delete=%v\n",
-			numOverwrite,
-			numMerge,
-			numDelete,
-		)
-	}
-
-	// Fetch again using a new StateClient
-	stateClient = sc.NewStateClient[string](
-		sc.SimpleStateClient,
-	)
-	stateId = sc.RegisterState[*stateType.ValueState[*tuple.Tuple1[int]]](
-		stateClient,
-	)
-	stateClient.Setup(operatorId, stateService, config)
-	numFetched = stateClient.FetchSimpleState(keys, []uint16{stateId})
-	if numFetched != 2 {
-		t.Fatalf("expected to fetch 2 states, got %v\n", numFetched)
-	}
-
-	// Get value for "key1"
-	state1, ok = stateClient.GetSimpleState(stateId, "key1").(*stateType.ValueState[*tuple.Tuple1[int]])
-	if !ok {
-		t.Fatalf("type assertion failed\n")
-	}
-	val1, exist := state1.Get()
-	if !exist {
-		t.Fatalf("expected key1 exists, got not exists")
-	}
-	if val1.V1 != 100 {
-		t.Fatalf("expected key1=100, got %v", val1.V1)
-	}
-
-	// Get value for "key2"
-	state2, ok = stateClient.GetSimpleState(stateId, "key2").(*stateType.ValueState[*tuple.Tuple1[int]])
-	if !ok {
-		t.Fatalf("type assertion failed\n")
-	}
-	val2, exist := state2.Get()
-	if !exist {
-		t.Fatalf("expected key2 exists, got not exists")
-	}
-	if val2.V1 != 200 {
-		t.Fatalf("expected key2=200, got %v", val2.V1)
-	}
-
 	testutils.CleanUpDataFolder()
 }

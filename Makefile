@@ -3,7 +3,7 @@ PROTO_DIR := ./internal/grpc
 PROTO_FILES := $(wildcard $(PROTO_DIR)/*.proto)
 
 # Build binaries
-build: build_worker build_coordinator build_client build_kafka_producer build_nexmark_kafka_producer build_file_reader_kafka_producer build_remote_pebble
+build: build_worker build_coordinator build_client build_kafka_producer build_nexmark_kafka_producer build_file_reader_kafka_producer
 
 build_worker: cmd/worker/worker.go
 	go build -o ./bin/worker cmd/worker/worker.go
@@ -22,8 +22,6 @@ build_nexmark_kafka_producer: cmd/nexmarkKafkaProducer/nexmarkKafkaProducer.go
 build_file_reader_kafka_producer: cmd/fileReaderKafkaProducer/fileReaderKafkaProducer.go
 	go build -o ./bin/fileReaderKafkaProducer cmd/fileReaderKafkaProducer/fileReaderKafkaProducer.go
 
-build_remote_pebble: cmd/remotePebble/remotePebble.go
-	go build -o ./bin/remotePebble cmd/remotePebble/remotePebble.go
 
 # Build gRPC
 pb: $(PROTO_FILES)

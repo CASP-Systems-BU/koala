@@ -18,12 +18,10 @@ import (
 	borgquery "github.com/CASP-Systems-BU/disaggregated-streaming/query/borg/query"
 )
 
-// Tests per-(jobID, eventType) statistics: median, mean, max for cpu, ram,
-// disk.
+// Tests per-(jobID, eventType) statistics: median, mean, max for cpu, ram, disk.
 // Key is (jobID + "_" + eventType)
-// Output is TaskRecord (event + stats): timestamp, jobID, taskIndex, machineID,
-// eventType, cpuRequest, ramRequest, localDiskRequest, medianCpu, medianRam,
-// medianDisk, count,
+// Output is TaskRecord (event + stats): timestamp, jobID, taskIndex, machineID, eventType,
+// cpuRequest, ramRequest, localDiskRequest, medianCpu, medianRam, medianDisk, count,
 // meanCpu, meanRam, meanDisk, maxCpu, maxRam, maxDisk
 
 var SampleInput = []models.TaskEvent{
@@ -68,8 +66,7 @@ var SampleInput = []models.TaskEvent{
 //   mean:   cpu=0.4, ram=190, disk=7.5
 //   max:    cpu=0.5, ram=200, disk=10
 //
-// Event 3: Key "1001_1",
-// list=[{0.7,230,12,t=400},{0.3,180,10,t=300},{0.5,200,5,t=100}]
+// Event 3: Key "1001_1", list=[{0.7,230,12,t=400},{0.3,180,10,t=300},{0.5,200,5,t=100}]
 //   sorted desc by t: [{0.7,230,12,t=400},{0.3,180,10,t=300},{0.5,200,5,t=100}]
 //   filtered=[all 3] n=3
 //   median: cpu=sorted[1]=0.5, ram=sorted[1]=200, disk=sorted[1]=10
@@ -82,8 +79,7 @@ var SampleInput = []models.TaskEvent{
 //   mean:   cpu=0.6, ram=200, disk=15
 //   max:    cpu=0.6, ram=200, disk=15
 //
-// Event 5: Key "1001_0", 2 records [0.4,0.8]->median=vals[1]=0.8;
-// [200,250]->250; [8,20]->20
+// Event 5: Key "1001_0", 2 records [0.4,0.8]->median=vals[1]=0.8; [200,250]->250; [8,20]->20
 //   sorted desc by t: [{0.8,250,20,t=600},{0.4,200,8,t=200}]
 //   filtered=[both] n=2
 //   median: cpu=sorted[1]=0.8, ram=sorted[1]=250, disk=sorted[1]=20

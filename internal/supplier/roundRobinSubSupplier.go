@@ -41,10 +41,10 @@ func (rss *RoundRobinSubSupplier[T]) Setup() {
 
 // Read the next WorkUnit from the next upstream in round-robin order
 // Return false if no upstreams are connected or all upstream channels are empty
-func (rss *RoundRobinSubSupplier[T]) GetWorkUnit() (buffer.WorkUnit, bool) {
+func (rss *RoundRobinSubSupplier[T]) GetWorkUnit() (buffer.WorkUnit, bool, bool) {
 
 	if len(rss.Upstreams) == 0 {
-		return nil, false
+		return nil, false, false
 	}
 
 	var nextUpstream *network.Upstream[T]
@@ -58,15 +58,28 @@ func (rss *RoundRobinSubSupplier[T]) GetWorkUnit() (buffer.WorkUnit, bool) {
 
 		nextUpstream = rss.incrementNextUpstreamIdx()
 
+		// [DRRS] Check if we can only consume peer channels. This happens when
+		// upstream wait buffer are full and we use this way to block upstream
+		// input channels
+		if rss.OnlyConsumePeers && !nextUpstream.IsPeer {
+			continue
+		}
+
+		// [DRRS] If this channel has received in-flight barrier but not aligned
+		// yet, we cannot consume data from it
+		if nextUpstream.InflightBarrierReceived {
+			continue
+		}
+
 		nextWorkUnit, ok = nextUpstream.ReadFromBufferNonblock()
 		if ok {
-			return nextWorkUnit, true
+			return nextWorkUnit, nextUpstream.IsPeer, true
 		}
 	}
 
 	// We have traversed all input channels of this SubSupplier and they are all
 	// empty.
-	return nil, false
+	return nil, false, false
 }
 
 // Receive a watermark workunit, update the watermark for the corresponding
@@ -77,6 +90,42 @@ func (rss *RoundRobinSubSupplier[T]) UpdateWatermark(
 ) {
 
 	rss.Upstreams[rss.NextUpstreamIdx].WM.Update(watermark)
+}
+
+// [DRRS]
+func (rss *RoundRobinSubSupplier[T]) SetInflightBarrierReceived() {
+	if rss.Upstreams[rss.NextUpstreamIdx].InflightBarrierReceived {
+		log.Fatalf(
+			"SubSupplier [%s] SetInflightBarrierReceived: upstream %d already set\n",
+			rss.OperatorName,
+			rss.NextUpstreamIdx,
+		)
+	}
+	if rss.Upstreams[rss.NextUpstreamIdx].IsPeer {
+		log.Fatalf(
+			"SubSupplier [%s] SetInflightBarrierReceived: upstream %d is peer\n",
+			rss.OperatorName,
+			rss.NextUpstreamIdx,
+		)
+	}
+	rss.Upstreams[rss.NextUpstreamIdx].InflightBarrierReceived = true
+}
+
+// [DRRS] Reset and unblock this upstream channel
+func (rss *RoundRobinSubSupplier[T]) ResetInflightBarrier() {
+
+	for _, upstream := range rss.Upstreams {
+		if upstream.IsPeer {
+			continue
+		}
+		if !upstream.InflightBarrierReceived {
+			log.Fatalf(
+				"SubSupplier [%s] ResetInflightBarrier: upstream not set\n",
+				rss.OperatorName,
+			)
+		}
+		upstream.InflightBarrierReceived = false
+	}
 }
 
 // Current upstream is terminated, release resources and remove it from the
@@ -92,7 +141,7 @@ func (rss *RoundRobinSubSupplier[T]) RemoveUpstream() {
 		)
 	}
 
-	if len(rss.Upstreams) < 2 && !rss.IsShuttingDown && !rss.IsWarmUpRun {
+	if len(rss.Upstreams) < 2 && !rss.IsShuttingDown {
 		log.Fatalf(
 			"SubSupplier [%s] RemoveUpstream: shouldn't remove the last upstream\n",
 			rss.OperatorName,

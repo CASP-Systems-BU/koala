@@ -69,8 +69,13 @@ type Operator interface {
 	InitNewUpstream(net.Conn)
 
 	// Get next WorkUnit from upstream - only apply for non-source operators
-	// Returns a WorkUnit and the SubSupplier name (upstream operator name)
-	GetWorkUnit() (buffer.WorkUnit, string)
+	// Return:
+	// 1. The next WorkUnit from upstreams
+	// 2. If the workunit comes from peer input channel
+	// 3. The name of the upstream operator where the WorkUnit comes from
+	// 4. [DRRS] If this read is successful - it could return nothing if no
+	//    input is available in peer-only mode to consume wait buffer
+	GetWorkUnit() (buffer.WorkUnit, bool, string, bool)
 
 	// Get the parallelism of the operator
 	GetParallelism() int
@@ -108,7 +113,7 @@ type Operator interface {
 	UpdateDownstreamRouting(
 		[]*pb.DownstreamInfo,
 		[]*pb.DownstreamInfo,
-		*pb.SerializedPartitionTable,
+		*pb.SerializedKeyLookupTable,
 	)
 
 	// Terminate the task
@@ -160,7 +165,7 @@ type Operator interface {
 
 	// [Lazy protocol] Set Routing table and activate PeerCollector for fast
 	// forward
-	PrepareLazyProtocol([]*pb.DownstreamInfo, *keyby.PartitionTable)
+	PrepareLazyProtocol([]*pb.DownstreamInfo, *keyby.KeyLookupTable)
 
 	// [Lazy protocol] Construct FastForward Metadata to connected peers
 	// This is the method overridden by stateful operators that needs to pass
@@ -178,10 +183,6 @@ type Operator interface {
 	// from the Supplier
 	BroadcastWatermarkToPeers(*buffer.Watermark)
 
-	// [Lazy protocol][Lazy-by-key] Construct and send the serialized KeyMaps
-	// for affected buckets over peer channels
-	ConstructAndSendKeyMaps(*keyby.KeyLookupTableV2)
-
 	// [Lazy protocol] Notify control plane the main routine has entered
 	// reconfiguration phase
 	NotifyReconfigStart()
@@ -192,6 +193,33 @@ type Operator interface {
 	// [Lazy protocol] Exit the transition phase when InFlightBarrier is
 	// received
 	ExitTransitionPhase()
+
+	// [DRRS] Split input batch and push blocked records to WaitBuffer
+	SplitBatchForDRRS(buffer.WorkUnit, bool, string) (buffer.WorkUnit, bool)
+
+	// [DRRS] Consume WaitBuffer
+	ConsumeDRRSWaitBuffer(Operator, bool)
+
+	// [DRRS] Check if a progressed watermark can be processed. Return true if
+	// it is inserted into wait buffer and cannot be processed
+	BlockWatermarkDRRS(*buffer.Watermark) bool
+
+	// [DRRS] Enter termination waiting phase, set the flag to let the main
+	// routine check termination condition
+	EnterTerminationPhase()
+
+	// [DRRS] Exit the DRRS reconfiguration phase, reset the flag
+	ExitDRRSReconfigPhase()
+
+	// [DRRS] Wait on WaitBuffer clear and state migration done
+	WaitOnWaitBufferAndStateMigration()
+
+	// [DRRS] Enter DRRS reconfiguration phase
+	EnterDRRSReconfigPhase()
+
+	IfDRRSInReconfig() bool
+
+	IsUpstreamWaitBufferEmpty() bool
 }
 
 // Base struct for all operators
@@ -214,6 +242,9 @@ type OperatorBase struct {
 
 	// Metric collector
 	MetricCollector *metric.MetricCollector
+
+	// [Logging] Store local worker id after task assignment for logging
+	WorkerIdForLogging uint16
 }
 
 func NewOperatorBase(operatorName string) *OperatorBase {
@@ -254,10 +285,13 @@ func (op *OperatorBase) IsStatefulOperator() bool {
 }
 
 func (op *OperatorBase) InitNewUpstream(connection net.Conn) {
+	if op.Supplier == nil {
+		return
+	}
 	op.Supplier.InitNewUpstream(connection)
 }
 
-func (op *OperatorBase) GetWorkUnit() (buffer.WorkUnit, string) {
+func (op *OperatorBase) GetWorkUnit() (buffer.WorkUnit, bool, string, bool) {
 	return op.Supplier.GetWorkUnit()
 }
 
@@ -321,7 +355,7 @@ func (op *OperatorBase) AddSubSupplierToDownstream(downstream Operator) {
 func (op *OperatorBase) UpdateDownstreamRouting(
 	downstreamsToAdd []*pb.DownstreamInfo,
 	downstreamsToRemove []*pb.DownstreamInfo,
-	newDownstreamKR *pb.SerializedPartitionTable,
+	newDownstreamKR *pb.SerializedKeyLookupTable,
 ) {
 
 	if op.IsSink() {
@@ -459,7 +493,7 @@ func (op *OperatorBase) FastForward(
 // supported. Stateful operators override this method.
 func (op *OperatorBase) PrepareLazyProtocol(
 	peerList []*pb.DownstreamInfo,
-	routingTable *keyby.PartitionTable,
+	routingTable *keyby.KeyLookupTable,
 ) {
 	log.Fatalln("PrepareLazyProtocol() not supported for stateless operators")
 }
@@ -498,15 +532,6 @@ func (op *OperatorBase) ProcessFastForwardMetadata(
 func (op *OperatorBase) BroadcastWatermarkToPeers(wm *buffer.Watermark) {
 	log.Fatalln(
 		"BroadcastWatermarkToPeers() not supported for stateless operators",
-	)
-}
-
-// Dummy implementation for stateless operators
-func (op *OperatorBase) ConstructAndSendKeyMaps(
-	keyLookupTableV2 *keyby.KeyLookupTableV2,
-) {
-	log.Fatalln(
-		"ConstructAndSendKeyMaps() not supported for stateless operators",
 	)
 }
 
@@ -570,8 +595,73 @@ func (op *OperatorBase) Setup(para *utils.OperatorSetupParas) {
 		op.Collector.Setup(para)
 	}
 
+	// [Logging] Store local worker id after task assignment for logging
+	op.WorkerIdForLogging = para.WorkerID
+
 	// Start metrics collector routine
 	go op.MetricCollector.Run()
+}
+
+// [DRRS] Dummy implementation for stateless operators - do nothing and return
+// the original work unit
+func (op *OperatorBase) SplitBatchForDRRS(
+	workUnit buffer.WorkUnit,
+	isPeer bool,
+	subSupplierName string,
+) (buffer.WorkUnit, bool) {
+	return workUnit, true
+}
+
+// [DRRS] Dummy implementation for stateless operators - do nothing
+func (op *OperatorBase) ConsumeDRRSWaitBuffer(
+	curTask Operator,
+	inTransition bool,
+) {
+}
+
+// [DRRS]
+func (op *OperatorBase) EnterTerminationPhase() {
+	log.Fatalln(
+		"EnterTerminationPhase() not supported for stateless operators",
+	)
+}
+
+// [DRRS]
+func (op *OperatorBase) ExitDRRSReconfigPhase() {
+	log.Fatalln(
+		"ExitDRRSReconfigPhase() not supported for stateless operators",
+	)
+}
+
+// [DRRS]
+func (op *OperatorBase) WaitOnWaitBufferAndStateMigration() {
+	log.Fatalln(
+		"WaitOnWaitBufferAndStateMigration() not supported for stateless operators",
+	)
+}
+
+// [DRRS] Return true if the watermark is inserted into wait buffer and cannot
+// be processed
+func (op *OperatorBase) BlockWatermarkDRRS(wm *buffer.Watermark) bool {
+	return false
+}
+
+// [DRRS]
+func (op *OperatorBase) EnterDRRSReconfigPhase() {
+	log.Fatalln(
+		"EnterDRRSReconfigPhase() not supported for stateless operators",
+	)
+}
+
+func (op *OperatorBase) IfDRRSInReconfig() bool {
+	return false
+}
+
+func (op *OperatorBase) IsUpstreamWaitBufferEmpty() bool {
+	log.Fatalln(
+		"IsUpstreamWaitBufferEmpty() not supported for stateless operators",
+	)
+	return true
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -65,10 +65,10 @@
     "scripts/fileReaderJson/twitchWarmup3.csv"
   ],
   "ReconfigProtocol": "lazy",
-  "LazyProtocolVersion": "by-key",
+  "LazyProtocolVersion": "drrs",
   "TotalRuntimeSeconds": 3000000,
   "NumBuckets": 128,
-  "PartitionPolicy": "consistent-even",
+  "PartitionPolicy": "uniform",
   "BufferSize": 50,
   "BatchSize": 4096,
   "StateBackendType": "pebble",
@@ -78,9 +78,9 @@
   "IsWarmUp": true,
   "LoadWarmUpData": false,
   "WarmUpDataFolder": {
-    "Pebble": "pebble_warmup_data/twitch/128_consistent"
+    "Pebble": "pebble_warmup_data/twitch/128_uniform"
   },
-  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/twitch/128ByKey_consistent",
+  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/twitch/128ByKey_uniform",
   "RetentionAnalyzerParallelism": 4,
   "ViewerLoyaltyCalculatorParallelism": 4,
   "LoyaltyTrendAnalyzerParallelism": 4,

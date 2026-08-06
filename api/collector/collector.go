@@ -44,7 +44,7 @@ type Collector interface {
 	UpdateRouting(
 		[]*pb.DownstreamInfo,
 		[]*pb.DownstreamInfo,
-		*pb.SerializedPartitionTable,
+		*pb.SerializedKeyLookupTable,
 	)
 
 	// Terminate outbound connections and clean up
@@ -81,9 +81,6 @@ type CollectorBase[T tuple.Tuple] struct {
 
 	// Copy of name of the current operator for logging purposes
 	OperatorName string
-
-	// Copy of the local worker ID
-	WorkerId uint16
 
 	// Store the global config
 	Config *configuration.Configuration
@@ -137,7 +134,6 @@ func NewCollectorBase[T tuple.Tuple](
 // Runtime setup
 func (c *CollectorBase[T]) SetupCollectorBase(
 	operatorName string,
-	workerId uint16,
 	downstreamInfoList []*pb.DownstreamInfo,
 	config *configuration.Configuration,
 	metricCollector *metric.MetricCollector,
@@ -147,7 +143,6 @@ func (c *CollectorBase[T]) SetupCollectorBase(
 		log.Println("[info] No metric collector is configured")
 	}
 	c.OperatorName = operatorName
-	c.WorkerId = workerId
 
 	// Initialize the downstream structures
 	downstreams := make(
@@ -254,7 +249,7 @@ func (c *CollectorBase[T]) startOutputNetworkRoutines() {
 
 	// Start all output network routines
 	for _, downstream := range c.Downstreams {
-		go downstream.ConsumeOutputBuffer(c.Encoder, 0, c.WorkerId)
+		go downstream.ConsumeOutputBuffer(c.Encoder, false)
 	}
 }
 
@@ -272,7 +267,7 @@ func (c *CollectorBase[T]) connectToNewDownstreamsHelper(
 			c.MetricCollector,
 			c.OperatorName,
 		)
-		go newDownstream.ConsumeOutputBuffer(c.Encoder, 0, c.WorkerId)
+		go newDownstream.ConsumeOutputBuffer(c.Encoder, false)
 
 		// Add the new downstream to the map
 		_, ok := c.Downstreams[uint16(ds.WorkerId)]

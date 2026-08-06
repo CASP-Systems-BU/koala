@@ -63,8 +63,13 @@ watermark progression, drainBarrier alignment, inflightBarrier alignment, etc.
 If all SubSuppliers have no input data at the moment, this API will sleep for a
 while and retry. The sleep interval allows new upstreams to connect and new data
 to arrive.
+
+Return:
+1. The next WorkUnit from upstreams
+2. If the workunit comes from peer input channel
+3. The name of the upstream operator where the WorkUnit comes from
 */
-func (rs *RoundRobinSupplier) GetWorkUnit() (buffer.WorkUnit, string) {
+func (rs *RoundRobinSupplier) GetWorkUnit() (buffer.WorkUnit, bool, string, bool) {
 
 	sleepInterval := rs.Config.BufferSleepInterval
 
@@ -77,7 +82,7 @@ func (rs *RoundRobinSupplier) GetWorkUnit() (buffer.WorkUnit, string) {
 
 		nextSubSupplier, subSupplierName := rs.incrementNextSubSupplierIdx()
 
-		if nextWorkUnitToProcess, ok := nextSubSupplier.GetWorkUnit(); ok {
+		if nextWorkUnitToProcess, isPeer, ok := nextSubSupplier.GetWorkUnit(); ok {
 
 			// Successfully read from SubSupplier, reset the empty read counter
 			numEmptySubSupplierRead = 0
@@ -86,7 +91,7 @@ func (rs *RoundRobinSupplier) GetWorkUnit() (buffer.WorkUnit, string) {
 			rs.MetricCollector.UpdateIdleTime(0)
 
 			if nextWorkUnitToReturn, ok := rs.preprocessWorkUnit(nextWorkUnitToProcess, subSupplierName); ok {
-				return nextWorkUnitToReturn, subSupplierName
+				return nextWorkUnitToReturn, isPeer, subSupplierName, ok
 			}
 			continue
 		}
@@ -101,6 +106,21 @@ func (rs *RoundRobinSupplier) GetWorkUnit() (buffer.WorkUnit, string) {
 			time.Sleep(sleepInterval)
 			rs.MetricCollector.UpdateIdleTime(sleepInterval)
 			rs.Lock()
+
+			// [DRRS] If now is peer-only node and input was empty, we should
+			// exit supplier and let main routine consume wait buffer if any.
+			// This will possibly switch back to all-channel mode and unblock
+			if rs.OnlyConsumePeers {
+				return nil, false, "", false
+			}
+
+			// [DRRS] If all upstreams are removed (about to terminate), exit
+			// the supplier such that main routine can check the termination
+			// condition
+			if rs.IsShuttingDown && rs.getNumUpstreams() == 0 {
+				return nil, false, "", false
+			}
+
 		} else {
 			// Report 0 to ensure there is data point reported
 			rs.MetricCollector.UpdateIdleTime(0)

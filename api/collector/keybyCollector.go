@@ -22,7 +22,7 @@ type KeybyCollector[T tuple.Tuple, K comparable] struct {
 	CurBatches map[uint16]*buffer.Batch[T]
 
 	// Routing table for downstream
-	RoutingTable *keyby.PartitionTable
+	RoutingTable *keyby.KeyLookupTable
 
 	// key assigner
 	KeyAssigner *ka.KeyAssigner[T, K]
@@ -65,7 +65,6 @@ func (c *KeybyCollector[T, K]) Setup(para *utils.OperatorSetupParas) {
 
 	c.SetupCollectorBase(
 		para.OperatorName,
-		para.WorkerID,
 		para.DownstreamInfoList,
 		para.Config,
 		para.MetricCollector,
@@ -116,7 +115,6 @@ func (c *KeybyCollector[T, K]) Emit(t tuple.Tuple) {
 	downstream := c.getDownstreamByWorkerID(downstreamWorkerId)
 	targetBatch := c.getPendingBatchByWorkerID(downstreamWorkerId)
 	recordSize := c.GetSize(t)
-	c.MetricCollector.UpdateRecordSizePerBatch(int64(recordSize))
 
 	// Check if current batch has sufficient space to hold the record
 	if recordSize+int(targetBatch.TotalNumBytes) > int(c.Config.BatchSize) {
@@ -168,7 +166,7 @@ func (c *KeybyCollector[T, K]) PauseEmit() {
 func (c *KeybyCollector[T, K]) UpdateRouting(
 	downstreamsToAdd []*pb.DownstreamInfo,
 	downstreamsToRemove []*pb.DownstreamInfo,
-	newDownstreamKR *pb.SerializedPartitionTable,
+	newDownstreamKR *pb.SerializedKeyLookupTable,
 ) {
 
 	if newDownstreamKR == nil {
@@ -199,7 +197,7 @@ func (c *KeybyCollector[T, K]) UpdateRouting(
 	c.removeDownstreamsHelper(downstreamsToRemove)
 
 	// Update routing table for updated key partition
-	c.RoutingTable = keyby.DeserializePartitionTable(
+	c.RoutingTable = keyby.DeserializeKeyLookupTable(
 		newDownstreamKR.BucketRanges,
 		c.Config,
 	)

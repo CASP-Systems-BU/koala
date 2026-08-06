@@ -50,7 +50,7 @@ func TestTumblingWindowOptScaleDown(t *testing.T) {
 	numWorkers := 4
 	client, workers, _ := testutils.DeployJob(
 		numWorkers,
-		tumblingWindowQuery,
+		func() *dataflow.Dataflow { return tumblingWindowQuery(2) },
 		config,
 	)
 
@@ -77,7 +77,7 @@ func TestTumblingWindowOptScaleDown(t *testing.T) {
 	expectedWM := int64(TIMEBUCKETSPAN * NUMTIMEBUCKETS)
 	go testutils.MonitorEndOfTest(sink, done, expectedWM)
 
-	// Wait for the test to be completed
+	// Wait for the test to be compeleted
 	<-done
 	log.Println("[E2E] Test completed")
 

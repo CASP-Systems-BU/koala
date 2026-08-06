@@ -2,6 +2,7 @@ package metric
 
 import (
 	"context"
+	"io"
 	"log"
 	"time"
 
@@ -72,44 +73,8 @@ type MetricCollector struct {
 	// Avg keylookup time per batch per interval
 	keyLookupTime *Average
 
-	// Avg remote read time per batch per interval (for remote pebble state backend)
-	remoteReadTime *Average
-
-	// Avg remote write time per batch per interval (for remote pebble state backend)
-	remoteWriteTime *Average
-
-	// Avg remote ReadRequestNumber per batch per interval(for remote pebble state backend)
-	remoteReadRequestNumber *Average
-
-	// Avg remote WriteRequestNumber per batch per interval(for remote pebble state backend)
-	remoteWriteRequestNumber *Average
-
-	// Avg remote read key number per batch per interval(for remote pebble state backend)
-	remoteReadKeyNumber *Average
-
-	// Avg remote write key number per batch per interval(for remote pebble state backend)
-	remoteWriteKeyNumber *Average
-
-	// Avg remote read time per request per batch per interval (for remote pebble state backend)
-	remoteReadTimePerRequest *Average
-
-	// Avg remote write time per request per batch per interval (for remote pebble state backend)
-	remoteWriteTimePerRequest *Average
-
 	// Avg generating dummy field time per batch per interval
 	generateDummyFieldTime *Average
-
-	// Avg record number per batch
-	recordNumberPerBatch *Average
-
-	// Avg key number per batch
-	keyNumberPerBatch *Average
-
-	// Avg record size
-	recordSizePerBatch *Average
-
-	// Sum of bytes transferred by lazy keyby protocol (request + response) per period
-	numBytesTransferred *Sum
 }
 
 func NewMetricCollector(
@@ -121,35 +86,23 @@ func NewMetricCollector(
 ) *MetricCollector {
 
 	return &MetricCollector{
-		opWorkerID:                opWorkerID,
-		metricsInterval:           metricsInterval,
-		coordinatorAddr:           coordinatorAddr,
-		isSource:                  isSource,
-		isSink:                    isSink,
-		termination:               make(chan struct{}, 2), // non-blocking channel
-		inputRate:                 NewRate(metricsInterval),
-		outputRate:                NewRate(metricsInterval),
-		latency:                   NewLatency(),
-		idleRate:                  NewPercentage(metricsInterval),
-		backpressureRate:          NewPercentage(metricsInterval),
-		getManyTime:               NewAverage(),
-		setManyTime:               NewAverage(),
-		readLocalStateTime:        NewAverage(),
-		overwriteLocalStateTime:   NewAverage(),
-		keyLookupTime:             NewAverage(),
-		remoteReadTime:            NewAverage(),
-		remoteWriteTime:           NewAverage(),
-		remoteReadRequestNumber:   NewAverage(),
-		remoteWriteRequestNumber:  NewAverage(),
-		remoteReadKeyNumber:       NewAverage(),
-		remoteWriteKeyNumber:      NewAverage(),
-		remoteReadTimePerRequest:  NewAverage(),
-		remoteWriteTimePerRequest: NewAverage(),
-		generateDummyFieldTime:    NewAverage(),
-		recordNumberPerBatch:      NewAverage(),
-		keyNumberPerBatch:         NewAverage(),
-		recordSizePerBatch:        NewAverage(),
-		numBytesTransferred:       NewSum(),
+		opWorkerID:              opWorkerID,
+		metricsInterval:         metricsInterval,
+		coordinatorAddr:         coordinatorAddr,
+		isSource:                isSource,
+		isSink:                  isSink,
+		termination:             make(chan struct{}, 2), // non-blocking channel
+		inputRate:               NewRate(metricsInterval),
+		outputRate:              NewRate(metricsInterval),
+		latency:                 NewLatency(),
+		idleRate:                NewPercentage(metricsInterval),
+		backpressureRate:        NewPercentage(metricsInterval),
+		getManyTime:             NewAverage(),
+		setManyTime:             NewAverage(),
+		readLocalStateTime:      NewAverage(),
+		overwriteLocalStateTime: NewAverage(),
+		keyLookupTime:           NewAverage(),
+		generateDummyFieldTime:  NewAverage(),
 	}
 }
 
@@ -211,6 +164,11 @@ func (mc *MetricCollector) reportMetrics() {
 	}
 
 	if err := mc.stream.Send(msg); err != nil {
+		if err == io.EOF {
+			// Coordinator closed the stream - job is done
+			mc.Terminate()
+			return
+		}
 		log.Printf("Failed to send metric message: %v\n", err)
 	}
 }
@@ -255,43 +213,7 @@ func (mc *MetricCollector) collectMetrics() []*pb.MetricData {
 			MetricValue: mc.keyLookupTime.Get(), MetricType: "KeyLookUpTime",
 		},
 		{
-			MetricValue: mc.remoteReadTime.Get(), MetricType: "RemoteReadTime",
-		},
-		{
-			MetricValue: mc.remoteWriteTime.Get(), MetricType: "RemoteWriteTime",
-		},
-		{
-			MetricValue: mc.remoteReadRequestNumber.Get(), MetricType: "RemoteReadRequestNumber",
-		},
-		{
-			MetricValue: mc.remoteWriteRequestNumber.Get(), MetricType: "RemoteWriteRequestNumber",
-		},
-		{
-			MetricValue: mc.remoteReadKeyNumber.Get(), MetricType: "RemoteReadKeyNumber",
-		},
-		{
-			MetricValue: mc.remoteWriteKeyNumber.Get(), MetricType: "RemoteWriteKeyNumber",
-		},
-		{
-			MetricValue: mc.remoteReadTimePerRequest.Get(), MetricType: "RemoteReadTimePerRequest",
-		},
-		{
-			MetricValue: mc.remoteWriteTimePerRequest.Get(), MetricType: "RemoteWriteTimePerRequest",
-		},
-		{
 			MetricValue: mc.generateDummyFieldTime.Get(), MetricType: "GenerateDummyFieldTime",
-		},
-		{
-			MetricValue: mc.recordNumberPerBatch.Get(), MetricType: "RecordNumberPerBatch",
-		},
-		{
-			MetricValue: mc.keyNumberPerBatch.Get(), MetricType: "KeyNumberPerBatch",
-		},
-		{
-			MetricValue: mc.recordSizePerBatch.Get(), MetricType: "RecordSizePerBatch",
-		},
-		{
-			MetricValue: mc.numBytesTransferred.Get(), MetricType: "NumBytesTransferred",
 		},
 	}
 
@@ -433,67 +355,7 @@ func (mc *MetricCollector) UpdateKeyLookUpTime(dur time.Duration) {
 	mc.keyLookupTime.Inc(dur.Nanoseconds())
 }
 
-// Update the remote read time per batch
-func (mc *MetricCollector) UpdateRemoteReadTime(dur time.Duration) {
-	mc.remoteReadTime.Inc(dur.Nanoseconds())
-}
-
-// Update the remote write time per batch
-func (mc *MetricCollector) UpdateRemoteWriteTime(dur time.Duration) {
-	mc.remoteWriteTime.Inc(dur.Nanoseconds())
-}
-
-// Update the remote read request number per batch
-func (mc *MetricCollector) UpdateRemoteReadRequestNumber(num int) {
-	mc.remoteReadRequestNumber.Inc(int64(num))
-}
-
-// Update the remote write request number per batch
-func (mc *MetricCollector) UpdateRemoteWriteRequestNumber(num int) {
-	mc.remoteWriteRequestNumber.Inc(int64(num))
-}
-
-// Update the remote read key number per batch
-func (mc *MetricCollector) UpdateRemoteReadKeyNumber(num int) {
-	mc.remoteReadKeyNumber.Inc(int64(num))
-}
-
-// Update the remote write key number per batch
-func (mc *MetricCollector) UpdateRemoteWriteKeyNumber(num int) {
-	mc.remoteWriteKeyNumber.Inc(int64(num))
-}
-
-// Update the remote read time per request per batch
-func (mc *MetricCollector) UpdateRemoteReadTimePerRequest(dur time.Duration) {
-	mc.remoteReadTimePerRequest.Inc(dur.Nanoseconds())
-}
-
-// Update the remote write time per request per batch
-func (mc *MetricCollector) UpdateRemoteWriteTimePerRequest(dur time.Duration) {
-	mc.remoteWriteTimePerRequest.Inc(dur.Nanoseconds())
-}
-
 // Update the generate dummy field time per batch
 func (mc *MetricCollector) UpdateGenerateDummyFieldTime(dur time.Duration) {
 	mc.generateDummyFieldTime.Inc(dur.Nanoseconds())
-}
-
-// Update record number per batch
-func (mc *MetricCollector) UpdateRecordNumberPerBatch(recordNumber int64) {
-	mc.recordNumberPerBatch.Inc(recordNumber)
-}
-
-// Update key number per batch
-func (mc *MetricCollector) UpdateKeyNumberPerBatch(keyNumber int64) {
-	mc.keyNumberPerBatch.Inc(keyNumber)
-}
-
-// Update record size per batch
-func (mc *MetricCollector) UpdateRecordSizePerBatch(size int64) {
-	mc.recordSizePerBatch.Inc(size)
-}
-
-// Update num bytes transferred by lazy keyby protocol (request + response bytes)
-func (mc *MetricCollector) UpdateNumBytesTransferred(bytes uint64) {
-	mc.numBytesTransferred.Inc(bytes)
 }

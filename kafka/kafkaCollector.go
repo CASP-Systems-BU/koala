@@ -164,7 +164,7 @@ func (kc *KafkaCollector[OUT]) ResumeEmit() {
 func (kc *KafkaCollector[OUT]) UpdateRouting(
 	downstreamsToAdd []*pb.DownstreamInfo,
 	downstreamsToRemove []*pb.DownstreamInfo,
-	table *pb.SerializedPartitionTable,
+	table *pb.SerializedKeyLookupTable,
 ) {
 	log.Fatalln("KafkaCollector.UpdateRouting() not implemented")
 }

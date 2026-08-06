@@ -1,4 +1,4 @@
-package filesourcefunc
+package taxi
 
 import (
 	"bufio"
@@ -164,11 +164,7 @@ func TaxiFileSourceFunc[OUT tuple.Tuple](
 					}
 					// Check if we already genreated a whole round
 					if outputEventNumber%totalEventNumber == 0 {
-						log.Println(
-							"source has generated a singleRound, total",
-							totalEventNumber,
-							"events.",
-						)
+						log.Println("source has generated a singleRound, total", totalEventNumber, "events.")
 					}
 				}
 

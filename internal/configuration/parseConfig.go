@@ -32,50 +32,5 @@ func ReadConfig() *Configuration {
 		log.Fatalf("failed to unmarshal YAML: %v\n", err)
 	}
 
-	// Validate the configuration
-	validateConfig(config)
-
 	return config
-}
-
-// TODO: add more validation rules as we need
-func validateConfig(config *Configuration) {
-
-	supportedReconfigProtocols := map[string]bool{
-		"stop-and-restart": true,
-		"lazy":             true,
-	}
-	if !supportedReconfigProtocols[config.ReconfigProtocol] {
-		log.Fatalf(
-			"unsupported reconfiguration protocol: %s\n",
-			config.ReconfigProtocol,
-		)
-	}
-
-	supportedLazyProtocolVersions := map[string]bool{
-		"basic":        true,
-		"optimized":    true,
-		"no-migration": true,
-		"by-key":       true,
-	}
-	if config.ReconfigProtocol == "lazy" &&
-		!supportedLazyProtocolVersions[config.LazyProtocolVersion] {
-		log.Fatalf(
-			"unsupported lazy protocol version: %s\n",
-			config.LazyProtocolVersion,
-		)
-	}
-
-	supportedCancellingTaskMigrationModes := map[string]bool{
-		"fetch-on-demand": true,
-		"eventual":        true,
-	}
-	if config.ReconfigProtocol == "lazy" &&
-		config.LazyProtocolVersion == "by-key" &&
-		!supportedCancellingTaskMigrationModes[config.LazyByKeyCancellingTaskMigrationMode] {
-		log.Fatalf(
-			"unsupported cancelling task migration mode: %s\n",
-			config.LazyByKeyCancellingTaskMigrationMode,
-		)
-	}
 }

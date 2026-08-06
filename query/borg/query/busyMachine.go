@@ -45,10 +45,8 @@ func (cfg *BorgConfig) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, (*alias)(cfg))
 }
 
-// V1-V8: event data (timestamp, jobID, taskIndex, machineID, eventType,
-// cpuRequest, ramRequest, localDiskRequest) V9-V18: stats (medianCpu,
-// medianRam, medianDisk, count, meanCpu, meanRam, meanDisk, maxCpu, maxRam,
-// maxDisk)
+// V1-V8: event data (timestamp, jobID, taskIndex, machineID, eventType, cpuRequest, ramRequest, localDiskRequest)
+// V9-V18: stats (medianCpu, medianRam, medianDisk, count, meanCpu, meanRam, meanDisk, maxCpu, maxRam, maxDisk)
 type TaskRecord = tuple.Tuple18[int64, int64, int64, int64, string, float64, float64, float64, float64, float64, float64, int64, float64, float64, float64, float64, float64, float64]
 
 // IsWarmupRecord returns true if the record is a dummy/warmup record.
@@ -57,10 +55,7 @@ func IsWarmupRecord(r *TaskRecord) bool {
 }
 
 // MedianFromFiltered computes the median of a field across filtered records.
-func MedianFromFiltered(
-	filtered []*TaskRecord,
-	getVal func(*TaskRecord) float64,
-) float64 {
+func MedianFromFiltered(filtered []*TaskRecord, getVal func(*TaskRecord) float64) float64 {
 	if len(filtered) == 0 {
 		return 0.0
 	}
@@ -73,10 +68,7 @@ func MedianFromFiltered(
 }
 
 // MeanFromFiltered computes the mean of a field across filtered records.
-func MeanFromFiltered(
-	filtered []*TaskRecord,
-	getVal func(*TaskRecord) float64,
-) float64 {
+func MeanFromFiltered(filtered []*TaskRecord, getVal func(*TaskRecord) float64) float64 {
 	if len(filtered) == 0 {
 		return 0.0
 	}
@@ -88,10 +80,7 @@ func MeanFromFiltered(
 }
 
 // MaxFromFiltered computes the max of a field across filtered records.
-func MaxFromFiltered(
-	filtered []*TaskRecord,
-	getVal func(*TaskRecord) float64,
-) float64 {
+func MaxFromFiltered(filtered []*TaskRecord, getVal func(*TaskRecord) float64) float64 {
 	if len(filtered) == 0 {
 		return 0.0
 	}
@@ -106,8 +95,7 @@ func MaxFromFiltered(
 }
 
 // BusyMachine query keys task events by (jobID, eventType),
-// maintains a bounded list of (cpuRequest, ramRequest, localDiskRequest) per
-// key,
+// maintains a bounded list of (cpuRequest, ramRequest, localDiskRequest) per key,
 // and computes running medians, means, and max for all three resource types.
 // Output is per job ID per event type.
 //
@@ -162,13 +150,7 @@ func BusyMachine(configFile string) *dataflow.Dataflow {
 
 	jobEventKeyAssigner := ka.NewKeyAssigner(
 		func(t *models.TaskEvent) string {
-			return strconv.FormatInt(
-				t.V3,
-				10,
-			) + "_" + strconv.FormatInt(
-				t.V4,
-				10,
-			)
+			return strconv.FormatInt(t.V3, 10) + "_" + strconv.FormatInt(t.V4, 10)
 		},
 	)
 
@@ -219,9 +201,8 @@ func BusyMachine(configFile string) *dataflow.Dataflow {
 			medianRam := MedianFromFiltered(filtered, getRam)
 			medianDisk := MedianFromFiltered(filtered, getDisk)
 
-			// Store stats in the record — entire event + stats persisted to
-			// Pebble Store stats in the record — entire event + stats
-			// persisted to Pebble
+			// Store stats in the record — entire event + stats persisted to Pebble
+			// Store stats in the record — entire event + stats persisted to Pebble
 			rec.V9, rec.V10, rec.V11 = medianCpu, medianRam, medianDisk
 			rec.V12 = int64(n)
 			rec.V12 = int64(n)

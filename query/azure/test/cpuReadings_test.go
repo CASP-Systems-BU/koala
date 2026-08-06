@@ -2,6 +2,7 @@ package test
 
 import (
 	"log"
+	"math"
 	"reflect"
 	"sort"
 	"testing"
@@ -52,10 +53,7 @@ var resultCh chan struct{}
 
 const testListStateSize = 4
 
-func medianFromFiltered(
-	filtered []*azurequery.CpuRecord,
-	getVal func(*azurequery.CpuRecord) float64,
-) float64 {
+func medianFromFiltered(filtered []*azurequery.CpuRecord, getVal func(*azurequery.CpuRecord) float64) float64 {
 	if len(filtered) == 0 {
 		return 0.0
 	}
@@ -65,6 +63,31 @@ func medianFromFiltered(
 	}
 	sort.Float64s(vals)
 	return vals[len(vals)/2]
+}
+
+func meanFromFiltered(filtered []*azurequery.CpuRecord, getVal func(*azurequery.CpuRecord) float64) float64 {
+	if len(filtered) == 0 {
+		return 0.0
+	}
+	sum := 0.0
+	for _, r := range filtered {
+		sum += getVal(r)
+	}
+	return sum / float64(len(filtered))
+}
+
+func maxFromFiltered(filtered []*azurequery.CpuRecord, getVal func(*azurequery.CpuRecord) float64) float64 {
+	if len(filtered) == 0 {
+		return 0.0
+	}
+	m := math.Inf(-1)
+	for _, r := range filtered {
+		v := getVal(r)
+		if v > m {
+			m = v
+		}
+	}
+	return m
 }
 
 func TestCpuReadingsCorrectness(t *testing.T) {
@@ -144,13 +167,7 @@ func cpuReadingsTestDataflow() *dataflow.Dataflow {
 		) *azurequery.CpuRecord {
 			list := state.Get()
 
-			rec := &azurequery.CpuRecord{
-				V1: in.V1,
-				V2: in.V2,
-				V3: in.V3,
-				V4: in.V4,
-				V5: in.V5,
-			}
+			rec := &azurequery.CpuRecord{V1: in.V1, V2: in.V2, V3: in.V3, V4: in.V4, V5: in.V5}
 			list = append(list, rec)
 
 			sort.Slice(list, func(i, j int) bool {
@@ -171,22 +188,36 @@ func cpuReadingsTestDataflow() *dataflow.Dataflow {
 			medianMin := medianFromFiltered(filtered, getMinCpu)
 			medianMax := medianFromFiltered(filtered, getMaxCpu)
 			medianAvg := medianFromFiltered(filtered, getAvgCpu)
+			meanMin := meanFromFiltered(filtered, getMinCpu)
+			meanMax := meanFromFiltered(filtered, getMaxCpu)
+			meanAvg := meanFromFiltered(filtered, getAvgCpu)
+			maxMin := maxFromFiltered(filtered, getMinCpu)
+			maxMax := maxFromFiltered(filtered, getMaxCpu)
+			maxAvg := maxFromFiltered(filtered, getAvgCpu)
 
 			rec.V6, rec.V7, rec.V8 = medianMin, medianMax, medianAvg
 			rec.V9 = int64(n)
+			rec.V10, rec.V11, rec.V12 = meanMin, meanMax, meanAvg
+			rec.V13, rec.V14, rec.V15 = maxMin, maxMax, maxAvg
 
 			state.Update(list)
 
 			return &azurequery.CpuRecord{
-				V1: in.V1,
-				V2: in.V2,
-				V3: in.V3,
-				V4: in.V4,
-				V5: in.V5,
-				V6: medianMin,
-				V7: medianMax,
-				V8: medianAvg,
-				V9: int64(n),
+				V1:  in.V1,
+				V2:  in.V2,
+				V3:  in.V3,
+				V4:  in.V4,
+				V5:  in.V5,
+				V6:  medianMin,
+				V7:  medianMax,
+				V8:  medianAvg,
+				V9:  int64(n),
+				V10: meanMin,
+				V11: meanMax,
+				V12: meanAvg,
+				V13: maxMin,
+				V14: maxMax,
+				V15: maxAvg,
 			}
 		},
 	)

@@ -59,8 +59,7 @@ type Configuration struct {
 								   State configs
 	**************************************************************************/
 
-	// Type of the state backend in state service: "memory", "pebble", "tikv",
-	// "remote-pebble"
+	// Type of the state backend in state service: "memory", "pebble", "tikv"
 	StateBackendType string `yaml:"StateBackendType"`
 
 	// [pebble] config if to disable Write-Ahead Logging (WAL)
@@ -80,6 +79,15 @@ type Configuration struct {
 
 	// [pebble] Expected batch size per GetMany() routine executor
 	PebbleGetManyBatchSize int `yaml:"PebbleGetManyBatchSize"`
+
+	// [pebble] Max number of concurrent compactions
+	PebbleMaxConcurrentCompactions int `yaml:"PebbleMaxConcurrentCompactions"`
+
+	// [pebble] Target size of the base level (L-Base) in bytes
+	PebbleLBaseMaxBytes int64 `yaml:"PebbleLBaseMaxBytes"`
+
+	// [pebble] Number of memtables before writes are stopped to allow flushing
+	PebbleMemTableStopWritesThreshold int `yaml:"PebbleMemTableStopWritesThreshold"`
 
 	// [remote-pebble] list of remote pebble addresses (host:port)
 	RemotePebbleAddrs []string `yaml:"RemotePebbleAddrs"`
@@ -105,7 +113,7 @@ type Configuration struct {
 	// Key hash function seed
 	KeyHashSeed uint64 `yaml:"KeyHashSeed"`
 
-	// Partition policy: "consistent-hashing", "uniform", "consistent-even"
+	// Partition policy: "consistent-hashing", "uniform"
 	PartitionPolicy string `yaml:"PartitionPolicy"`
 
 	// [Consistent hashing policy] number of tokens generated for each worker
@@ -131,35 +139,8 @@ type Configuration struct {
 	// 1. "basic": sync bucket migration
 	// 2. "optimized": async bucket migration
 	// 3. "no-migration": only remote state access without bucket migration
-	// 4. "by-key": use KeyLookupTableV2 for per-key based state migration
+	// 4. "drrs"
 	LazyProtocolVersion string `yaml:"LazyProtocolVersion"`
-
-	// [lazy-opt] Routine pool size for state flush - execute SetMany() in
-	// parallel for values received from remote workers
-	StateFlushRoutinePoolSize int `yaml:"StateFlushRoutinePoolSize"`
-
-	// [lazy-opt] Routine pool size for state read - execute GetMany() and
-	// RangeQuery() in parallel for async bucket fetch at remote workers
-	StateReadRoutinePoolSize int `yaml:"StateReadRoutinePoolSize"`
-
-	// [lazy-opt] Bucket migration chunk size: max # of bytes to send in one
-	// StateChunk message during async bucket migration
-	LazyOptBucketMigrationChunkSize uint64 `yaml:"LazyOptBucketMigrationChunkSize"`
-
-	// [lazy-by-key] state comm API type for state fetch: "grpc" or "tcp"
-	LazyByKeyStateCommAPIType string `yaml:"LazyByKeyStateCommAPIType"`
-
-	// [lazy-by-key] Eventual migration strategy for buckets from a cancelling
-	// task. Supported types:
-	// - "fetch-on-demand": no eventual migration; keys remain fetched on demand
-	// - "eventual": eventually migrate all keys from cancelling tasks
-	LazyByKeyCancellingTaskMigrationMode string `yaml:"LazyByKeyCancellingTaskMigrationMode"`
-
-	// [lazy-by-key] Max number of additional keys to fetch per batch during
-	// eventual migration from cancelling tasks. Set to -1 to fetch all keys
-	// at once. Only used when LazyByKeyCancellingTaskMigrationMode is
-	// "eventual"
-	LazyByKeyGradualMigrationBatchSize int `yaml:"LazyByKeyGradualMigrationBatchSize"`
 
 	/**************************************************************************
 								   Debug configs
@@ -172,17 +153,20 @@ type Configuration struct {
 	WatermarkDebug bool `yaml:"WatermarkDebug"`
 
 	/**************************************************************************
-								   Warmup configs
+								   	   DRRS
 	**************************************************************************/
 
-	// Whether this is a warmup run
-	IsWarmup bool `yaml:"IsWarmup"`
+	// Number of subscale for DRRS. -1 indicates automatically calculate
+	// subscales based on number of worker-to-worker paris of connection.
+	NumSubscales int `yaml:"NumSubscales"`
 
-	// Load warmup data or not
-	LoadWarmupData bool `yaml:"LoadWarmupData"`
+	// Number of buckets received before triggering the wait buffer
+	// -1 indicates wait until all buckets are received to report progress
+	MigrationProgressGranularity int64 `yaml:"MigrationProgressGranularity"`
 
-	// Path to store and read warmup data
-	LookupTableWarmUpDataFolder string `yaml:"LookupTableWarmUpDataFolder"`
+	// Number of DRRS batches allowed in upstream wait buffer. Larger buffer
+	// enables larger out-of-orderness in processing
+	WaitBufferSize int64 `yaml:"WaitBufferSize"`
 }
 
 // Default configuration values
@@ -203,41 +187,37 @@ func Default() *Configuration {
 		TaskPlacementPolicy:            "random",
 		CustomTaskPlacementFile:        "./scripts/taskPlacement/customPlacement.txt",
 		// State service config
-		StateBackendType:              "pebble",
-		PebbleDisableWAL:              true,
-		PebbleMemTableSize:            67108864,
-		PebbleSyncOnWrite:             false,
-		PebbleEnableConcurrentGetMany: false,
-		PebbleGetManyMaxConcurrency:   4,
-		PebbleGetManyBatchSize:        64,
-		TiKVAddr:                      "192.168.1.101:2379",
-		RemotePebbleAddrs:             []string{},
-		StateMigrationChunkSize:       1048576,
+		StateBackendType:                  "pebble",
+		PebbleDisableWAL:                  true,
+		PebbleMemTableSize:                67108864,
+		PebbleSyncOnWrite:                 false,
+		PebbleEnableConcurrentGetMany:     false,
+		PebbleGetManyMaxConcurrency:       4,
+		PebbleGetManyBatchSize:            64,
+		PebbleMaxConcurrentCompactions:    1,        // pebble default: 1
+		PebbleLBaseMaxBytes:               67108864, // pebble default: 64MB
+		PebbleMemTableStopWritesThreshold: 2,        // pebble default: 2
+		TiKVAddr:                          "192.168.1.101:2379",
+		StateMigrationChunkSize:           1048576,
 		// Configs for key partitioning
-		NumBuckets:             256,
+		NumBuckets:             1024,
 		HashFuncType:           "murmurhash",
 		KeyHashSeed:            1234,
-		PartitionPolicy:        "consistent-even",
+		PartitionPolicy:        "consistent-hashing",
 		HashPartitionNumTokens: 5,
 		HashPartitionSeeds:     []uint64{2345, 5678, 91011, 121314, 151617},
 		// Metric
 		MetricsInterval: 5 * time.Second,
 		// Reconfig
-		ReconfigProtocol:                     "stop-and-restart",
-		LazyProtocolVersion:                  "basic",
-		StateFlushRoutinePoolSize:            1,
-		StateReadRoutinePoolSize:             1,
-		LazyOptBucketMigrationChunkSize:      4096, // 4KB
-		LazyByKeyStateCommAPIType:            "grpc",
-		LazyByKeyCancellingTaskMigrationMode: "fetch-on-demand",
-		LazyByKeyGradualMigrationBatchSize:   100,
+		ReconfigProtocol:    "stop-and-restart",
+		LazyProtocolVersion: "basic",
 		// Debug
 		DebugMode:      false,
 		WatermarkDebug: false,
-		// WarmupRelated
-		IsWarmup:                    false,
-		LoadWarmupData:              false,
-		LookupTableWarmUpDataFolder: "warmup_data/",
+		// DRRS
+		NumSubscales:                 -1,
+		MigrationProgressGranularity: -1,
+		WaitBufferSize:               2,
 	}
 }
 

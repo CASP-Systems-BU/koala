@@ -147,8 +147,7 @@ func (sc *StateClient[K]) Setup(
 	// backend - disable incremental serialization for memory too.
 	allowIncrementalSerialization := true
 	if config.StateBackendType == "tikv" ||
-		config.StateBackendType == "memory" ||
-		config.StateBackendType == "remote-pebble" {
+		config.StateBackendType == "memory" {
 		allowIncrementalSerialization = false
 	}
 	for _, cache := range sc.cache {
@@ -169,7 +168,7 @@ func (sc *StateClient[K]) Setup(
 // counted multiple times. If key not found in state service, it is counted as
 // fetched as well since it is set to empty state in cache.
 func (sc *StateClient[K]) FetchSimpleState(keys []K, stateIDs []uint16) int {
-	//t1 := time.Now()
+
 	if sc.stateClientType == WindowStateClient {
 		log.Fatalln("For window state client, use FetchWindowState()")
 	}
@@ -178,8 +177,6 @@ func (sc *StateClient[K]) FetchSimpleState(keys []K, stateIDs []uint16) int {
 	}
 	sc.validateStateIDs(stateIDs)
 
-	sc.stateService.MetricCollector.UpdateRecordNumberPerBatch(int64(len(keys)))
-	//t2 := time.Now()
 	// De-duplicate keys to avoid duplicate fetch from StateService
 	keysSeen := make(map[K]struct{})
 	sc.dedupedKeys = make([]K, 0, len(keys))
@@ -189,14 +186,12 @@ func (sc *StateClient[K]) FetchSimpleState(keys []K, stateIDs []uint16) int {
 			sc.dedupedKeys = append(sc.dedupedKeys, key)
 		}
 	}
-	sc.stateService.MetricCollector.UpdateKeyNumberPerBatch(int64(len(sc.dedupedKeys)))
+
 	// Allocate space for serialized keys
 	sc.serializedKeys = make(map[uint16][][]byte)
 	for _, stateID := range stateIDs {
 		sc.serializedKeys[stateID] = make([][]byte, 0, len(sc.dedupedKeys))
 	}
-
-	//t3 := time.Now()
 
 	// Serialize keys
 	sc.bucketIDs = make([]int64, len(sc.dedupedKeys))
@@ -214,7 +209,6 @@ func (sc *StateClient[K]) FetchSimpleState(keys []K, stateIDs []uint16) int {
 		// Serialize the key for multi-state operators
 		sc.serializeMultiStateKeys(serializedKey, stateIDs[1:])
 	}
-	//t4 := time.Now()
 
 	// Fetch state values from StateService
 	serializedValues := sc.stateService.GetManyMultiState(
@@ -223,7 +217,6 @@ func (sc *StateClient[K]) FetchSimpleState(keys []K, stateIDs []uint16) int {
 		sc.bucketIDs,
 	)
 
-	//t5 := time.Now()
 	// For fetched state, reset their cache accordingly. For state that is not
 	// requested, clean up the cache for safety.
 	for stateID, stateCache := range sc.cache {
@@ -241,12 +234,6 @@ func (sc *StateClient[K]) FetchSimpleState(keys []K, stateIDs []uint16) int {
 	for _, values := range serializedValues {
 		numFetchedKeys += len(values)
 	}
-	/*
-		t6 := time.Now()
-		if t6.Sub(t1) > time.Millisecond {
-			fmt.Println("Fetch simple state total time:", t6.Sub(t1), " validateTime:", t2.Sub(t1), " DedupTime:", t3.Sub(t2), " SerializeTime:", t4.Sub(t3), " GetManyTime:", t5.Sub(t4), "SetCacheTime", t6.Sub(t5))
-		}
-	*/
 	return numFetchedKeys
 }
 
@@ -645,6 +632,53 @@ func (sc *StateClient[K]) DeleteManyAndFlush(
 
 	// Request StateService: delete state values
 	sc.stateService.DeleteMany(allSerializedKeysToDelete, allBucketIDsToDelete)
+}
+
+/******************************************************************************
+								   DRRS APIs
+******************************************************************************/
+
+// Given a list of keys, return their bucket ids and state migration status:
+// -1: not being migrated
+// 0: migration pending
+// 1: migrated
+func (sc *StateClient[K]) GetKeysMigrationStatus(
+	keys []K,
+) ([]uint64, []int8) {
+
+	// Convert keys to their bucket IDs
+	visitedKeysWithBucketId := make(map[K]uint64)
+	bucketIds := make([]uint64, len(keys))
+	for i, key := range keys {
+		bucketId, ok := visitedKeysWithBucketId[key]
+		if !ok {
+			bucketId = sc.GetBucketIdx(key)
+			visitedKeysWithBucketId[key] = bucketId
+		}
+		bucketIds[i] = bucketId
+	}
+
+	// Send bucket IDs to StateService to query their migration status
+	return bucketIds, sc.stateService.CheckBucketMigrationStatus(bucketIds)
+}
+
+func (sc *StateClient[K]) GetBucketsMigrationStatus(buckets []uint64) []int8 {
+	return sc.stateService.CheckBucketMigrationStatus(buckets)
+}
+
+// Check if state migration has progressed
+func (sc *StateClient[K]) GetOverallMigrationStatus() (bool, bool) {
+	return sc.stateService.CheckOverallMigrationStatus()
+}
+
+// Check if state migration has terminated
+func (sc *StateClient[K]) CheckMigrationTerminationStatus() bool {
+	return sc.stateService.CheckMigrationTerminationStatus()
+}
+
+// Reset bucket map
+func (sc *StateClient[K]) ResetDRRSMetadata() {
+	sc.stateService.ResetDRRSMetadata()
 }
 
 /******************************************************************************

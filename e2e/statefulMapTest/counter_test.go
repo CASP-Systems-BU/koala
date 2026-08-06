@@ -12,7 +12,7 @@ import (
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
 	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constants"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/state/stateBackend"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/worker"
 	"github.com/mus-format/mus-go/varint"
@@ -38,7 +38,7 @@ func TestCounter(t *testing.T) {
 	numWorkers := 4
 	_, workers, _ := testutils.DeployJob(numWorkers, query, config)
 
-	// Wait for the test to be completed
+	// Wait for the test to be compeleted
 	time.Sleep(5 * time.Second)
 
 	log.Println("[E2E] Test completed")
@@ -147,7 +147,7 @@ func checkCorrectness(t *testing.T, workers []*worker.Worker) {
 			key := iter.Key()
 			value := iter.Value()
 
-			keyI, _, _ := varint.UnmarshalInt64(key[constant.KeyPrefixSize:])
+			keyI, _, _ := varint.UnmarshalInt64(key[constants.KeyPrefixSize:])
 			valueI, _, _ := varint.UnmarshalInt(value)
 
 			numKeys++

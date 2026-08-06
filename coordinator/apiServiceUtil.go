@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"log"
+	"maps"
 	"sync"
 	"time"
 
@@ -145,8 +146,6 @@ func (s *APIServer) updateKeyPartition(
 		policy = partition.NewHashPartitionPolicy(s.Coordinator.Config)
 	case "uniform":
 		policy = partition.NewUniformPartitionPolicy(s.Coordinator.Config)
-	case "consistent-even":
-		policy = partition.NewEvenPartitionPolicy(s.Coordinator.Config)
 	default:
 		log.Fatalf(
 			"Unsupported partition policy: %s\n",
@@ -161,26 +160,29 @@ func (s *APIServer) updateKeyPartition(
 		)
 	}
 
+	updatePartitionTable := true
+	if s.Coordinator.Config.ReconfigProtocol == "lazy" &&
+		s.Coordinator.Config.LazyProtocolVersion == "drrs" {
+		updatePartitionTable = false
+	}
+
 	// Reconfigure() internally updates the current key partition
 	// bucketOwnerChanges: map[source worker]map[dest worker][]bucketIdx
-	bucketOwnerChanges := curKeyPartition.Reconfigure(updatedWorkerIds, policy)
+	bucketOwnerChanges := curKeyPartition.Reconfigure(
+		updatedWorkerIds,
+		policy,
+		updatePartitionTable,
+	)
 	if len(bucketOwnerChanges) == 0 {
 		log.Fatalf("Repartition has no effect\n")
 	}
 
-	// [eventual migration for cancelling task] Update bucket ownership history
-	// with new owners from this reconfiguration
-	// history: map[bucketIdx]set(workerId)
-	history := s.Coordinator.BucketOwnerHistory[targetOperator.GetName()]
-	for _, destMap := range bucketOwnerChanges {
-		for destWorker, bucketIndices := range destMap {
-			for _, bucketIdx := range bucketIndices {
-				history[bucketIdx][destWorker] = true
-			}
-		}
-	}
-
 	// [Logging] log the bucket owner changes for debugging
+	logBucketOwnerChanges(bucketOwnerChanges)
+	return bucketOwnerChanges
+}
+
+func logBucketOwnerChanges(bucketOwnerChanges map[uint16]map[uint16][]int) {
 	log.Println()
 	log.Println(
 		"Bucket owner transfer INFO (Bucket list in format of [startIdx, endIdx]):",
@@ -213,7 +215,6 @@ func (s *APIServer) updateKeyPartition(
 		}
 	}
 	log.Println()
-	return bucketOwnerChanges
 }
 
 // Convert source-based map to dest-based map
@@ -288,7 +289,7 @@ func (s *APIServer) GenerateMigrationPlan(
 // Get downstream info
 func (s *APIServer) getDownstreamInfoList(
 	targetOperatorId string,
-) ([]*pb.DownstreamInfo, *pb.SerializedPartitionTable) {
+) ([]*pb.DownstreamInfo, *pb.SerializedKeyLookupTable) {
 
 	// Get downstream information
 	var downstreamInfoList []*pb.DownstreamInfo
@@ -307,9 +308,9 @@ func (s *APIServer) getDownstreamInfoList(
 	}
 
 	// Check if the downstream operator is stateful
-	var keybyCollectorRoutingTable *pb.SerializedPartitionTable
+	var keybyCollectorRoutingTable *pb.SerializedKeyLookupTable
 	if s.Coordinator.Dataflow.Operators[downstreamOperatorIds[0]].IsStatefulOperator() {
-		keybyCollectorRoutingTable = &pb.SerializedPartitionTable{
+		keybyCollectorRoutingTable = &pb.SerializedKeyLookupTable{
 			BucketRanges: s.Coordinator.KeyPartitions[downstreamOperatorIds[0]].Serialize(),
 		}
 	}
@@ -387,10 +388,10 @@ func (s *APIServer) notifyUpstreamTasks(
 
 	// If the target operator is stateful, update the routing table (key
 	// partition) for its upstream tasks KeyByCollector
-	var keybyCollectorRoutingTable *pb.SerializedPartitionTable
+	var keybyCollectorRoutingTable *pb.SerializedKeyLookupTable
 	if targetOperator.IsStatefulOperator() {
 		updatedKeyPartition := s.Coordinator.KeyPartitions[targetOperator.GetName()]
-		keybyCollectorRoutingTable = &pb.SerializedPartitionTable{
+		keybyCollectorRoutingTable = &pb.SerializedKeyLookupTable{
 			BucketRanges: updatedKeyPartition.Serialize(),
 		}
 	}
@@ -433,18 +434,15 @@ func (s *APIServer) drainInflightData(
 	start := time.Now()
 	log.Printf("[Rescale info] Start draining in-flight data\n")
 
-	var wg sync.WaitGroup
 	for _, task := range upstreamTasks {
-		wg.Go(task.Pause)
+		task.Pause()
 	}
-	wg.Wait()
 
 	// Wait for the data drained notification from all target operator tasks
 	targetTasks := s.Coordinator.TaskPlacementPlan[targetOperatorName]
 	for _, task := range targetTasks {
-		wg.Go(task.WaitDataDrain)
+		task.WaitDataDrain()
 	}
-	wg.Wait()
 
 	end := time.Now()
 	log.Printf(
@@ -545,11 +543,9 @@ func (s *APIServer) rescaleTasksStopAndRestart(
 // Resume the upstreams
 func (s *APIServer) resumeUpstreams(upstreamTasks []*ManagedWorker) {
 
-	var wg sync.WaitGroup
 	for _, task := range upstreamTasks {
-		wg.Go(task.Resume)
+		task.Resume()
 	}
-	wg.Wait()
 
 	log.Printf("\n[Rescale info] Task successfully resumed \n\n")
 }
@@ -585,36 +581,17 @@ func (s *APIServer) initializeTargetTasksLazy(
 	// migrationPlan: map[dest worker][]*pb.MigrationInfo
 	migrationPlan := s.GenerateMigrationPlan(bucketOwnerChanges)
 
-	// Notify all tasks of the target operator to initialize for lazy protocol
-	// including existing tasks, new tasks, and tasks to be removed. There are
-	// two types of control messages to send:
-	// 1. TaskAssignemnt: deploy a new task along with lazy metadata
-	// 2. InitLazyReconfig: only send lazy metadata to existing tasks
-	var wg sync.WaitGroup
-
-	/**************************************************************************
-			  Step 1: deploy new tasks (if any) with lazy init metadata
-	**************************************************************************/
-
-	// State service key lookup table for to start new tasks - align with
-	// updated key partition table
-	stateLookupTable := &pb.SerializedPartitionTable{
-		BucketRanges: s.Coordinator.KeyPartitions[targetOperatorName].Serialize(),
+	// Set state lookup table for new task. This reflects the existing key
+	// location before repartitioning the key space
+	stateLookupTable := &pb.SerializedKeyLookupTable{
+		BucketRanges: s.Coordinator.StateLookupTables[targetOperatorName].Serialize(),
 	}
 
-	// [Deprecated] Remove other lazy versions and only keep Lazy-by-key
-	if s.Coordinator.Config.LazyProtocolVersion != "by-key" {
-		stateLookupTable = &pb.SerializedPartitionTable{
-			BucketRanges: s.Coordinator.StateLookupTables[targetOperatorName].Serialize(),
-		}
-	}
-
-	// Build list of peer state service info for new tasks. The list includes:
-	// 1. All existing tasks before reconfig (including tasks to be removed)
-	// 2. New tasks to be added
-	// 3. (Temporary) workers that previously hosted the target operator tasks
-	//    but have been removed - this is to keep access to remaining state that
-	//    has not been migrated away from removed workers
+	// Build peer state service info for all receiver tasks - they need
+	// these addresses to remotely pull state. We include all target tasks
+	// (existing tasks, new tasks, and tasks to be removed) into the peer
+	// state service list.
+	// First add updated workers (including new workers)
 	allPeerStateService := &pb.PeerStateService{}
 	for _, worker := range updatedWorkers {
 		allPeerStateService.PeerStateServiceInfoList = append(
@@ -635,31 +612,23 @@ func (s *APIServer) initializeTargetTasksLazy(
 			},
 		)
 	}
-	// [Temporary] Add previously removed workers to access remaining state
-	previouslyRemovedWorkers, exist := s.Coordinator.RemovedWorkers[targetOperatorName]
-	if exist {
-		for _, worker := range previouslyRemovedWorkers {
-			allPeerStateService.PeerStateServiceInfoList = append(
-				allPeerStateService.PeerStateServiceInfoList,
-				&pb.PeerStateServiceInfo{
-					WorkerId:         uint32(worker.WorkerId),
-					StateServiceAddr: worker.StateCommAddr,
-				},
-			)
-		}
-	}
 
 	// Get downstream info of target operator
 	downstreamInfoList, keybyCollectorRoutingTable := s.getDownstreamInfoList(
 		targetOperatorName,
 	)
 
-	// Get upstream info of target operator
+	// Notify all tasks of the target operator to initialize for lazy protocol
+	// including existing tasks, new tasks, and tasks to be removed. There are
+	// two types of control messages to send:
+	// 1. TaskAssignemnt: deploy a new task along with lazy metadata
+	// 2. InitLazyReconfig: only send lazy metadata to existing tasks
+	var wg sync.WaitGroup
+
+	// Step 1: deploy new tasks with lazy init metadata
 	upstreamTasks, numUpstreamOperators := s.getUpstreamList(targetOperatorName)
 	numUpstreams := len(upstreamTasks)
 	expectedDrainBarriers := int32(numUpstreams)
-
-	// Send TaskAssignment message to all new tasks
 	for _, worker := range newWorkers {
 
 		// We assume all new tasks should be assigned some key space
@@ -669,11 +638,11 @@ func (s *APIServer) initializeTargetTasksLazy(
 		if !ok {
 			log.Fatalln("No key space partitioned to new task")
 		}
+		expectedNumUpstreams := numUpstreams + len(srcTaskList)
 
 		// Sender task will establish a separate peer connection for each
 		// logical upstream operator
 		expectedInboundPeers := int32(len(srcTaskList) * numUpstreamOperators)
-		expectedNumUpstreams := expectedDrainBarriers + expectedInboundPeers
 
 		wg.Add(1)
 		go worker.DeployTask(&pb.TaskAssignment{
@@ -681,11 +650,15 @@ func (s *APIServer) initializeTargetTasksLazy(
 			DownstreamInfoList:         downstreamInfoList,
 			ExpectedNumUpstream:        int32(expectedNumUpstreams),
 			KeybyCollectorRoutingTable: keybyCollectorRoutingTable,
-			StateLookupTable:           stateLookupTable,
-			PeerStateService:           allPeerStateService,
+			StateLookupTable:           stateLookupTable,    // Not used by DRRS
+			PeerStateService:           allPeerStateService, // Not used by DRRS
 			// Lazy reconfig metadata
 			ExpectedDrainBarriers: &expectedDrainBarriers,
 			ExpectedInboundPeers:  &expectedInboundPeers,
+			// DRRS
+			DrrsMigrationInfo: &pb.StateMigration{
+				MigrationInfoList: srcTaskList,
+			},
 		}, &wg)
 		log.Printf(
 			"[InitLazyReconfig] New task with lazy metadata sent to worker %d\n",
@@ -693,10 +666,7 @@ func (s *APIServer) initializeTargetTasksLazy(
 		)
 	}
 
-	/**************************************************************************
-				Step 2: send lazy init metadata to existing tasks
-	**************************************************************************/
-
+	// Step 2: send lazy init metadata to existing tasks
 	// Get existing tasks from old task placement plan - this list includes
 	// (updatedWorkers - newWorkers + removedWorkers)
 	removedWorkerMap := make(map[uint16]bool)
@@ -721,10 +691,15 @@ func (s *APIServer) initializeTargetTasksLazy(
 
 		// Check if this task is a receiver task
 		expectedInboundPeers := int32(-1)
-		if srcTaskList, ok := migrationPlan[worker.WorkerId]; ok {
+
+		// [DRRS] Construct migration info for this existing task
+		var migrationInfoList []*pb.MigrationInfo
+		srcTaskList, ok := migrationPlan[worker.WorkerId]
+		if ok {
 			expectedInboundPeers = int32(
 				len(srcTaskList) * numUpstreamOperators,
 			)
+			migrationInfoList = srcTaskList
 		}
 
 		taskToBeRemoved := false
@@ -737,7 +712,11 @@ func (s *APIServer) initializeTargetTasksLazy(
 			ExpectedDrainBarriers: expectedDrainBarriers,
 			ExpectedInboundPeers:  expectedInboundPeers,
 			IsShuttingDown:        taskToBeRemoved,
-			PeerStateService:      newPeerStateService,
+			PeerStateService:      newPeerStateService, // Not used by DRRS
+			// DRRS
+			DrrsMigrationInfo: &pb.StateMigration{
+				MigrationInfoList: migrationInfoList,
+			},
 		}, &wg)
 		log.Printf(
 			"[InitLazyReconfig] Init metadata sent to worker %d\n",
@@ -775,7 +754,7 @@ func (s *APIServer) fastForward(
 	targetOperatorId := targetOperator.GetName()
 
 	// Get the updated routing table
-	updatedRoutingTable := &pb.SerializedPartitionTable{
+	updatedRoutingTable := &pb.SerializedKeyLookupTable{
 		BucketRanges: s.Coordinator.KeyPartitions[targetOperatorId].Serialize(),
 	}
 
@@ -848,91 +827,6 @@ func (s *APIServer) waitAllInboundPeersToConnect(
 	)
 }
 
-// [lazy-by-key][eventual migration for cancelling task] Notify all remaining
-// tasks that need to eventually fetch all state from cancelling tasks
-func (s *APIServer) notifyEventualStateMigration(
-	targetOperator dataflow.Operator,
-	removedWorkers []*ManagedWorker,
-) {
-	start := time.Now()
-	targetOperatorName := targetOperator.GetName()
-
-	// Build set of cancelling worker IDs for quick lookup
-	cancellingWorkerSet := make(map[uint16]bool)
-	for _, worker := range removedWorkers {
-		cancellingWorkerSet[worker.WorkerId] = true
-	}
-
-	// Get the current key partition (post-reconfiguration) and bucket history
-	curPartition := s.Coordinator.KeyPartitions[targetOperatorName]
-	history := s.Coordinator.BucketOwnerHistory[targetOperatorName]
-
-	// For each bucket, check if any cancelling worker ever owned it. If so,
-	// the bucket is affected and its current owner needs to fetch state from
-	// those cancelling workers.
-	// Group affected buckets by current owner worker.
-	// affectedByOwner: map[current owner worker ID] -> []*pb.AffectedBucketInfo
-	// Each AffectedBucketInfo contains the bucket ID and the list of cancelling
-	// worker IDs that ever owned this bucket.
-	affectedByOwner := make(map[uint16][]*pb.AffectedBucketInfo)
-	for bucketIdx, ownerHistorySet := range history {
-
-		// Find which cancelling workers ever owned this bucket
-		var cancellingWorkerIds []uint32
-		for workerId := range ownerHistorySet {
-			if cancellingWorkerSet[workerId] {
-				cancellingWorkerIds = append(
-					cancellingWorkerIds,
-					uint32(workerId),
-				)
-			}
-		}
-		if len(cancellingWorkerIds) == 0 {
-			continue
-		}
-
-		// Current owner of this bucket after reconfiguration
-		currentOwner := curPartition.Buckets[bucketIdx]
-
-		affectedByOwner[currentOwner] = append(
-			affectedByOwner[currentOwner],
-			&pb.AffectedBucketInfo{
-				BucketId:            int64(bucketIdx),
-				CancellingWorkerIds: cancellingWorkerIds,
-			},
-		)
-	}
-
-	// This function is only called when there are removed workers and eventual
-	// migration is enabled — affected buckets must exist
-	if len(affectedByOwner) == 0 {
-		log.Fatalf(
-			"[Eventual Migration] No affected buckets found but removed workers exist\n",
-		)
-	}
-
-	// Send EventualStateMigration to each affected remaining worker
-	var wg sync.WaitGroup
-	for ownerWorkerId, affectedBuckets := range affectedByOwner {
-		worker := s.Coordinator.WorkerManager.GetWorker(ownerWorkerId)
-		wg.Add(1)
-		go worker.EventualStateMigration(&pb.EventualStateMigration{
-			AffectedBuckets: affectedBuckets,
-		}, &wg)
-		log.Printf(
-			"[Eventual Migration] Control msg sent to worker %d with %d affected buckets\n",
-			ownerWorkerId,
-			len(affectedBuckets),
-		)
-	}
-	wg.Wait()
-
-	log.Printf(
-		"[Lazy Rescale INFO] Step 4.5: Eventual state migration done for cancelling tasks - time taken: %v\n",
-		time.Since(start),
-	)
-}
-
 // Wait all target tasks to exit reconfig phase:
 func (s *APIServer) waitAllTasksReconfigDone(
 	updatedWorkers []*ManagedWorker,
@@ -996,16 +890,538 @@ func (s *APIServer) terminateTasks(
 	// Update the task placement plan after task deployment/removal
 	s.Coordinator.TaskPlacementPlan[targetOperator.GetName()] = updatedWorkers
 
-	// [Temporary] Add the removed workers to the RemovedWorker map
-	for _, worker := range removedWorkers {
-		s.Coordinator.RemovedWorkers[targetOperator.GetName()] = append(
-			s.Coordinator.RemovedWorkers[targetOperator.GetName()],
-			worker,
+	log.Printf(
+		"[Lazy Rescale INFO] Step 6: Removed tasks terminated - time taken: %v\n",
+		time.Since(start),
+	)
+}
+
+/******************************************************************************
+					  			Utils for DRRS
+******************************************************************************/
+
+// [DRRS] Execute a subscale reconfig operation
+func (s *APIServer) reconfigDRRSSubscale(
+	targetOperator dataflow.Operator,
+	updatedWorkers []*ManagedWorker,
+	newWorkers []*ManagedWorker,
+	removedWorkers []*ManagedWorker,
+	bucketOwnerChanges map[uint16]map[uint16][]int,
+	subScaleId int,
+	totalNumSubscales int,
+) {
+
+	log.Printf("===========================================\n")
+	log.Printf(
+		"	    Starting DRRS subscale %d/%d ...\n",
+		subScaleId,
+		totalNumSubscales,
+	)
+	log.Printf("===========================================\n")
+
+	// Log subscale info
+	updatedWorkerIds := make([]uint16, 0, len(updatedWorkers))
+	for _, w := range updatedWorkers {
+		updatedWorkerIds = append(updatedWorkerIds, w.WorkerId)
+	}
+	newWorkerIds := make([]uint16, 0, len(newWorkers))
+	for _, w := range newWorkers {
+		newWorkerIds = append(newWorkerIds, w.WorkerId)
+	}
+	removedWorkerIds := make([]uint16, 0, len(removedWorkers))
+	for _, w := range removedWorkers {
+		removedWorkerIds = append(removedWorkerIds, w.WorkerId)
+	}
+
+	log.Printf("Updated workers: %v\n", updatedWorkerIds)
+	log.Printf("New workers: %v\n", newWorkerIds)
+	log.Printf("Removed workers: %v\n", removedWorkerIds)
+	logBucketOwnerChanges(bucketOwnerChanges)
+
+	// Step 0: Update the key partition table in coordinator
+	s.updateKeyPartitionTableDRRS(targetOperator, bucketOwnerChanges)
+
+	// Step 1: Start new tasks if needed and notify all target tasks required
+	// metadata for reconfiguration
+	upstreamTasks, receiverWorkers := s.initializeTargetTasksDRRS(
+		targetOperator,
+		newWorkers,
+		removedWorkers,
+		bucketOwnerChanges,
+		subScaleId,
+	)
+
+	// Step 2: Fast forward (peer channel)
+	s.fastForward(targetOperator, bucketOwnerChanges)
+
+	// Step 3: Wait all receiver tasks to successfully receive all expected
+	// inbound peer connections
+	s.waitAllInboundPeersToConnect(receiverWorkers)
+
+	// Step 4: Notify all sender tasks to start state migration
+	s.notifySendersToMigrateStateDRRS(bucketOwnerChanges)
+
+	// Step 5: Update upstream routing and broadcast inflight barriers
+	s.notifyUpstreamTasks(
+		targetOperator,
+		newWorkers,
+		removedWorkers,
+		upstreamTasks,
+	)
+
+	// Step 6: Wait for termination signal from all target tasks
+	s.waitAllTasksReconfigDone(updatedWorkers, removedWorkers)
+
+	// Step 7: Stop removed tasks and update task placement plan in coordinator
+	s.terminateTasks(targetOperator, updatedWorkers, removedWorkers)
+
+	log.Printf("===========================================\n")
+	log.Printf(
+		"	      DRRS subscale %d/%d done!\n",
+		subScaleId,
+		totalNumSubscales,
+	)
+	log.Printf("===========================================\n")
+}
+
+// Define all needed info for executing a DRRS subscale
+type DRRSSubscaleMetadata struct {
+	UpdatedWorkers     []*ManagedWorker
+	NewWorkers         []*ManagedWorker
+	RemovedWorkers     []*ManagedWorker
+	BucketOwnerChanges map[uint16]map[uint16][]int
+}
+
+// Split the DRRS reconfiguration into multiple subscales
+func (s *APIServer) getDRRSSubscales(
+	updatedWorkers []*ManagedWorker,
+	newWorkers []*ManagedWorker,
+	removedWorkers []*ManagedWorker,
+	bucketOwnerChanges map[uint16]map[uint16][]int,
+	numSubscales int,
+) []*DRRSSubscaleMetadata {
+
+	if numSubscales <= 0 {
+		log.Fatalf("Invalid numSubscales: %d (must be >= 1)", numSubscales)
+	}
+
+	// Build maps for new and removed workers for lookup
+	newMap := make(map[uint16]*ManagedWorker)
+	for _, w := range newWorkers {
+		newMap[w.WorkerId] = w
+	}
+	removedMap := make(map[uint16]*ManagedWorker)
+	for _, w := range removedWorkers {
+		removedMap[w.WorkerId] = w
+	}
+
+	// originalExisting = finalUpdated - newWorkers + removedWorkers
+	existingMap := make(map[uint16]*ManagedWorker)
+	for _, w := range updatedWorkers {
+		id := w.WorkerId
+		if _, isNew := newMap[id]; !isNew {
+			existingMap[id] = w
+		}
+	}
+	for _, w := range removedWorkers {
+		existingMap[w.WorkerId] = w
+	}
+
+	// For balancing, we split each src->dst pair's bucket slice across
+	// subscales
+	// as evenly as possible (round-robin-ish by contiguous chunks).
+	// Prepare an array of per-pair splits: map[pairKey] -> [][]int with length
+	// numSubscales
+	type pairKey struct{ src, dst uint16 }
+	pairSplits := make(map[pairKey][][]int)
+
+	for src, dstMap := range bucketOwnerChanges {
+		for dst, buckets := range dstMap {
+			if len(buckets) == 0 {
+				log.Fatalf("empty bucket list for src %d -> dst %d", src, dst)
+			}
+			// compute sizes for each subscale: distribute as evenly as possible
+			base := len(buckets) / numSubscales
+			rem := len(buckets) % numSubscales
+			// keep explicit slots per subscale (may be empty)
+			splits := make([][]int, numSubscales)
+			idx := 0
+			for i := range numSubscales {
+				take := base
+				if i < rem {
+					take++
+				}
+				if take == 0 {
+					// leave nil/empty slice in this slot
+					continue
+				}
+				part := make([]int, take)
+				copy(part, buckets[idx:idx+take])
+				splits[i] = part
+				idx += take
+			}
+			pairSplits[pairKey{src: src, dst: dst}] = splits
+		}
+	}
+
+	// Post-process pairSplits to ensure that if a pair targets a new worker,
+	// there is at least one bucket assigned to subscale 0; and if a pair
+	// originates from a removed worker, there is at least one bucket assigned
+	// to the last subscale. To avoid empty assignments, we move a bucket from
+	// other slots into the required slot when needed.
+	for pair, splits := range pairSplits {
+		src := pair.src
+		dst := pair.dst
+		// ensure first slot has a bucket if dst is new
+		if _, isNew := newMap[dst]; isNew {
+			if len(splits[0]) == 0 {
+				// find first later slot with data
+				for j := 1; j < numSubscales; j++ {
+					if len(splits[j]) > 0 {
+						// move the first element from splits[j] to splits[0]
+						moved := splits[j][0]
+						splits[j] = splits[j][1:]
+						splits[0] = append(splits[0], moved)
+						break
+					}
+				}
+			}
+		}
+		// ensure last slot has a bucket if src is removed
+		if _, isRemoved := removedMap[src]; isRemoved {
+			if len(splits[numSubscales-1]) == 0 {
+				// find last earlier slot with data
+				for j := numSubscales - 2; j >= 0; j-- {
+					if len(splits[j]) > 0 {
+						// move the last element from splits[j] to last slot
+						lastIdx := len(splits[j]) - 1
+						moved := splits[j][lastIdx]
+						splits[j] = splits[j][:lastIdx]
+						splits[numSubscales-1] = append(
+							splits[numSubscales-1],
+							moved,
+						)
+						break
+					}
+				}
+			}
+		}
+		pairSplits[pair] = splits
+	}
+
+	// Now pairSplits has the bucket splits for each src-dst pair. Each pair
+	// has a list of bucket splits [][]int that are supposed to be applied in
+	// each subscale
+
+	// Validate the total number of migrating buckets should be same in original
+	// bucketOwnerChanges and the sum across all splits
+	totalBucketsOriginal := 0
+	for _, dstMap := range bucketOwnerChanges {
+		for _, buckets := range dstMap {
+			totalBucketsOriginal += len(buckets)
+		}
+	}
+	totalBucketsSplit := 0
+	for _, splits := range pairSplits {
+		for _, splitList := range splits {
+			totalBucketsSplit += len(splitList)
+		}
+	}
+	if totalBucketsOriginal != totalBucketsSplit {
+		log.Fatalf(
+			"Bucket split mismatch: original=%d vs split=%d",
+			totalBucketsOriginal,
+			totalBucketsSplit,
 		)
 	}
 
+	// Now construct the final subscale metadata list
+	res := make([]*DRRSSubscaleMetadata, 0, numSubscales)
+
+	// Build each subscale metadata
+	for i := range numSubscales {
+
+		// first subscale: include all new workers
+		// last subscale: include all removed workers
+		var subNew []*ManagedWorker
+		var subRemoved []*ManagedWorker
+		if i == 0 {
+			subNew = append(subNew, newWorkers...)
+		}
+		if i == numSubscales-1 {
+			subRemoved = append(subRemoved, removedWorkers...)
+		}
+
+		// Compute updatedWorkers for this subscale:
+		// - include original existing workers
+		// - always include newWorkers (once added in first subscale they
+		// persist)
+		// - remove removedWorkers only in the last subscale
+		subUpdatedMap := make(map[uint16]*ManagedWorker)
+		maps.Copy(subUpdatedMap, existingMap)
+		for _, w := range newWorkers {
+			subUpdatedMap[w.WorkerId] = w
+		}
+		for _, w := range subRemoved {
+			delete(subUpdatedMap, w.WorkerId)
+		}
+		subUpdated := make([]*ManagedWorker, 0, len(subUpdatedMap))
+
+		// Convert map to slice in the same order as original updatedWorkers
+		for _, w := range updatedWorkers {
+			if _, ok := subUpdatedMap[w.WorkerId]; ok {
+				subUpdated = append(subUpdated, w)
+				delete(subUpdatedMap, w.WorkerId)
+			}
+		}
+
+		// For scale down case, handle the removed workers
+		for _, w := range removedWorkers {
+			if _, ok := subUpdatedMap[w.WorkerId]; ok {
+				subUpdated = append(subUpdated, w)
+				delete(subUpdatedMap, w.WorkerId)
+			}
+		}
+
+		if len(subUpdatedMap) != 0 {
+			log.Fatalf(
+				"Some updated workers missing in subscale %d: %+v",
+				i,
+				subUpdatedMap,
+			)
+		}
+
+		// Build bucketOwnerChanges for this subscale
+		boc := make(map[uint16]map[uint16][]int)
+		for pair, splits := range pairSplits {
+
+			src := pair.src
+			dst := pair.dst
+
+			if len(splits[i]) > 0 {
+				if _, ok := boc[src]; !ok {
+					boc[src] = make(map[uint16][]int)
+				}
+				boc[src][dst] = splits[i]
+			}
+		}
+
+		res = append(res, &DRRSSubscaleMetadata{
+			UpdatedWorkers:     subUpdated,
+			NewWorkers:         subNew,
+			RemovedWorkers:     subRemoved,
+			BucketOwnerChanges: boc,
+		})
+	}
+	return res
+}
+
+// [DRRS] Notify all sender tasks to start state migration
+func (s *APIServer) notifySendersToMigrateStateDRRS(
+	bucketOwnerChanges map[uint16]map[uint16][]int,
+) {
+	start := time.Now()
+	if len(bucketOwnerChanges) == 0 {
+		log.Fatalf("[DRRS] Bucket owner changes not initialized\n")
+	}
+
+	// bucketOwnerChanges: map[source worker]map[dest worker][]bucketIdx
+	// migrationPlan: map[src worker][]*pb.MigrationInfo
+	migrationPlan := s.generateDRRSMigrationPlan(bucketOwnerChanges)
+
+	var wg sync.WaitGroup
+	for srcWorkerId, migrationInfoList := range migrationPlan {
+
+		// Send the StateMigration request to the src worker which will push
+		// the state to dest workers
+		srcWorker := s.Coordinator.WorkerManager.GetWorker(srcWorkerId)
+		wg.Add(1)
+		go srcWorker.PushStateMigrationDRRS(migrationInfoList, &wg)
+	}
+	wg.Wait()
+
 	log.Printf(
-		"[Lazy Rescale INFO] Step 6: Removed tasks terminated - time taken: %v\n",
+		"[DRRS Rescale INFO] State migration started - time taken: %v\n",
+		time.Since(start),
+	)
+}
+
+// [DRRS] Generate migration plan for DRRS protocol.
+// bucketOwnerChanges: map[source worker]map[dest worker][]bucketIdx
+// migrationPlan: map[src worker][]*pb.MigrationInfo
+func (s *APIServer) generateDRRSMigrationPlan(
+	bucketOwnerChanges map[uint16]map[uint16][]int,
+) map[uint16][]*pb.MigrationInfo {
+
+	migrationPlan := make(map[uint16][]*pb.MigrationInfo)
+	for sourceWorker, destWorkerMap := range bucketOwnerChanges {
+		var migrationInfoList []*pb.MigrationInfo
+		for destWorker, bucketIndices := range destWorkerMap {
+
+			// bucketIndices is a sorted list of bucket indices. Now we want to
+			// convert it to a list of bucket ranges. For example, if
+			// bucketIndices = [0, 1, 2, 4, 5], we want to convert it to
+			// [0, 2], [4, 5]. We do this by iterating through the list and
+			// checking if the next index is equal to the current index + 1.
+			var bucketRanges []*pb.BucketRange
+			start, end := bucketIndices[0], bucketIndices[0]
+			for i := 1; i < len(bucketIndices); i++ {
+				if bucketIndices[i] == end+1 {
+					end = bucketIndices[i]
+				} else {
+					bucketRanges = append(
+						bucketRanges,
+						&pb.BucketRange{
+							LowerBucketIdx: int64(start),
+							UpperBucketIdx: int64(end),
+						},
+					)
+					start, end = bucketIndices[i], bucketIndices[i]
+				}
+			}
+			// Add the last bucket range
+			bucketRanges = append(
+				bucketRanges,
+				&pb.BucketRange{
+					LowerBucketIdx: int64(start),
+					UpperBucketIdx: int64(end),
+				},
+			)
+
+			// Append the migration info for a src worker to the list
+			migrationInfoList = append(
+				migrationInfoList,
+				&pb.MigrationInfo{
+					TargetWorkerAddr: s.Coordinator.WorkerManager.GetWorkerStateCommAddr(
+						destWorker,
+					),
+					BucketRanges: bucketRanges,
+				},
+			)
+		}
+		migrationPlan[sourceWorker] = migrationInfoList
+	}
+	return migrationPlan
+}
+
+// [DRRS] Initialize all tasks for DRRS
+// 1. Start new tasks if needed
+// 2. Send required metadata to all target tasks
+func (s *APIServer) initializeTargetTasksDRRS(
+	targetOperator dataflow.Operator,
+	newWorkers []*ManagedWorker,
+	removedWorkers []*ManagedWorker,
+	bucketOwnerChanges map[uint16]map[uint16][]int,
+	subScaleId int,
+) ([]*ManagedWorker, []uint16) {
+	start := time.Now()
+	targetOperatorName := targetOperator.GetName()
+
+	// bucketOwnerChanges: map[source worker]map[dest worker][]bucketIdx
+	// migrationPlan: map[dest worker][]*pb.MigrationInfo
+	migrationPlan := s.GenerateMigrationPlan(bucketOwnerChanges)
+
+	// Get downstream info of target operator
+	downstreamInfoList, keybyCollectorRoutingTable := s.getDownstreamInfoList(
+		targetOperatorName,
+	)
+
+	// Notify all tasks of the target operator to initialize
+	var wg sync.WaitGroup
+
+	// Step 1: deploy new tasks with lazy init metadata
+	upstreamTasks, numUpstreamOperators := s.getUpstreamList(targetOperatorName)
+	numUpstreams := len(upstreamTasks)
+	expectedDrainBarriers := int32(numUpstreams)
+	for _, worker := range newWorkers {
+
+		srcTaskList, ok := migrationPlan[worker.WorkerId]
+		if !ok {
+			log.Fatalln("No key space partitioned to new task")
+		}
+		expectedNumUpstreams := numUpstreams + len(srcTaskList)
+		expectedInboundPeers := int32(len(srcTaskList) * numUpstreamOperators)
+
+		wg.Add(1)
+		go worker.DeployTask(&pb.TaskAssignment{
+			TaskId:                     targetOperatorName,
+			DownstreamInfoList:         downstreamInfoList,
+			ExpectedNumUpstream:        int32(expectedNumUpstreams),
+			KeybyCollectorRoutingTable: keybyCollectorRoutingTable,
+			// Lazy reconfig metadata
+			ExpectedDrainBarriers: &expectedDrainBarriers,
+			ExpectedInboundPeers:  &expectedInboundPeers,
+			// DRRS
+			DrrsMigrationInfo: &pb.StateMigration{
+				MigrationInfoList: srcTaskList,
+			},
+		}, &wg)
+	}
+
+	// Step 2: send init metadata to existing tasks
+	removedWorkerMap := make(map[uint16]bool)
+	for _, worker := range removedWorkers {
+		removedWorkerMap[worker.WorkerId] = true
+	}
+
+	curWorkers := s.Coordinator.TaskPlacementPlan[targetOperatorName]
+	for _, worker := range curWorkers {
+
+		// Check if this task is a receiver task
+		expectedInboundPeers := int32(-1)
+		var migrationInfoList []*pb.MigrationInfo
+		srcTaskList, ok := migrationPlan[worker.WorkerId]
+		if ok {
+			expectedInboundPeers = int32(
+				len(srcTaskList) * numUpstreamOperators,
+			)
+			migrationInfoList = srcTaskList
+		}
+
+		taskToBeRemoved := false
+		if _, ok := removedWorkerMap[worker.WorkerId]; ok {
+			taskToBeRemoved = true
+		}
+
+		wg.Add(1)
+		go worker.InitLazyReconfig(&pb.InitLazyReconfig{
+			ExpectedDrainBarriers: expectedDrainBarriers,
+			ExpectedInboundPeers:  expectedInboundPeers,
+			IsShuttingDown:        taskToBeRemoved,
+			PeerStateService:      &pb.PeerStateService{}, // Not used by DRRS
+			// DRRS
+			DrrsMigrationInfo: &pb.StateMigration{
+				MigrationInfoList: migrationInfoList,
+			},
+		}, &wg)
+	}
+	wg.Wait()
+
+	// Build receiver task list for future use
+	var receiverTaskList []uint16
+	for destWorkerId := range migrationPlan {
+		receiverTaskList = append(receiverTaskList, destWorkerId)
+	}
+
+	log.Printf(
+		"[DRRS INFO][Subscale %d] Step 1: DRRS Init - time taken: %v\n",
+		subScaleId,
+		time.Since(start),
+	)
+	return upstreamTasks, receiverTaskList
+}
+
+// [DRRS] Update the key partition table in the coordinator
+func (s *APIServer) updateKeyPartitionTableDRRS(
+	targetOperator dataflow.Operator,
+	bucketOwnerChanges map[uint16]map[uint16][]int,
+) {
+	start := time.Now()
+	s.Coordinator.KeyPartitions[targetOperator.GetName()].UpdateBucketOwnersDRRS(
+		bucketOwnerChanges,
+	)
+	log.Printf(
+		"[DRRS INFO] Step 0: Key partition table updated for subscale - time taken: %v\n",
 		time.Since(start),
 	)
 }

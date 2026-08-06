@@ -9,7 +9,7 @@ import (
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
 	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constants"
 	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/worker"
 	"github.com/mus-format/mus-go/varint"
@@ -57,7 +57,7 @@ func TestLazyNoMigrationWordCount(t *testing.T) {
 	}
 	log.Printf("Job rescale response: %v\n", resp.Info)
 
-	// Wait for the test to be completed
+	// Wait for the test to be compeleted
 	time.Sleep(20 * time.Second)
 
 	/*************************************************
@@ -101,7 +101,7 @@ func checkCorrectnessNoMigration(
 		for stateIter.First(); stateIter.Valid(); stateIter.Next() {
 			key := stateIter.Key()
 			value := stateIter.Value()
-			keyI, _, _ := varint.UnmarshalInt64(key[constant.KeyPrefixSize:])
+			keyI, _, _ := varint.UnmarshalInt64(key[constants.KeyPrefixSize:])
 			valueI, _, _ := varint.UnmarshalInt(value)
 			results[keyI] = valueI
 		}

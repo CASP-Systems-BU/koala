@@ -1,0 +1,24 @@
+{
+  "QueryName": "nexmark_query6",
+  "WorkDir": "~/disaggregated-streaming",
+  "AllNodeIPs": ["10.10.1.1"],
+  "KafkaClusterIPs": ["10.10.1.1"],
+  "ProducerIPs": ["10.10.1.1"],
+  "WorkerIPs": ["10.10.1.1", "10.10.1.1", "10.10.1.1", "10.10.1.1", "10.10.1.1"],
+  "NexmarkLogicalSourceConfigs":[
+    {
+      "EventType": "Auction",
+      "NexmarkSourceConfig":{}
+    },
+    {
+      "EventType": "Bid",
+      "NexmarkSourceConfig":{
+      }
+    }
+  ],
+  "TotalRuntimeSeconds": 300,
+  "ClosedAuctionParallelism": 1,
+  "StatefulMapperParallelism": 1,
+  "SinkParallelism": 1,
+  "WatermarkInterval": "100ms"
+}

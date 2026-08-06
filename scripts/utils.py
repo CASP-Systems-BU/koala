@@ -379,6 +379,7 @@ def validateConfigJsonInput(
     # Validate partition policy
     allowedPartitionPolicies = [
         "consistent-hashing",
+        "consistent-hashing-v2",
         "uniform",
         "consistent-even",
     ]
@@ -431,9 +432,15 @@ def parseReconfigurationSettings(configMap: dict) -> list[Reconfig]:
         currTime = reconfigurations[i].triggerTimeSeconds
 
         # Check increasing order
-        if currTime < prevTime:
+        if currTime <= prevTime:
             raise Exception(
-                f"[ERROR] TriggerTimeSeconds mustn't be in decreasing order. Found {prevTime} followed by {currTime}."
+                f"[ERROR] TriggerTimeSeconds must be in increasing order. Found {prevTime} followed by {currTime}."
+            )
+
+        # Check minimum gap of 10 seconds
+        if currTime - prevTime < 10:
+            raise Exception(
+                f"[ERROR] Consecutive TriggerTimeSeconds must have a gap of at least 10 seconds. Gap between {prevTime} and {currTime} is only {currTime - prevTime} seconds."
             )
 
     return reconfigurations

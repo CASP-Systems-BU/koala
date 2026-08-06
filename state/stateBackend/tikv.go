@@ -131,7 +131,3 @@ func (t *TikvStateBackend) RangeQuery(
 	log.Fatalln("RangeQuery() not supported for TiDB yet")
 	return nil, nil
 }
-
-func (t *TikvStateBackend) IsEmbeddedState() bool {
-	return false
-}

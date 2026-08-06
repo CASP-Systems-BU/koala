@@ -37,7 +37,7 @@ func TestTumblingWindowOutputTimestampLazy(t *testing.T) {
 	expectedWM := int64(100000)
 	go testutils.MonitorEndOfTest(sink, done, expectedWM)
 
-	// Wait for the test to be completed
+	// Wait for the test to be compeleted
 	<-done
 	log.Println("[E2E] Test completed")
 

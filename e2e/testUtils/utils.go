@@ -3,17 +3,14 @@ package testutils
 import (
 	"context"
 	"log"
-	"net"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
-	remotepebbleserver "github.com/CASP-Systems-BU/disaggregated-streaming/cmd/remotePebble/remotePebbleServer"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/coordinator"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
 	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/state/stateBackend"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/worker"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -33,7 +30,6 @@ func StartWorker(
 	cfg := configuration.DeepCopyConfig(config)
 	cfg.DataPlanePort = dataPort
 	cfg.StateCommPort = statePort
-	cfg.BufferSize = 1
 	w := worker.NewWorker(cfg, query)
 	go w.Run()
 	return w
@@ -55,103 +51,12 @@ func CleanUpDataFolder() {
 	os.RemoveAll("./data")
 }
 
-// StartRemotePebbleTestServers spins up pebble-backed gRPC servers for tests.
-func StartRemotePebbleTestServers(
-	numServers int,
-) ([]string, []*stateBackend.PebbleStateBackend, func()) {
-
-	addrs := make([]string, numServers)
-	servers := make([]*grpc.Server, numServers)
-	listeners := make([]net.Listener, numServers)
-	backends := make([]*stateBackend.PebbleStateBackend, numServers)
-
-	stateCommPortBase := 9101
-	for i := range numServers {
-
-		cfg := configuration.Default()
-		cfg.StateCommPort = strconv.Itoa(stateCommPortBase + i)
-		backends[i] = stateBackend.NewPebbleStateBackend(cfg)
-
-		lis, err := net.Listen("tcp", "127.0.0.1:"+cfg.StateCommPort)
-		if err != nil {
-			log.Fatalf(
-				"Failed to listen for remote pebble test server: %v",
-				err,
-			)
-		}
-		listeners[i] = lis
-
-		server := grpc.NewServer(
-			grpc.MaxRecvMsgSize(100*1024*1024),
-			grpc.MaxSendMsgSize(100*1024*1024),
-		)
-		pb.RegisterRemotePebbleServiceServer(
-			server,
-			remotepebbleserver.NewRemotePebbleServer(backends[i]),
-		)
-
-		addrs[i] = lis.Addr().String()
-		servers[i] = server
-		go server.Serve(lis)
-	}
-
-	cleanupRemotePebbleServers := func() {
-		CleanupRemotePebbleTestServers(servers, listeners, backends)
-	}
-
-	return addrs, backends, cleanupRemotePebbleServers
-}
-
-// CleanupRemotePebbleTestServers stops servers and closes backends.
-func CleanupRemotePebbleTestServers(
-	servers []*grpc.Server,
-	listeners []net.Listener,
-	backends []*stateBackend.PebbleStateBackend,
-) {
-	for i := range servers {
-		if servers[i] != nil {
-			servers[i].Stop()
-		}
-		if listeners[i] != nil {
-			listeners[i].Close()
-		}
-		if backends[i] != nil {
-			backends[i].Close()
-		}
-	}
-	CleanUpDataFolder()
-}
-
 func DeployJob(
 	numWorkers int,
 	targetQuery func() *dataflow.Dataflow,
 	config *configuration.Configuration,
 ) (pb.APIServiceClient, []*worker.Worker, *coordinator.Coordinator) {
-	client, workers, coordinator := deployJob(
-		numWorkers,
-		targetQuery,
-		config,
-	)
-	return client, workers, coordinator
-}
-func DeployJobWithoutCleanUp(
-	numWorkers int,
-	targetQuery func() *dataflow.Dataflow,
-	config *configuration.Configuration,
-) (pb.APIServiceClient, []*worker.Worker, *coordinator.Coordinator) {
-	client, workers, coordinator := deployJob(
-		numWorkers,
-		targetQuery,
-		config,
-	)
-	return client, workers, coordinator
-}
-
-func deployJob(
-	numWorkers int,
-	targetQuery func() *dataflow.Dataflow,
-	config *configuration.Configuration,
-) (pb.APIServiceClient, []*worker.Worker, *coordinator.Coordinator) {
+	CleanUpDataFolder()
 
 	// Starts the coordinator
 	coordinator := StartCoordinator(targetQuery(), config)

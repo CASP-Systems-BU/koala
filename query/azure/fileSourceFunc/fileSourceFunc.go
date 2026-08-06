@@ -6,14 +6,11 @@ import (
 	"io"
 	"log"
 	"os"
-	"runtime"
-	"runtime/debug"
 	"strconv"
 	"time"
 
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/collector"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/query/azure/models"
 	ratelimiter "github.com/CASP-Systems-BU/disaggregated-streaming/query/rateLimiter"
 )
@@ -28,8 +25,6 @@ func AzureFileSourceFunc[OUT tuple.Tuple](
 	isWarmUp bool,
 ) func(collector.Collector) {
 	return func(co collector.Collector) {
-		debug.SetMemoryLimit(20 * 1024 * 1024 * 1024)
-		debug.SetGCPercent(50)
 		startTimestamp := time.Now()
 		// Open the file, and create a csv reader using buffered reader
 		// for better performance.
@@ -79,15 +74,11 @@ func AzureFileSourceFunc[OUT tuple.Tuple](
 			}
 			totalEvents = append(totalEvents, azureEvent)
 		}
+		if err != nil {
+			panic(err)
+		}
 
-		runtime.GC()
-		query.PrintMemUsage("After Loading File & GC")
 		totalEventNumber := len(totalEvents)
-		log.Printf(
-			"Successfully loaded %d events in %v\n",
-			totalEventNumber,
-			time.Since(startTimestamp),
-		)
 		outputEventNumber := 0
 		eventIndex := int(alreadyOutputEventNumber) % len(totalEvents)
 		timeBase := int64(0)
@@ -126,11 +117,7 @@ func AzureFileSourceFunc[OUT tuple.Tuple](
 
 					// Check if we already genreated a whole round
 					if outputEventNumber%totalEventNumber == 0 {
-						log.Println(
-							"source has generated a singleRound, total",
-							totalEventNumber,
-							"events.",
-						)
+						log.Println("source has generated a singleRound, total", totalEventNumber, "events.")
 					}
 				}
 

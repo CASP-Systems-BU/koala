@@ -3,7 +3,6 @@ package coordinator
 import (
 	"log"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -72,37 +71,18 @@ func (w *WorkerManager) AllocateRandomWorkers(
 	selectedWorkers := make([]*ManagedWorker, 0, numRequiredWorkers)
 
 	// Find available workers: first n workers based on map traversal order
-	availableWorkers := make([]*ManagedWorker, 0)
 	w.Lock()
 	for _, worker := range w.Workers {
 		if worker.IsAvailable {
-			availableWorkers = append(availableWorkers, worker)
-		}
-	}
+			selectedWorkers = append(selectedWorkers, worker)
+			worker.IsAvailable = false
 
-	// [TEMP] now manually sort based on port number to deterministically select
-	// workers that are registered earlier
-	sort.Slice(availableWorkers, func(i, j int) bool {
-		partsI := strings.Split(availableWorkers[i].DataPlaneAddr, ":")
-		if len(partsI) != 2 {
-			log.Fatalf("Invalid DataPlaneAddr format: %s", availableWorkers[i].DataPlaneAddr)
+			if len(selectedWorkers) == numRequiredWorkers {
+				break
+			}
 		}
-		partsJ := strings.Split(availableWorkers[j].DataPlaneAddr, ":")
-		if len(partsJ) != 2 {
-			log.Fatalf("Invalid DataPlaneAddr format: %s", availableWorkers[j].DataPlaneAddr)
-		}
-		pi, _ := strconv.Atoi(partsI[1])
-		pj, _ := strconv.Atoi(partsJ[1])
-		return pi < pj
-	})
-	if len(availableWorkers) > numRequiredWorkers {
-		availableWorkers = availableWorkers[:numRequiredWorkers]
-	}
-	for _, worker := range availableWorkers {
-		worker.IsAvailable = false
 	}
 	w.Unlock()
-	selectedWorkers = availableWorkers
 
 	// Check if enough workers are available
 	if len(selectedWorkers) != numRequiredWorkers {

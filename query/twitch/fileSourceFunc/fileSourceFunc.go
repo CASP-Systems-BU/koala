@@ -1,4 +1,4 @@
-package filesourcefunc
+package twitch
 
 import (
 	"bufio"
@@ -70,11 +70,6 @@ func TwitchFileSourceFunc[OUT tuple.Tuple](
 		query.PrintMemUsage("After Loading File")
 
 		totalEventNumber := len(twitchEvents)
-		log.Printf(
-			"Successfully loaded %d events in %v\n",
-			totalEventNumber,
-			time.Since(startTimestamp),
-		)
 		outputEventNumber := 0
 		eventIndex := int(alreadyOutputEventNumber) % totalEventNumber
 		timeBase := int64(0)

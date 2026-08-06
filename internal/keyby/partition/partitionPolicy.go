@@ -32,15 +32,6 @@ type PartitionPolicy interface {
 		[]uint16,
 		[]*Bucket,
 	) ([]*Bucket, map[uint16]map[uint16][]int)
-
-	// [KeyLookupTableV2]
-	GenerateBucketsV2([]uint16) []BucketV2
-
-	// [KeyLookupTableV2]
-	RePartitionV2(
-		[]uint16,
-		[]BucketV2,
-	) ([]BucketV2, map[uint16]map[uint16][]int)
 }
 
 // Shared fields for all partition policies

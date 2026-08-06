@@ -16,7 +16,6 @@ import (
 type Q4ModConfig struct {
 	StatefulMapperParallelism int
 	SinkParallelism           int
-	DummyFieldSize            int
 	ProducerIPs               []string
 	KafkaClusterIPs           []string
 }
@@ -28,7 +27,6 @@ func (cfg *Q4ModConfig) UnmarshalJSON(data []byte) error {
 	*cfg = Q4ModConfig{
 		StatefulMapperParallelism: 1,
 		SinkParallelism:           1,
-		DummyFieldSize:            0,
 		ProducerIPs:               []string{"localhost"},
 		KafkaClusterIPs:           []string{"localhost"},
 	}
@@ -87,7 +85,7 @@ func Query4ModKafka(configFile string) *dataflow.Dataflow {
 	src.SetParallelism(len(config.ProducerIPs))
 	dataflow.AddOperator(df, src)
 
-	mapper := Query4StatefulMapperDummy(config.DummyFieldSize)
+	mapper := Query4StatefulMapper()
 	mapper.SetParallelism(config.StatefulMapperParallelism)
 	dataflow.AddOperator(df, mapper)
 

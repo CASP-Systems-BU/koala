@@ -30,10 +30,9 @@ func Example_Simple_Query() *dataflow.Dataflow {
 	mapper := dataflow.NewMapper(
 		"mapper",
 		func(in *tuple.Tuple1[float64]) *tuple.Tuple1[float64] {
-
-			// A dummy compute-intensive task - calculate x^x for 100 times
+			// Expansive computation
 			res := 0.0
-			for range 100 {
+			for i := 0; i < 100; i++ {
 				res = math.Pow(in.V1, in.V1)
 			}
 			return &tuple.Tuple1[float64]{
