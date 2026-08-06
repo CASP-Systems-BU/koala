@@ -3,11 +3,9 @@ package state
 import (
 	"context"
 	"log"
-	"net"
 	"sync"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
 	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -160,6 +158,13 @@ func (s *StateService) migrateRemoteBuckets(
 		return
 	}
 
+	// [hot fix - refactor later] Ensure all remote state connections are
+	// initialized before starting concurrent migration routines to avoid race
+	// condition on connection map
+	for workerID := range bucketMigrationRequests {
+		s.getBucketMigrationConn(workerID)
+	}
+
 	// Concurrently fetch remote state for each group
 	var wg sync.WaitGroup
 	for workerID, request := range bucketMigrationRequests {
@@ -259,11 +264,23 @@ func (s *StateService) remoteRead(
 		indexTracker[workerID] = append(indexTracker[workerID], i)
 	}
 
+	// Now all requested keys are grouped by their owner workers. We request
+	// their owner workers separately in parallel to get the values
+
 	// First initialize the result map by workers: Map: worker ID -> state ID
 	// -> list of values
 	resByWorker := make(map[uint16]map[uint16][][]byte)
 	for workerID := range keysByWorker {
 		resByWorker[workerID] = make(map[uint16][][]byte)
+	}
+
+	// [hot fix - refactor later] Ensure all remote state connections are
+	// initialized before starting concurrent read routines to avoid race
+	// condition on connection map
+	for workerID := range keysByWorker {
+		if workerID != s.WorkerID {
+			s.getReadConn(workerID)
+		}
 	}
 
 	// Concurrently fetch remote state for each worker
@@ -349,6 +366,18 @@ func (s *StateService) remoteOverwrite(
 		bucketIDs,
 	)
 
+	// Now all keys/values are grouped by their owner workers. We request their
+	// owner workers separately in parallel to set the values
+
+	// [hot fix - refactor later] Ensure all remote state connections are
+	// initialized before starting concurrent overwrite routines to avoid race
+	// condition on connection map
+	for workerID := range keysByWorker {
+		if workerID != s.WorkerID {
+			s.getOverwriteConn(workerID)
+		}
+	}
+
 	// Concurrently overwrite remote state for each worker
 	var wg sync.WaitGroup
 	for workerID, workerKeys := range keysByWorker {
@@ -427,6 +456,18 @@ func (s *StateService) remoteMerge(
 		values,
 		bucketIDs,
 	)
+
+	// Now all keys/values are grouped by their owner workers. We request their
+	// owner workers separately in parallel to merge the values
+
+	// [hot fix - refactor later] Ensure all remote state connections are
+	// initialized before starting concurrent merge routines to avoid
+	// race condition on connection map
+	for workerID := range keysByWorker {
+		if workerID != s.WorkerID {
+			s.getMergeConn(workerID)
+		}
+	}
 
 	// Concurrently merge remote state for each worker
 	var wg sync.WaitGroup
@@ -521,6 +562,18 @@ func (s *StateService) remoteDelete(
 		}
 	}
 
+	// Now all requested keys are grouped by their owner workers. We request
+	// their owner workers separately in parallel to delete the keys
+
+	// [hot fix - refactor later] Ensure all remote state connections are
+	// initialized before starting concurrent delete routines to avoid race
+	// condition on connection map
+	for workerID := range keysByWorker {
+		if workerID != s.WorkerID {
+			s.getDeleteConn(workerID)
+		}
+	}
+
 	// Concurrently delete remote state for each worker
 	var wg sync.WaitGroup
 	for workerID, workerKeys := range keysByWorker {
@@ -576,101 +629,262 @@ func (s *StateService) remoteDeleteFromWorker(
 	}
 }
 
-/******************************************************************************
-				Helpers to get remote state access connections
-******************************************************************************/
+// [lazy-optimized] Read remote state with specified keys and trigger async
+// bucket migration in background. This function returns immediately if all
+// requested keys are fetched while keeping the background migration ongoing
+func (s *StateService) remoteReadWithAsyncBucketMigration(
+	operatorID uint16,
+	keys map[uint16][][]byte,
+	bucketIDs []int64,
+) map[uint16][][]byte {
 
-// [lazy-basic] Control plane pre-establish bucket migration connection
-func (s *StateService) EstablishBucketMigrationConn(
-	workerID uint16,
-	stateServiceAddr string,
-) {
-
-	client := getStateCommRpcClient(stateServiceAddr)
-	remoteBucketMigrationStream, err := client.RemoteBucketMigration(
-		context.Background(),
+	// Group requested keys and their belonging buckets by owner workers
+	keysByWorker, indexTracker, bucketsByWorker := s.groupKeysAndBucketsByWorker(
+		keys,
+		bucketIDs,
 	)
+
+	// Allocate space to store results for each worker's request
+	// Map: worker ID -> state ID -> list of values. This map structure aligns
+	// with keysByWorker
+	resByWorker := make(map[uint16]map[uint16][][]byte)
+	for workerID := range keysByWorker {
+		resByWorker[workerID] = make(map[uint16][][]byte)
+	}
+
+	// [hot fix - refactor later] Ensure all remote state connections are
+	// initialized before starting concurrent async bucket migration routines to
+	// avoid race condition
+	for workerID := range keysByWorker {
+		if workerID != s.WorkerID {
+			s.getAsyncBucketMigrationConn(workerID)
+		}
+	}
+
+	// Use separate goroutines to handle state requests for each worker. Use 2
+	// wait groups to separately track key fetch and background bucket migration
+	// (1) keyWaitGroup: tracks key fetch completion
+	// (2) asyncMigrationWaitGroup: tracks background bucket migration
+	//     completion. This wait group is stored in StateService to allow
+	//     tracking in future flush operations
+	var keyWaitGroup sync.WaitGroup
+	for workerID, workerKeys := range keysByWorker {
+
+		keyWaitGroup.Add(1)
+		if workerID == s.WorkerID {
+
+			// This batch of keys is local - get from local state backend. For
+			// local worker, no background bucket migration is needed
+			go s.readLocalStateRoutine(
+				workerKeys,
+				resByWorker[workerID],
+				&keyWaitGroup,
+			)
+			continue
+		}
+
+		// This batch of keys is remote - get from remote state service. This
+		// routine also triggers background bucket migration, so we increment
+		// the async bucket migration wait group counter
+		s.AsyncMigrationWaitGroup.Add(1)
+		go s.remoteReadWithAsyncBucketMigrationFromWorker(
+			workerID,
+			operatorID,
+			workerKeys,
+			bucketsByWorker[workerID],
+			resByWorker[workerID],
+			&keyWaitGroup,
+		)
+	}
+
+	// Only block on key fetch completion. Will block on bucket migration
+	// completion in future flush operations
+	keyWaitGroup.Wait()
+
+	// Merge state read results from all workers
+	return s.mergeResultsFromAllWorkers(
+		keys,
+		resByWorker,
+		indexTracker,
+	)
+}
+
+// [Lazy-optimized] Routine executor to read remote state with async bucket
+// migration from a single remote worker
+func (s *StateService) remoteReadWithAsyncBucketMigrationFromWorker(
+	targetWorkerID uint16,
+	targetOperatorID uint16,
+	keys map[uint16][][]byte,
+	bucketIDs map[int64]struct{},
+	res map[uint16][][]byte,
+	keyWaitGroup *sync.WaitGroup,
+) {
+	defer s.AsyncMigrationWaitGroup.Done()
+
+	// Get the remote state service connection for read with async bkt migration
+	remoteReadStream := s.getAsyncBucketMigrationConn(targetWorkerID)
+
+	/**************************************************************************
+						 Stage 1: fetch the required keys
+	**************************************************************************/
+
+	// Each iteration handles a single state
+	for stateID, keys := range keys {
+
+		// Send the request to the remote state service
+		remoteReadReq := &pb.AsyncBucketMigrationRequest{
+			Message: &pb.AsyncBucketMigrationRequest_ReadRequest{
+				ReadRequest: &pb.ReadRequest{
+					OperatorId: uint32(targetOperatorID),
+					Keys:       keys,
+				},
+			},
+		}
+		err := remoteReadStream.Send(remoteReadReq)
+		if err != nil {
+			log.Fatalf(
+				"Failed to send remote read request in lazy-optimized mode: %v\n",
+				err,
+			)
+		}
+
+		// Receive the response from the remote state service
+		remoteReadResponse, err := remoteReadStream.Recv()
+		if err != nil {
+			log.Fatalf(
+				"Failed receiving remote read response in lazy-optimized mode: %v\n",
+				err,
+			)
+		}
+		msg, ok := remoteReadResponse.Message.(*pb.AsyncBucketMigrationResponse_ReadResponse)
+		if !ok {
+			log.Fatalf(
+				"Invalid remote read response message type in lazy-optimized mode: %v\n",
+				remoteReadResponse,
+			)
+		}
+		if len(msg.ReadResponse.Values) != len(keys) {
+			log.Fatalf(
+				"Invalid remote read response: number of values %d does not match number of keys %d\n",
+				len(msg.ReadResponse.Values),
+				len(keys),
+			)
+		}
+
+		// Write the received values to the result map
+		res[stateID] = msg.ReadResponse.Values
+	}
+
+	// Notify the key fetch completion such that we can start processing the
+	// fetched keys without waiting for the background bucket migration to
+	// finish in the main routine
+	keyWaitGroup.Done()
+
+	// Flush fetched keys to StateBackend after notifying key fetch completion
+	for stateID, keys := range keys {
+		s.StateBackendImpl.SetMany(
+			keys,
+			res[stateID],
+		)
+	}
+
+	/**************************************************************************
+						  Stage 2: async bucket migration
+	**************************************************************************/
+
+	// Send the bucket migration request
+	bucketIDsList := make([]int64, 0, len(bucketIDs))
+	for bucketID := range bucketIDs {
+		bucketIDsList = append(bucketIDsList, bucketID)
+	}
+	bucketMigrationReq := &pb.AsyncBucketMigrationRequest{
+		Message: &pb.AsyncBucketMigrationRequest_BucketMigrationRequest{
+			BucketMigrationRequest: &pb.BucketMigrationRequest{
+				OperatorId:     uint32(targetOperatorID),
+				SourceWorkerId: uint32(s.WorkerID),
+				BucketIds:      bucketIDsList,
+			},
+		},
+	}
+	err := remoteReadStream.Send(bucketMigrationReq)
 	if err != nil {
 		log.Fatalf(
-			"Failed to establish remote bucket migration stream: %v\n",
+			"Failed to send remote bucket migration request in lazy-optimized mode: %v\n",
 			err,
 		)
 	}
-	s.BucketMigrationConnLock.Lock()
-	s.BucketMigrationConn[workerID] = remoteBucketMigrationStream
-	s.BucketMigrationConnLock.Unlock()
+
+	// Receive the migrated buckets from the remote state service
+	for {
+
+		bucketMigrationRes, err := remoteReadStream.Recv()
+		if err != nil {
+			log.Fatalf(
+				"Failed receiving remote bucket migration response in lazy-optimized mode: %v\n",
+				err,
+			)
+		}
+		msg, ok := bucketMigrationRes.Message.(*pb.AsyncBucketMigrationResponse_StateChunk)
+		if !ok {
+			log.Fatalf(
+				"Invalid remote bucket migration response message type in lazy-optimized mode: %v\n",
+				bucketMigrationRes,
+			)
+		}
+
+		// All migrated buckets are received
+		if msg.StateChunk.EndOfStream {
+			break
+		}
+
+		// Write the state chunk to the local state store
+		keys := msg.StateChunk.Keys
+		values := msg.StateChunk.Values
+		if len(keys) != len(values) || len(keys) == 0 {
+			log.Fatalf("Invalid bucket chunk: %v\n", msg.StateChunk)
+		}
+		s.StateBackendImpl.SetMany(keys, values)
+	}
+
+	// Update the StateLookupTable bucket ownership after migration
+	for _, bucketID := range bucketIDsList {
+		s.StateLookupTable.ChangeBucketOwner(
+			bucketID,
+			s.WorkerID,
+		)
+	}
 }
+
+/******************************************************************************
+				Helpers to get remote state access connections
+******************************************************************************/
 
 // [lazy-basic] Get connection for remote bucket migration
 func (s *StateService) getBucketMigrationConn(
 	workerID uint16,
 ) grpc.BidiStreamingClient[pb.BucketMigrationRequest, pb.StateChunk] {
 
-	s.BucketMigrationConnLock.Lock()
 	remoteBucketMigrationStream, ok := s.BucketMigrationConn[workerID]
-	s.BucketMigrationConnLock.Unlock()
 
+	// Establish the connection if it's not present
+	var err error
 	if !ok {
-		log.Fatalf(
-			"Bucket migration connection not found for worker %d\n",
-			workerID,
+
+		client := s.getStateCommServiceClient(workerID)
+		remoteBucketMigrationStream, err = client.RemoteBucketMigration(
+			context.Background(),
 		)
+		if err != nil {
+			log.Fatalf(
+				"Failed to establish remote bucket migration stream: %v\n",
+				err,
+			)
+		}
+
+		// Store the connection in the connection map
+		s.BucketMigrationConn[workerID] = remoteBucketMigrationStream
 	}
 	return remoteBucketMigrationStream
-}
-
-// [lazy-no-migration] Control plane pre-establish Read/Overwrite/Merge/Delete
-// connections for no-migration protocols
-func (s *StateService) EstablishNoMigrationConns(
-	workerID uint16,
-	stateServiceAddr string,
-) {
-
-	client := getStateCommRpcClient(stateServiceAddr)
-
-	// Establish Read connection
-	remoteReadStream, err := client.RemoteRead(
-		context.Background(),
-	)
-	if err != nil {
-		log.Fatalf("Failed to establish remote read stream: %v\n", err)
-	}
-	s.ReadConnLock.Lock()
-	s.ReadConn[workerID] = remoteReadStream
-	s.ReadConnLock.Unlock()
-
-	// Establish Overwrite connection
-	remoteOverwriteStream, err := client.RemoteOverwrite(
-		context.Background(),
-	)
-	if err != nil {
-		log.Fatalf("Failed to establish remote overwrite stream: %v\n", err)
-	}
-	s.OverwriteConnLock.Lock()
-	s.OverwriteConn[workerID] = remoteOverwriteStream
-	s.OverwriteConnLock.Unlock()
-
-	// Establish Merge connection
-	remoteMergeStream, err := client.RemoteMerge(
-		context.Background(),
-	)
-	if err != nil {
-		log.Fatalf("Failed to establish remote merge stream: %v\n", err)
-	}
-	s.MergeConnLock.Lock()
-	s.MergeConn[workerID] = remoteMergeStream
-	s.MergeConnLock.Unlock()
-
-	// Establish Delete connection
-	remoteDeleteStream, err := client.RemoteDelete(
-		context.Background(),
-	)
-	if err != nil {
-		log.Fatalf("Failed to establish remote delete stream: %v\n", err)
-	}
-	s.DeleteConnLock.Lock()
-	s.DeleteConn[workerID] = remoteDeleteStream
-	s.DeleteConnLock.Unlock()
 }
 
 // [lazy-no-migration] Get connection for remote read-only by keys
@@ -678,12 +892,23 @@ func (s *StateService) getReadConn(
 	workerID uint16,
 ) grpc.BidiStreamingClient[pb.ReadRequest, pb.ReadResponse] {
 
-	s.ReadConnLock.Lock()
 	remoteReadStream, ok := s.ReadConn[workerID]
-	s.ReadConnLock.Unlock()
 
+	// Establish the connection if it's not present
+	var err error
 	if !ok {
-		log.Fatalf("Read connection not found for worker %d\n", workerID)
+
+		client := s.getStateCommServiceClient(workerID)
+		remoteReadStream, err = client.RemoteRead(
+			context.Background(),
+		)
+		if err != nil {
+			log.Fatalf("Failed to establish remote read stream: %v\n",
+				err)
+		}
+
+		// Store the connection in the connection map
+		s.ReadConn[workerID] = remoteReadStream
 	}
 	return remoteReadStream
 }
@@ -693,12 +918,23 @@ func (s *StateService) getOverwriteConn(
 	workerID uint16,
 ) grpc.BidiStreamingClient[pb.WriteRequest, pb.Response] {
 
-	s.OverwriteConnLock.Lock()
 	remoteOverwriteStream, ok := s.OverwriteConn[workerID]
-	s.OverwriteConnLock.Unlock()
 
+	// Establish the connection if it's not present
+	var err error
 	if !ok {
-		log.Fatalf("Overwrite connection not found for worker %d\n", workerID)
+
+		client := s.getStateCommServiceClient(workerID)
+		remoteOverwriteStream, err = client.RemoteOverwrite(
+			context.Background(),
+		)
+		if err != nil {
+			log.Fatalf("Failed to establish remote overwrite stream: %v\n",
+				err)
+		}
+
+		// Store the connection in the connection map
+		s.OverwriteConn[workerID] = remoteOverwriteStream
 	}
 	return remoteOverwriteStream
 }
@@ -708,12 +944,23 @@ func (s *StateService) getMergeConn(
 	workerID uint16,
 ) grpc.BidiStreamingClient[pb.WriteRequest, pb.Response] {
 
-	s.MergeConnLock.Lock()
 	remoteMergeStream, ok := s.MergeConn[workerID]
-	s.MergeConnLock.Unlock()
 
+	// Establish the connection if it's not present
+	var err error
 	if !ok {
-		log.Fatalf("Merge connection not found for worker %d\n", workerID)
+
+		client := s.getStateCommServiceClient(workerID)
+		remoteMergeStream, err = client.RemoteMerge(
+			context.Background(),
+		)
+		if err != nil {
+			log.Fatalf("Failed to establish remote merge stream: %v\n",
+				err)
+		}
+
+		// Store the connection in the connection map
+		s.MergeConn[workerID] = remoteMergeStream
 	}
 	return remoteMergeStream
 }
@@ -723,155 +970,77 @@ func (s *StateService) getDeleteConn(
 	workerID uint16,
 ) grpc.BidiStreamingClient[pb.DeleteRequest, pb.Response] {
 
-	s.DeleteConnLock.Lock()
 	remoteDeleteStream, ok := s.DeleteConn[workerID]
-	s.DeleteConnLock.Unlock()
 
+	// Establish the connection if it's not present
+	var err error
 	if !ok {
-		log.Fatalf("Delete connection not found for worker %d\n", workerID)
+
+		client := s.getStateCommServiceClient(workerID)
+		remoteDeleteStream, err = client.RemoteDelete(
+			context.Background(),
+		)
+		if err != nil {
+			log.Fatalf("Failed to establish remote delete stream: %v\n",
+				err)
+		}
+
+		// Store the connection in the connection map
+		s.DeleteConn[workerID] = remoteDeleteStream
 	}
 	return remoteDeleteStream
-}
-
-// [lazy-optimized] Control plane pre-establish async bucket migration conn
-func (s *StateService) EstablishAsyncBucketMigrationConn(
-	workerID uint16,
-	stateServiceAddr string,
-) {
-
-	client := getStateCommRpcClient(stateServiceAddr)
-
-	remoteAsyncBucketMigrationStream, err := client.RemoteAsyncBucketMigration(
-		context.Background(),
-	)
-	if err != nil {
-		log.Fatalf(
-			"Failed to establish remote async bucket migration stream: %v\n",
-			err,
-		)
-	}
-	s.AsyncBucketMigrationConnLock.Lock()
-	s.AsyncBucketMigrationConn[workerID] = remoteAsyncBucketMigrationStream
-	s.AsyncBucketMigrationConnLock.Unlock()
 }
 
 // [lazy-optimized] Get connection for remote async bucket migration
 func (s *StateService) getAsyncBucketMigrationConn(
 	workerID uint16,
-) grpc.BidiStreamingClient[pb.LazyOptStateRequest, pb.LazyOptStateResponse] {
+) grpc.BidiStreamingClient[pb.AsyncBucketMigrationRequest, pb.AsyncBucketMigrationResponse] {
 
-	s.AsyncBucketMigrationConnLock.Lock()
 	remoteAsyncBucketMigrationStream, ok := s.AsyncBucketMigrationConn[workerID]
-	s.AsyncBucketMigrationConnLock.Unlock()
 
+	// Establish the connection if it's not present
+	var err error
 	if !ok {
-		log.Fatalf(
-			"Async bucket migration connection not found for worker %d\n",
-			workerID,
+
+		client := s.getStateCommServiceClient(workerID)
+		remoteAsyncBucketMigrationStream, err = client.RemoteAsyncBucketMigration(
+			context.Background(),
 		)
+		if err != nil {
+			log.Fatalf(
+				"Failed to establish remote bucket migration stream: %v\n",
+				err,
+			)
+		}
+
+		// Store the connection in the connection map
+		s.AsyncBucketMigrationConn[workerID] = remoteAsyncBucketMigrationStream
 	}
 	return remoteAsyncBucketMigrationStream
 }
 
-// [lazy-by-key] Control plane pre-establish by-key migration connection
-func (s *StateService) EstablishByKeyMigrationConn(
+// Helper function to get gRPC client for state comm service
+func (s *StateService) getStateCommServiceClient(
 	workerID uint16,
-	stateServiceAddr string,
-) {
-
-	client := getStateCommRpcClient(stateServiceAddr)
-
-	remoteByKeyMigrationStream, err := client.RemoteByKeyMigration(
-		context.Background(),
-	)
-	if err != nil {
-		log.Fatalf(
-			"Failed to establish remote by-key migration stream: %v\n",
-			err,
-		)
-	}
-	s.ByKeyMigrationConnLock.Lock()
-	s.ByKeyMigrationConn[workerID] = remoteByKeyMigrationStream
-	s.ByKeyMigrationConnLock.Unlock()
-}
-
-// [lazy-by-key] Get connection for remote by-key migration
-func (s *StateService) getByKeyMigrationConn(
-	workerID uint16,
-) grpc.BidiStreamingClient[pb.LazyByKeyStateRequest, pb.KeyResponse] {
-
-	s.ByKeyMigrationConnLock.Lock()
-	remoteByKeyMigrationStream, ok := s.ByKeyMigrationConn[workerID]
-	s.ByKeyMigrationConnLock.Unlock()
-
-	if !ok {
-		log.Fatalf(
-			"By-key migration connection not found for worker %d\n",
-			workerID,
-		)
-	}
-	return remoteByKeyMigrationStream
-}
-
-// [lazy-by-key][TCP] Control plane pre-establish by-key migration connection
-func (s *StateService) EstablishByKeyMigrationTcpConn(
-	workerID uint16,
-	stateServiceAddr string,
-) {
-
-	conn, err := net.Dial("tcp", stateServiceAddr)
-	if err != nil {
-		log.Fatalf(
-			"Failed to establish TCP connection for by-key migration: %v\n",
-			err,
-		)
-	}
-	buf := make([]byte, constant.TcpMaxMessageSize)
-	var additionalBuf []byte
-	if s.Config.LazyByKeyCancellingTaskMigrationMode == "eventual" {
-		additionalBuf = make([]byte, constant.TcpMaxMessageSize)
-	}
-
-	tcpConn := &LazyByKeyTcpConn{
-		Conn:          conn,
-		Buf:           buf,
-		AdditionalBuf: additionalBuf,
-	}
-
-	s.ByKeyMigrationTcpConnLock.Lock()
-	s.ByKeyMigrationTcpConn[workerID] = tcpConn
-	s.ByKeyMigrationTcpConnLock.Unlock()
-}
-
-// [lazy-by-key][TCP] Get connection for remote by-key migration
-func (s *StateService) getByKeyMigrationTcpConn(
-	workerID uint16,
-) *LazyByKeyTcpConn {
-
-	s.ByKeyMigrationTcpConnLock.Lock()
-	conn, ok := s.ByKeyMigrationTcpConn[workerID]
-	s.ByKeyMigrationTcpConnLock.Unlock()
-
-	if !ok {
-		log.Fatalf(
-			"By-key migration TCP connection not found for worker %d\n",
-			workerID,
-		)
-	}
-	return conn
-}
-
-// Helper function to get gRPC client for remote state comm service
-func getStateCommRpcClient(
-	remoteStateServiceAddr string,
 ) pb.StateCommServiceClient {
+
+	s.PeerStateServiceMapLock.Lock()
+	remoteStateServiceAddr, ok := s.PeerStateServiceMap[workerID]
+	s.PeerStateServiceMapLock.Unlock()
+	if !ok {
+		log.Fatalf("Peer state service address not found for worker %d\n",
+			workerID)
+	}
 
 	conn, err := grpc.NewClient(
 		remoteStateServiceAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		// The default message size limit is 4 MB. Increase it to 100 MB for
+		// large message size: lazy no-migration connections are based on
+		// single gRPC message instead of StateChunk streaming
 		grpc.WithDefaultCallOptions(
-			grpc.MaxCallRecvMsgSize(constant.RpcMaxMessageSize),
-			grpc.MaxCallSendMsgSize(constant.RpcMaxMessageSize),
+			grpc.MaxCallRecvMsgSize(500*1024*1024), // 100 MB
+			grpc.MaxCallSendMsgSize(500*1024*1024), // 100 MB
 		),
 	)
 	if err != nil {
@@ -885,7 +1054,7 @@ func getStateCommRpcClient(
 								 Other Helpers
 ******************************************************************************/
 
-// [lazy-no-migration] Group keys and values by their owner workers
+// Group keys and values by their owner workers
 // Return: map[worker ID]map[state ID][][]byte for keys and values
 func (s *StateService) groupKeysAndValuesByWorker(
 	keys map[uint16][][]byte,
@@ -928,7 +1097,7 @@ func (s *StateService) groupKeysAndValuesByWorker(
 	return keysByWorker, valuesByWorker
 }
 
-// [lazy-opt] Group keys and bucket IDs by their owner workers. Return:
+// Group keys and bucket IDs by their owner workers. Return:
 // - map[worker ID]map[state ID][][]byte for keys
 // - map[worker ID][]int for original indices of the keys in the input
 // - map[worker ID]map[bucket ID]struct{} for unique bucket IDs
@@ -975,51 +1144,6 @@ func (s *StateService) groupKeysAndBucketsByWorker(
 	return keysByWorker, indexTracker, bucketsByWorker
 }
 
-// [lazy-by-key] Group keys by their owner workers. Return:
-// - map[worker ID]map[state ID][][]byte for keys
-// - map[worker ID]map[state ID][]int for original input indices of the keys
-// The difference from lazy-opt is that now multi-states of the same key may map
-// to different workers, so we need to determine the worker ID for each key and
-// maintain the index tracker separately
-func (s *StateService) groupKeysByWorker(
-	keys map[uint16][][]byte,
-	bucketIDs []int64,
-) (
-	map[uint16]map[uint16][][]byte,
-	map[uint16]map[uint16][]int,
-) {
-
-	keysByWorker := make(map[uint16]map[uint16][][]byte)
-	indexTracker := make(map[uint16]map[uint16][]int)
-
-	var workerID uint16
-	var ok bool
-	var workerKeys map[uint16][][]byte
-	var workerTracker map[uint16][]int
-	for stateID, keyList := range keys {
-		for i, key := range keyList {
-
-			// Determine the owner worker for this key
-			workerID = s.StateLookupTableV2.GetWorkerID(key, bucketIDs[i])
-
-			workerKeys = keysByWorker[workerID]
-			workerTracker, ok = indexTracker[workerID]
-			if !ok {
-				workerKeys = make(map[uint16][][]byte)
-				keysByWorker[workerID] = workerKeys
-				workerTracker = make(map[uint16][]int)
-				indexTracker[workerID] = workerTracker
-			}
-
-			// Append the key to the identified worker group and record its
-			// original index in the input keys
-			workerKeys[stateID] = append(workerKeys[stateID], key)
-			workerTracker[stateID] = append(workerTracker[stateID], i)
-		}
-	}
-	return keysByWorker, indexTracker
-}
-
 // Merge remote read results from all workers. Return:
 // map[stateID][][]byte of merged values
 func (s *StateService) mergeResultsFromAllWorkers(
@@ -1036,31 +1160,6 @@ func (s *StateService) mergeResultsFromAllWorkers(
 	for workerID, workerRes := range resByWorker {
 		indices := indexTracker[workerID]
 		for stateID, values := range workerRes {
-			for i, v := range values {
-				res[stateID][indices[i]] = v
-			}
-		}
-	}
-	return res
-}
-
-// [lazy-by-key] Merge remote fetch results from all workers. Return:
-// map[stateID][][]byte of merged values
-func (s *StateService) mergeResultsFromAllWorkersLazyByKey(
-	keys map[uint16][][]byte,
-	resByWorker map[uint16]map[uint16][][]byte,
-	indexTrackers map[uint16]map[uint16][]int,
-) map[uint16][][]byte {
-
-	// Construct the final result map by merging results from all workers
-	res := make(map[uint16][][]byte)
-	for stateID, keyList := range keys {
-		res[stateID] = make([][]byte, len(keyList))
-	}
-	for workerID, workerRes := range resByWorker {
-		indexTracker := indexTrackers[workerID]
-		for stateID, values := range workerRes {
-			indices := indexTracker[stateID]
 			for i, v := range values {
 				res[stateID][indices[i]] = v
 			}

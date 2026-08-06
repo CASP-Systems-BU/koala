@@ -66,13 +66,13 @@ func NewWorker(
 func (w *Worker) Run() {
 
 	// Start the state comm service for external state access
-	go w.startStateCommService()
+	go w.startStateCommService(w.StateService)
 
 	// Start data plane service
-	go w.startDataPlaneService()
+	go w.StartDataPlaneService()
 
 	// Establish the control plane channel to the Coordinator
-	go w.startControlPlane()
+	go w.StartControlPlane()
 
 	// Wait until task is ready - triggered by TaskAssignment message
 	<-w.TaskReady
@@ -88,14 +88,25 @@ func (w *Worker) Run() {
 
 		// Get the reconfiguration protocol
 		var useLazyProtocol bool
+		var useDRRS bool
 		if w.Config.ReconfigProtocol == "lazy" {
 			useLazyProtocol = true
+
+			if w.Config.LazyProtocolVersion == "drrs" {
+				useDRRS = true
+			}
 		}
 		// [Lazy protocol] Flag to indicate if worker is during reconfig under
 		// lazy protocol
 		var inTransition bool
 
 		for {
+
+			// [DRRS] Before processing new work unit, check if there are any
+			// unblocked existing work units in WaitBuffer to process
+			if useDRRS {
+				w.AssignedTask.ConsumeDRRSWaitBuffer(w.AssignedTask, inTransition)
+			}
 
 			// Update the processing latency in MetricCollector.
 			w.AssignedTask.UpdateProcessingLatency()
@@ -107,7 +118,26 @@ func (w *Worker) Run() {
 			}
 
 			// Get the next WorkUnit from upstream
-			workUnit, subSupplierName := w.AssignedTask.GetWorkUnit()
+			var workUnit buffer.WorkUnit
+			var isPeer bool
+			var subSupplierName string
+			var ok bool
+			for {
+				// [DRRS] Case that GetWorkUnit() return ok = false: peer-only
+				// mode with no input available
+				workUnit, isPeer, subSupplierName, ok = w.AssignedTask.GetWorkUnit()
+				if ok {
+					break
+				}
+
+				if !useDRRS {
+					log.Fatalln("not drrs but getworkunit not ok")
+				}
+
+				// Try to consume wait buffer again which will possibly switch
+				// supplier back to all-channel mode
+				w.AssignedTask.ConsumeDRRSWaitBuffer(w.AssignedTask, inTransition)
+			}
 
 			switch workUnit.GetType() {
 
@@ -128,6 +158,18 @@ func (w *Worker) Run() {
 					}
 				}
 
+				// [DRRS] Now remaining records are for local processing.
+				// If DRRS reconfig is in progress (avoid extra overhead if not
+				// in reconfig), identify processable batch and put the rest
+				// into WaitBuffer
+				if useDRRS && w.AssignedTask.IfDRRSInReconfig() {
+					var hasProcessableRecords bool
+					workUnit, hasProcessableRecords = w.AssignedTask.SplitBatchForDRRS(workUnit, isPeer, subSupplierName)
+					if !hasProcessableRecords {
+						continue
+					}
+				}
+
 				// Process records in the batch locally
 				w.AssignedTask.ProcessBatch(workUnit, subSupplierName)
 
@@ -136,6 +178,16 @@ func (w *Worker) Run() {
 				wm, ok := workUnit.(*buffer.Watermark)
 				if !ok {
 					log.Fatalln("Failed to cast WorkUnit to Watermark")
+				}
+
+				// [DRRS] Check if we can process the watermark
+				if useDRRS {
+
+					// If wait buffer is not empty, we cannot process the
+					// watermark yet - push it to the WaitBuffer
+					if w.AssignedTask.BlockWatermarkDRRS(wm) {
+						continue
+					}
 				}
 
 				// [Lazy protocol] Forward progressed watermark to peers if the
@@ -159,6 +211,16 @@ func (w *Worker) Run() {
 				// have arrived, we can exit the reconfiguration phase.
 				if inTransition {
 					w.exitTransitionPhase()
+				}
+
+				// [DRRS] When in-flight barriers are aligned, there should be
+				// no data inserted into wait buffer yet
+				if useDRRS {
+					if !w.AssignedTask.IsUpstreamWaitBufferEmpty() {
+						log.Fatalln(
+							"Upstream wait buffer not empty when receiving aligned in-flight barrier",
+						)
+					}
 				}
 
 			case buffer.DrainBarrierWorkUnit:
@@ -203,16 +265,6 @@ func (w *Worker) updateInTransitionFlag(alreadyInTransition bool) bool {
 		// the peer channels from now on.
 		if !alreadyInTransition {
 			w.AssignedTask.NotifyReconfigStart()
-
-			if w.Config.LazyProtocolVersion == "by-key" {
-				// [lazy-by-key] Send the key lookup table over peer channels
-				// for migrating buckets. Pass a pointer to the existing
-				// KeyLookupTableV2
-				// such that we can identify which buckets need to be migrated
-				w.AssignedTask.ConstructAndSendKeyMaps(
-					w.StateService.StateLookupTableV2,
-				)
-			}
 
 			// Send FastForward Metadata to connected peers. This step is only
 			// effective if the operator implements it

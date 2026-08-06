@@ -120,14 +120,7 @@ func (v *ListState[V]) Deserialize(
 		tuple = tuple.New().(V)
 		usedBytes, err := tupleDecoder(tuple, stateInBytes[currPos:])
 		if err != nil {
-			log.Fatalln(
-				"Failed to decode ListState:",
-				err,
-				", at position",
-				currPos,
-				", total bytes",
-				len(stateInBytes),
-			)
+			log.Fatalln("Failed to decode ListState:", err)
 		}
 		v.state = append(v.state, tuple)
 		currPos += usedBytes

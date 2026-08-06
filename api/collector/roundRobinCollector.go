@@ -46,7 +46,6 @@ func (c *RoundRobinCollector[T]) Setup(para *utils.OperatorSetupParas) {
 
 	c.SetupCollectorBase(
 		para.OperatorName,
-		para.WorkerID,
 		para.DownstreamInfoList,
 		para.Config,
 		para.MetricCollector,
@@ -131,7 +130,7 @@ func (c *RoundRobinCollector[T]) PauseEmit() {
 func (c *RoundRobinCollector[T]) UpdateRouting(
 	downstreamsToAdd []*pb.DownstreamInfo,
 	downstreamsToRemove []*pb.DownstreamInfo,
-	newDownstreamKR *pb.SerializedPartitionTable,
+	newDownstreamKR *pb.SerializedKeyLookupTable,
 ) {
 
 	if newDownstreamKR != nil {

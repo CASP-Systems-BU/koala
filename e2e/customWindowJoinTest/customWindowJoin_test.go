@@ -13,7 +13,7 @@ import (
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
 	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constants"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/state/stateBackend"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/worker"
 	"github.com/mus-format/mus-go/varint"
@@ -163,7 +163,7 @@ func checkCorrectness(t *testing.T, workers []*worker.Worker) {
 
 			serializedKey := iter.Key()
 			key, _, _ := varint.UnmarshalInt(
-				serializedKey[constant.KeyPrefixSize:],
+				serializedKey[constants.KeyPrefixSize:],
 			)
 			leftKeys[key] = true
 		}

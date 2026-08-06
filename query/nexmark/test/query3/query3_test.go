@@ -11,7 +11,7 @@ import (
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
 	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constants"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/models"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/query/query3"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/state/stateBackend"
@@ -337,12 +337,12 @@ func TestQuery3Correctness(t *testing.T) {
 		serializedValue := iter.Value()
 
 		// Extract the state id, key, and value
-		stateIDOffset := constant.OperatorIDSize + constant.BucketIdxSize
+		stateIDOffset := constants.OperatorIDSize + constants.BucketIdxSize
 		stateID := binary.BigEndian.Uint16(
-			serializedKey[stateIDOffset : stateIDOffset+constant.StateIDSize],
+			serializedKey[stateIDOffset : stateIDOffset+constants.StateIDSize],
 		)
 		key, _, _ := varint.UnmarshalInt64(
-			serializedKey[constant.KeyPrefixSize:],
+			serializedKey[constants.KeyPrefixSize:],
 		)
 		// This state iterator is for personState
 		if stateID == 0 {

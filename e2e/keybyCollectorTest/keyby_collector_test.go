@@ -13,7 +13,7 @@ import (
 	"github.com/CASP-Systems-BU/disaggregated-streaming/coordinator"
 	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constants"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/state/stateBackend"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/worker"
 	"github.com/mus-format/mus-go/varint"
@@ -75,7 +75,7 @@ func VerifyKeyByResults(
 			key := mapper.Key()
 			value := mapper.Value()
 
-			keyI, _, _ := varint.UnmarshalInt(key[constant.KeyPrefixSize:])
+			keyI, _, _ := varint.UnmarshalInt(key[constants.KeyPrefixSize:])
 			valueI, _, _ := varint.UnmarshalInt(value)
 
 			if valueI != REPEAT {
@@ -91,7 +91,7 @@ func VerifyKeyByResults(
 
 			// Find expected worker id this key should be routed to
 			workerId := coordinator.KeyPartitions["statefulMapper"].KeyToWorkerID(
-				key[constant.KeyPrefixSize:],
+				key[constants.KeyPrefixSize:],
 			)
 
 			// Check if the expected worker id matches the actual worker that

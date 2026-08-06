@@ -2,6 +2,8 @@ package dataflow
 
 import (
 	"log"
+	"sync/atomic"
+	"time"
 
 	ka "github.com/CASP-Systems-BU/disaggregated-streaming/api/keyAssigner"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/stateClient"
@@ -96,13 +98,11 @@ func (op *StatefulOperatorBase2Upstream[IN1, IN2, K]) Setup(
 	if para.Config.ReconfigProtocol == "lazy" {
 		op.PeerCollector1 = lazy.NewPeerCollector[IN1](
 			op.Name,
-			para.WorkerID,
 			op.UpstreamName1,
 			para.Config,
 		)
 		op.PeerCollector2 = lazy.NewPeerCollector[IN2](
 			op.Name,
-			para.WorkerID,
 			op.UpstreamName2,
 			para.Config,
 		)
@@ -212,14 +212,14 @@ func (op *StatefulOperatorBase2Upstream[IN1, IN2, K]) FastForward(
 // prepare and initialize lazy-protocol related metadata
 func (op *StatefulOperatorBase2Upstream[IN1, IN2, K]) PrepareLazyProtocol(
 	peerList []*pb.DownstreamInfo,
-	routingTable *keyby.PartitionTable,
+	routingTable *keyby.KeyLookupTable,
 ) {
 
 	op.prepareLazyProtocol(routingTable)
 
 	// Activate PeerCollectors
-	op.PeerCollector1.Activate(peerList, op.MetricCollector, 2)
-	op.PeerCollector2.Activate(peerList, op.MetricCollector, 3)
+	op.PeerCollector1.Activate(peerList, op.MetricCollector)
+	op.PeerCollector2.Activate(peerList, op.MetricCollector)
 }
 
 // [lazy protocol] Send operator-specific metadata through PeerCollector as the
@@ -267,19 +267,6 @@ func (op *StatefulOperatorBase2Upstream[IN1, IN2, K]) BroadcastWatermarkToPeers(
 	op.PeerCollector2.BroadcastWatermark(wm)
 }
 
-// [Lazy protocol][Lazy-by-key] Construct and send KeyMaps over peer channels
-func (op *StatefulOperatorBase2Upstream[IN1, IN2, K]) ConstructAndSendKeyMaps(
-	keyLookupTableV2 *keyby.KeyLookupTableV2,
-) {
-
-	// Send the constructed MigratingKeyMaps over PeerCollector
-	serializedKeyMaps := keyLookupTableV2.SerializeMigratingKeyMaps(
-		op.WorkerId,
-		op.RoutingTable,
-	)
-	op.PeerCollector1.SendKeyMaps(serializedKeyMaps)
-}
-
 // [lazy protocol] Fast forwarding phase is done, release related resources
 func (op *StatefulOperatorBase2Upstream[IN1, IN2, K]) ExitTransitionPhase() {
 
@@ -288,4 +275,291 @@ func (op *StatefulOperatorBase2Upstream[IN1, IN2, K]) ExitTransitionPhase() {
 	// Destroy the PeerCollector and terminate related routines
 	op.PeerCollector1.Deactivate()
 	op.PeerCollector2.Deactivate()
+}
+
+// [DRRS] Split records of an incoming batch into (i) processable batch, and
+// (ii) records that are inserted into WaitBuffer. Returns:
+//   - Processable batch
+//   - If there are processable records in the batch (e.g. all records could
+//     have been inserted into WaitBuffer)
+func (op *StatefulOperatorBase2Upstream[IN1, IN2, K]) SplitBatchForDRRS(
+	workUnit buffer.WorkUnit,
+	isPeer bool,
+	subSupplierName string,
+) (buffer.WorkUnit, bool) {
+
+	switch subSupplierName {
+	case op.UpstreamName1:
+		return getProcessableBatch(
+			workUnit,
+			isPeer,
+			subSupplierName,
+			op.KeyAssigner1,
+			op.StateClient,
+			op.Supplier,
+			op.WaitBuffer,
+		)
+	case op.UpstreamName2:
+		return getProcessableBatch(
+			workUnit,
+			isPeer,
+			subSupplierName,
+			op.KeyAssigner2,
+			op.StateClient,
+			op.Supplier,
+			op.WaitBuffer,
+		)
+	default:
+		log.Fatalf(
+			"SubSupplierName %s is not expected at operator %s for DRRS split\n",
+			subSupplierName,
+			op.Name,
+		)
+	}
+	return nil, false
+}
+
+// [DRRS] Consume WaitBuffer
+func (op *StatefulOperatorBase2Upstream[IN1, IN2, K]) ConsumeDRRSWaitBuffer(
+	curTask Operator,
+	inTransition bool,
+) {
+
+	if op.WaitBuffer.IsEmpty() {
+
+		// Check if we are at termination phase, report termination status.
+		// This is to gurantee all wait buffer is consumed and state migration
+		// finish before termination
+		if atomic.LoadInt32(&op.InTerminationPhase) == 1 {
+
+			// Check if state migration has finished
+			migrationTerminated := op.StateClient.CheckMigrationTerminationStatus()
+
+			// Confirm if all peers are closed
+			allPeersClosed := op.Supplier.IfAllInboundPeersClosed()
+
+			// If termination condition met, reset necessary metadata and notify
+			// the control plane to proceed with termination
+			if migrationTerminated && allPeersClosed {
+
+				atomic.StoreInt32(&op.InTerminationPhase, 0)
+
+				// Reset state service bucket map
+				op.StateClient.ResetDRRSMetadata()
+
+				// If the supplier is still in peer-only mode, report error
+				if op.Supplier.IsPeerOnlySupplier() {
+					log.Fatalln("Supplier still in peer-only mode at termination")
+				}
+
+				// Reset DRRS reconfig flag
+				op.ExitDRRSReconfigPhase()
+
+				op.DRRSBlockOnWaitBufferAndStateMigration.Signal()
+			}
+		}
+		return
+	}
+
+	if !op.IfDRRSInReconfig() {
+		log.Fatalln(
+			"ConsumeDRRSWaitBuffer() called when not in DRRS reconfiguration",
+		)
+	}
+
+	// Do nothing if state migration has no progress
+	// TODO: code duplication with StatefulOperatorBase1Upstream
+	migrationProgressed, migrationDone := op.StateClient.GetOverallMigrationStatus()
+	if !migrationProgressed && !migrationDone {
+		return
+	}
+
+	/**************************************************************************
+					      First consume peer wait buffers
+	**************************************************************************/
+	start := time.Now()
+	numProcessedPeerBatch := 0
+	numProcessedUpstreamBatch := 0
+	numProcessedWatermark := 0
+	// Traverse peer buffer to identify processable work units
+	for e := op.WaitBuffer.PeerBuffer.Front(); e != nil; {
+		next := e.Next()
+
+		switch curBatch := e.Value.(type) {
+		case *buffer.DRRSBatch[IN1]:
+			processableBatch, blockedBatch := processDRRSBatch(
+				curBatch,
+				op.StateClient,
+			)
+			if blockedBatch.NumRecords > 0 {
+				e.Value = blockedBatch
+			} else {
+				op.WaitBuffer.PeerBuffer.Remove(e)
+			}
+			if processableBatch.GetNumRecords() > 0 {
+				numProcessedPeerBatch++
+				curTask.ProcessBatch(processableBatch, curBatch.SubSupplierName)
+			}
+		case *buffer.DRRSBatch[IN2]:
+			processableBatch, blockedBatch := processDRRSBatch(
+				curBatch,
+				op.StateClient,
+			)
+			if blockedBatch.NumRecords > 0 {
+				e.Value = blockedBatch
+			} else {
+				op.WaitBuffer.PeerBuffer.Remove(e)
+			}
+			if processableBatch.GetNumRecords() > 0 {
+				numProcessedPeerBatch++
+				curTask.ProcessBatch(processableBatch, curBatch.SubSupplierName)
+			}
+		default:
+			log.Fatalln(
+				"Unexpected work unit type in peer wait buffer at operator ",
+				op.Name,
+			)
+		}
+		e = next
+	}
+
+	numLeftInPeerBuffer := op.WaitBuffer.PeerBuffer.Len()
+	if migrationDone {
+		// Peer buffer must be empty
+		if numLeftInPeerBuffer != 0 {
+			log.Fatalln("Peer buffer not empty after migration done")
+		}
+	}
+
+	// If peer buffer is still not empty, we cannot proceed to upstream buffer
+	numLeftInUpstreamBuffer := op.WaitBuffer.UpstreamBuffer.Len()
+	if numLeftInPeerBuffer > 0 {
+		if DEBUG {
+			log.Printf(
+				"\n  [DRRS WaitBuffer INFO]\n  Processed %d peer batches, %d upstream batches, %d watermark, time taken: %v\n  Status: PeerBuffer still not empty with %d left. %d elements blocked in upstream buffer.State migration done: %v\n",
+				numProcessedPeerBatch,
+				numProcessedUpstreamBatch,
+				numProcessedWatermark,
+				time.Since(start),
+				numLeftInPeerBuffer,
+				numLeftInUpstreamBuffer,
+				migrationDone,
+			)
+		}
+		return
+	}
+
+	// If peer buffer is empty, but not all peer channels are closed
+	if !op.Supplier.IfAllInboundPeersClosed() {
+		if DEBUG {
+			log.Printf(
+				"\n  [DRRS WaitBuffer INFO]\n  Processed %d peer batches, %d upstream batches, %d watermark, time taken: %v\n  Status: PeerBuffer empty but peers not closed. %d elements blocked in upstream buffer. State migration done: %v\n",
+				numProcessedPeerBatch,
+				numProcessedUpstreamBatch,
+				numProcessedWatermark,
+				time.Since(start),
+				numLeftInUpstreamBuffer,
+				migrationDone,
+			)
+		}
+		return
+	}
+
+	/**************************************************************************
+		     Proceed if peer wait buffer is empty and peers are closed
+	**************************************************************************/
+
+	// Now input from inbound peers are all consumed (confirm barrier aligned),
+	// we can safely process work units in the upstream wait buffer
+	hasBlockedRecordsBeforeWatermark := false
+outer:
+	for e := op.WaitBuffer.UpstreamBuffer.Front(); e != nil; {
+		next := e.Next()
+
+		// WorkUnit in upstream buffer could be either DRRSBatch or Watermark
+		switch v := e.Value.(type) {
+		case *buffer.DRRSBatch[IN1]:
+
+			// Separate processable records from blocked records
+			processableBatch, blockedBatch := processDRRSBatch(v, op.StateClient)
+
+			if blockedBatch.NumRecords > 0 {
+				e.Value = blockedBatch
+				hasBlockedRecordsBeforeWatermark = true
+			} else {
+				op.WaitBuffer.UpstreamBuffer.Remove(e)
+				op.WaitBuffer.NumBatchesInUpstreamBuffer--
+			}
+
+			if processableBatch.GetNumRecords() > 0 {
+				numProcessedUpstreamBatch++
+				curTask.ProcessBatch(processableBatch, v.SubSupplierName)
+			}
+		case *buffer.DRRSBatch[IN2]:
+
+			// Separate processable records from blocked records
+			processableBatch, blockedBatch := processDRRSBatch(v, op.StateClient)
+
+			if blockedBatch.NumRecords > 0 {
+				e.Value = blockedBatch
+				hasBlockedRecordsBeforeWatermark = true
+			} else {
+				op.WaitBuffer.UpstreamBuffer.Remove(e)
+				op.WaitBuffer.NumBatchesInUpstreamBuffer--
+			}
+
+			if processableBatch.GetNumRecords() > 0 {
+				numProcessedUpstreamBatch++
+				curTask.ProcessBatch(processableBatch, v.SubSupplierName)
+			}
+		case *buffer.Watermark:
+			if hasBlockedRecordsBeforeWatermark {
+
+				// Cannot process watermark if there are blocked records before
+				// waterark, break the loop and return
+				break outer
+			} else {
+
+				// This is the 1st work unit in the upstream buffer, process it
+				op.WaitBuffer.UpstreamBuffer.Remove(e)
+				op.WaitBuffer.NumWatermarkInUpstreamBuffer--
+				numProcessedWatermark++
+
+				if inTransition {
+					curTask.BroadcastWatermarkToPeers(v)
+				}
+				// Process the watermark locally
+				curTask.ProcessProgressedWatermark(v)
+				curTask.BroadcastWatermark(v)
+			}
+		default:
+			log.Fatalln("Unknown WorkUnit type in upstream WaitBuffer")
+		}
+		e = next
+	}
+
+	if migrationDone {
+		// Upstream buffer must be empty if migration is done and all peer
+		// channels are closed
+		if op.WaitBuffer.UpstreamBuffer.Len() != 0 {
+			log.Fatalln("Upstream buffer not empty after migration done")
+		}
+	}
+
+	// Allow consuming upstream if upstream wait buffer is < threshold
+	if !op.WaitBuffer.ShouldBlockUpstream() {
+		op.Supplier.SetPeerOnlySupplier(false)
+	}
+
+	if DEBUG {
+		log.Printf(
+			"\n  [DRRS WaitBuffer INFO]\n  Processed %d peer batches, %d upstream batches, %d watermark, time taken: %v\n  Status: Peers closed and PeerBuffer empty with %d left in UpstreamBuffer. State migration done: %v\n",
+			numProcessedPeerBatch,
+			numProcessedUpstreamBatch,
+			numProcessedWatermark,
+			time.Since(start),
+			op.WaitBuffer.UpstreamBuffer.Len(),
+			migrationDone,
+		)
+	}
 }

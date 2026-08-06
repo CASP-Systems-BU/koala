@@ -9,7 +9,7 @@ import (
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
 	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constants"
 	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/worker"
 	"github.com/mus-format/mus-go/varint"
@@ -28,10 +28,10 @@ func TestCustomWindowJoinNoMigration(t *testing.T) {
 	config := configuration.Default()
 	config.ReconfigProtocol = "lazy"
 	config.LazyProtocolVersion = "no-migration"
-	numWorkers := 5
+	numWorkers := 6
 	client, workers, _ := testutils.DeployJob(
 		numWorkers,
-		func() *dataflow.Dataflow { return query(1) },
+		func() *dataflow.Dataflow { return query(2) },
 		config,
 	)
 
@@ -59,7 +59,7 @@ func TestCustomWindowJoinNoMigration(t *testing.T) {
 	time.Sleep(8 * time.Second)
 	rescaleConfig := &pb.RescaleConfig{
 		TargetRescaleOp:   "customWindowJoin",
-		TargetParallelism: 2,
+		TargetParallelism: 3,
 	}
 	resp, err := client.Rescale(context.Background(), rescaleConfig)
 	if err != nil {
@@ -159,7 +159,7 @@ func checkCorrectnessNoMigration(
 
 		serializedKey := oldWorkerIter.Key()
 		key, _, _ := varint.UnmarshalInt(
-			serializedKey[constant.KeyPrefixSize:],
+			serializedKey[constants.KeyPrefixSize:],
 		)
 
 		if key != -1 {

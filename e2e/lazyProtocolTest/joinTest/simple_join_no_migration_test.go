@@ -10,7 +10,7 @@ import (
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
 	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constants"
 	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/state/stateBackend"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/worker"
@@ -55,7 +55,7 @@ func TestSimpleJoinRescaleNoMigration(t *testing.T) {
 	}
 	log.Printf("Job rescale response: %v\n", resp.Info)
 
-	// Wait for the test to be completed
+	// Wait for the test to be compeleted
 	time.Sleep(WAIT_TIME_AFTER_RESCALE * time.Second)
 
 	log.Println("[E2E] Test completed")
@@ -188,12 +188,12 @@ func checkNoMigrationCorrectness(
 			serializedValue := iter.Value()
 
 			// Extract the state id, key, and value
-			stateIDOffset := constant.OperatorIDSize + constant.BucketIdxSize
+			stateIDOffset := constants.OperatorIDSize + constants.BucketIdxSize
 			stateID := binary.BigEndian.Uint16(
-				serializedKey[stateIDOffset : stateIDOffset+constant.StateIDSize],
+				serializedKey[stateIDOffset : stateIDOffset+constants.StateIDSize],
 			)
 			key, _, _ := varint.UnmarshalInt(
-				serializedKey[constant.KeyPrefixSize:],
+				serializedKey[constants.KeyPrefixSize:],
 			)
 			value, _, _ := varint.UnmarshalInt64(serializedValue)
 

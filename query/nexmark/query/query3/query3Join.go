@@ -53,6 +53,7 @@ func Query3Join(
 			state2 *stateType.ListState[*tuple.Tuple1[int64]],
 			co collector.Collector,
 		) {
+
 			if useDummyField {
 				dummyFieldContent = dummyFieldGenerator.GenerateDummyField()
 				state1.Set(&tuple.Tuple4[string, string, string, string]{

@@ -4,32 +4,14 @@ import (
 	"log"
 	"net"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
 	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/state"
 	"google.golang.org/grpc"
 )
 
-// Worker exposes state comm service for remote state access. We support 2 types
-// of state comm APIs: (i) gRPC, and (ii) TCP. Note that TCP API only supports
-// per-key state fetch for lazy-by-key protocol now
+// gRPC server for remote state access. This server accesses local state service
 
-func (w *Worker) startStateCommService() {
-
-	if w.Config.ReconfigProtocol == "lazy" &&
-		w.Config.LazyProtocolVersion == "by-key" &&
-		w.Config.LazyByKeyStateCommAPIType == "tcp" {
-		w.startStateCommTcpServer()
-	} else {
-		w.startStateCommRpcServer()
-	}
-}
-
-/******************************************************************************
-								   gRPC Server
-******************************************************************************/
-
-type StateCommRpcServer struct {
+type StateServiceCommServer struct {
 	pb.UnimplementedStateCommServiceServer
 
 	// Pointer to the local state service
@@ -40,15 +22,15 @@ type StateCommRpcServer struct {
 }
 
 // State Comm Server routine
-func (w *Worker) startStateCommRpcServer() {
+func (w *Worker) startStateCommService(stateService *state.StateService) {
 
-	stateServer := &StateCommRpcServer{
-		stateService: w.StateService,
+	stateServer := &StateServiceCommServer{
+		stateService: stateService,
 		worker:       w,
 	}
 
 	// Get listening address
-	lisAddr := "0.0.0.0:" + w.StateService.Config.StateCommPort
+	lisAddr := "0.0.0.0:" + stateService.Config.StateCommPort
 
 	// Setup the gRPC server
 	lis, err := net.Listen("tcp", lisAddr)
@@ -56,44 +38,20 @@ func (w *Worker) startStateCommRpcServer() {
 		log.Fatalf("Error start State Comm server: %v", err)
 	}
 
+	// The default message size limit is 4 MB. Increase it to 100 MB for large
+	// message size: lazy no-migration connections are based on single gRPC
+	// message instead of StateChunk streaming
 	var opts []grpc.ServerOption
 	opts = append(opts,
-		grpc.MaxRecvMsgSize(constant.RpcMaxMessageSize),
-		grpc.MaxSendMsgSize(constant.RpcMaxMessageSize),
+		grpc.MaxRecvMsgSize(500*1024*1024), // 100 MB
+		grpc.MaxSendMsgSize(500*1024*1024), // 100 MB
 	)
 
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterStateCommServiceServer(grpcServer, stateServer)
 	log.Printf(
-		"State comm gRPC service starts listening on %s ...\n",
+		"State comm service starts listening on %s ...\n",
 		lisAddr,
 	)
 	grpcServer.Serve(lis)
-}
-
-/******************************************************************************
-								    TCP Server
-******************************************************************************/
-
-func (w *Worker) startStateCommTcpServer() {
-
-	// Start listening on the state comm port
-	listener, err := net.Listen("tcp", ":"+w.StateService.Config.StateCommPort)
-	if err != nil {
-		log.Fatalf("Error starting state comm TCP server: %v", err)
-	}
-	defer listener.Close()
-	log.Printf(
-		"State comm TCP service starts listening on port %s ...\n",
-		w.StateService.Config.StateCommPort,
-	)
-
-	for {
-		// Accept a connection
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Fatalf("Error accepting state comm TCP connection: %v", err)
-		}
-		go w.handleStateCommTcpConnection(conn)
-	}
 }

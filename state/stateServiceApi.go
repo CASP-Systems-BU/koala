@@ -3,9 +3,11 @@ package state
 import (
 	"encoding/binary"
 	"log"
+	"sync/atomic"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constants"
+	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
 )
 
 /******************************************************************************
@@ -54,26 +56,6 @@ func (s *StateService) GetManyMultiState(
 			// Fetch remote state at bucket granularity (synchronously) and
 			// update the ownership in StateLookupTable
 			s.migrateRemoteBuckets(operatorID, bucketIDs)
-
-		case "by-key":
-
-			// Block if there are ongoing background key flush and key lookup
-			// table update
-			s.ByKeyMigrationWaitGroup.Wait()
-
-			// Fetch and migrate requested keys from remote state services. It
-			// immediately returns after all requested keys are fetched into
-			// memory and async flush to state backend
-			a := s.remoteReadWithByKeyMigration(
-				keys,
-				bucketIDs,
-			)
-
-			duration := time.Since(start)
-			s.MetricCollector.UpdateGetManyTime(duration)
-
-			return a
-
 		case "optimized":
 
 			// For lazy-optimized, if there exists background bucket migration
@@ -93,6 +75,8 @@ func (s *StateService) GetManyMultiState(
 			// Read state for requested keys without bucket migration. Do not
 			// update ownership in StateLookupTable
 			return s.remoteRead(keys, bucketIDs)
+		case "drrs":
+			// Skip and do local state access
 		default:
 			log.Fatalf(
 				"Unsupported lazy protocol version: %s\n",
@@ -138,21 +122,6 @@ func (s *StateService) SetManyMultiState(
 			// For lazy-optimized, if there exists background bucket migration
 			// in progress, we block any new state access until it is finished
 			s.AsyncMigrationWaitGroup.Wait()
-		case "by-key":
-			// For lazy-by-key, if there exists ongoing background key flush and
-			// key lookup table update, we block any new state access until it
-			// is finished
-			s.ByKeyMigrationWaitGroup.Wait()
-
-			// Update or insert the keys in the per-key based key lookup table
-			s.ByKeyLookupTableUpdateWaitGroup.Go(func() {
-				s.insertOrUpdateAddrForLocalKeys(keys, bucketIDs)
-			})
-			s.overwriteLocalState(keys, values)
-			s.ByKeyLookupTableUpdateWaitGroup.Wait()
-			duration := time.Since(start)
-			s.MetricCollector.UpdateSetManyTime(duration)
-			return
 		}
 	}
 
@@ -173,7 +142,6 @@ func (s *StateService) MergeManyMultiState(
 	if len(keys) == 0 {
 		log.Fatalln("No keys to merge")
 	}
-	start := time.Now()
 
 	if s.Config.ReconfigProtocol == "lazy" {
 
@@ -187,21 +155,6 @@ func (s *StateService) MergeManyMultiState(
 			// For lazy-optimized, if there exists background bucket migration
 			// in progress, we block any new state access until it is finished
 			s.AsyncMigrationWaitGroup.Wait()
-		case "by-key":
-			// For lazy-by-key, if there exists ongoing background key flush and
-			// key lookup table update, we block any new state access until it
-			// is finished
-			s.ByKeyMigrationWaitGroup.Wait()
-
-			// Update or insert the keys in the per-key based key lookup table
-			s.ByKeyLookupTableUpdateWaitGroup.Go(func() {
-				s.insertOrUpdateAddrForLocalKeys(keys, bucketIDs)
-			})
-			s.mergeLocalState(keys, values)
-			s.ByKeyLookupTableUpdateWaitGroup.Wait()
-			duration := time.Since(start)
-			s.MetricCollector.UpdateSetManyTime(duration)
-			return
 		}
 	}
 
@@ -231,20 +184,6 @@ func (s *StateService) DeleteMany(
 			// For lazy-optimized, if there exists background bucket migration
 			// in progress, we block any new state access until it is finished
 			s.AsyncMigrationWaitGroup.Wait()
-		case "by-key":
-			// For lazy-by-key, if there exists ongoing background key flush and
-			// key lookup table update, we block any new state access until it
-			// is finished
-
-			s.ByKeyMigrationWaitGroup.Wait()
-
-			// Update the per-key based key lookup table to remove deleted keys
-			s.ByKeyLookupTableUpdateWaitGroup.Go(func() {
-				s.deleteKeysFromLookupTable(keys, bucketIDs)
-			})
-			s.deleteLocalState(keys)
-			s.ByKeyLookupTableUpdateWaitGroup.Wait()
-			return
 		}
 	}
 
@@ -265,6 +204,120 @@ func (s *StateService) SetMany(keys [][]byte, values [][]byte) {
 }
 
 /******************************************************************************
+							State Service APIs for DRRS
+******************************************************************************/
+
+// [DRRS] Check overall migration status, return:
+// 1. Migration has progressed
+// 2. Migration is done
+func (s *StateService) CheckOverallMigrationStatus() (bool, bool) {
+
+	// Reset the progress flag after fetching its value
+	migrationProgressed := atomic.SwapInt32(&s.MigrationProgressed, 0) == 1
+	migrationDone := atomic.LoadInt32(&s.RemainingMigrationRoutines) == 0
+	return migrationProgressed, migrationDone
+}
+
+// [DRRS] if DRRS has finished migration
+func (s *StateService) CheckMigrationTerminationStatus() bool {
+	return atomic.LoadInt32(&s.RemainingMigrationRoutines) == 0
+}
+
+// [DRRS] Check the migration status of a list of buckets
+func (s *StateService) CheckBucketMigrationStatus(bucketIds []uint64) []int8 {
+
+	statuses := make([]int8, len(bucketIds))
+	s.MutexBucketMigrationMap.Lock()
+	defer s.MutexBucketMigrationMap.Unlock()
+
+	for i, bucketId := range bucketIds {
+		status, exists := s.BucketMigrationMap[bucketId]
+		if exists {
+			// 0: pending and not yet migrated; 1: migrated
+			statuses[i] = status
+		} else {
+			// Bucket not involved in migration
+			statuses[i] = -1
+		}
+	}
+	return statuses
+}
+
+// [DRRS] Init reconfig at reconfig step 1, insert all migrating buckets to
+// BucketMigrationMap and init all metadata
+func (s *StateService) InitBucketMigrationMap(
+	migrationInfoList []*pb.MigrationInfo,
+	numMigrationRoutines int32,
+) {
+	s.MutexBucketMigrationMap.Lock()
+	defer s.MutexBucketMigrationMap.Unlock()
+
+	if len(s.BucketMigrationMap) != 0 {
+		log.Fatalln("BucketMigrationMap is not clean at init")
+	}
+	if atomic.LoadInt32(&s.RemainingMigrationRoutines) != 0 {
+		log.Fatalln("RemainingMigrationRoutines is not zero at init")
+	}
+	if atomic.LoadInt32(&s.MigrationProgressed) != 0 {
+		log.Fatalln("MigrationProgressed is not zero at init")
+	}
+
+	// Initialize the bucket owner map - status as pending 0
+	for _, migrationInfo := range migrationInfoList {
+		for _, bucketRange := range migrationInfo.BucketRanges {
+			for bucketId := bucketRange.LowerBucketIdx; bucketId <= bucketRange.UpperBucketIdx; bucketId++ {
+
+				if _, exists := s.BucketMigrationMap[uint64(bucketId)]; exists {
+					log.Fatalln("Duplicate bucket in migration info")
+				}
+				s.BucketMigrationMap[uint64(bucketId)] = 0
+			}
+		}
+	}
+	atomic.StoreInt32(&s.RemainingMigrationRoutines, numMigrationRoutines)
+}
+
+// [DRRS] Mark a bucket as migrated
+func (s *StateService) MarkBucketsAsMigrated(bucketIds []uint64) {
+	s.MutexBucketMigrationMap.Lock()
+	defer s.MutexBucketMigrationMap.Unlock()
+
+	for _, bucketId := range bucketIds {
+		// Validate the bucket is in migration
+		status, exists := s.BucketMigrationMap[bucketId]
+		if !exists || status != 0 {
+			log.Fatalln("Bucket not in migration or already migrated")
+		}
+		s.BucketMigrationMap[bucketId] = 1
+	}
+
+	// Mark migration progress
+	atomic.StoreInt32(&s.MigrationProgressed, 1)
+}
+
+// [DRRS] Mark finish of a migration routine
+func (s *StateService) MigrationRoutineFinish() {
+	numLeftRoutines := atomic.AddInt32(&s.RemainingMigrationRoutines, -1)
+
+	if numLeftRoutines < 0 {
+		log.Fatalln("RemainingMigrationRoutines is negative")
+	}
+}
+
+// [DRRS] Reset metadata upon reconfiguration done
+func (s *StateService) ResetDRRSMetadata() {
+	s.MutexBucketMigrationMap.Lock()
+	defer s.MutexBucketMigrationMap.Unlock()
+
+	s.BucketMigrationMap = make(map[uint64]int8)
+	atomic.StoreInt32(&s.MigrationProgressed, 0)
+
+	if atomic.LoadInt32(&s.RemainingMigrationRoutines) != 0 {
+		log.Fatalln("RemainingMigrationRoutines is not zero at reset")
+	}
+}
+
+/******************************************************************************
 			    State Service APIs used by State Comm Server
 ******************************************************************************/
 
@@ -275,19 +328,19 @@ func (s *StateService) ReadLocalBucketRange(
 ) ([][]byte, [][]byte) {
 
 	// The boundaries of the bucket should include operator ID and bucket Idx
-	bufSize := constant.OperatorIDSize + constant.BucketIdxSize
+	bufSize := constants.OperatorIDSize + constants.BucketIdxSize
 
 	lower := make([]byte, bufSize)
 	binary.BigEndian.PutUint16(lower, s.OperatorID)
 	binary.BigEndian.PutUint32(
-		lower[constant.OperatorIDSize:],
+		lower[constants.OperatorIDSize:],
 		uint32(lowerBucketIdx),
 	)
 
 	higher := make([]byte, bufSize)
 	binary.BigEndian.PutUint16(higher, s.OperatorID)
 	binary.BigEndian.PutUint32(
-		higher[constant.OperatorIDSize:],
+		higher[constants.OperatorIDSize:],
 		uint32(upperBucketIdx+1),
 	)
 

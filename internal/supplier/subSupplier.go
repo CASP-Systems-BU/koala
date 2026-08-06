@@ -20,7 +20,11 @@ type SubSupplier interface {
 	Setup()
 
 	// Get the next WorkUnit from upstreams. This is a non-blocking read
-	GetWorkUnit() (buffer.WorkUnit, bool)
+	// Return:
+	// 1. The next WorkUnit from upstreams
+	// 2. If this is workunit is from peer input channel
+	// 3. If the read is successful
+	GetWorkUnit() (buffer.WorkUnit, bool, bool)
 
 	// Get the name of the SubSupplier (upstream operator name)
 	GetOperatorName() string
@@ -31,7 +35,6 @@ type SubSupplier interface {
 		config *configuration.Configuration,
 		metricCollector *metric.MetricCollector,
 		isPeer bool,
-		upstreamWorkerId uint16,
 	)
 
 	// Get the number of upstreams in this SubSupplier
@@ -43,9 +46,6 @@ type SubSupplier interface {
 	// Notify the SubSupplier that all upstream connections are shutting down
 	NotifyShuttingDown()
 
-	// Notify the SubSupplier that this is a warmup run
-	NotifyIsWarmUpRun()
-
 	// Handle a received watermark workunit - update corresponding upstream
 	// channel watermark
 	UpdateWatermark(*buffer.Watermark)
@@ -53,6 +53,14 @@ type SubSupplier interface {
 	// Get the SubSupplier's current watermark. Return false if any upstream's
 	// watermark is unset.
 	GetSubSupplierWM() (*buffer.Watermark, bool)
+
+	// [DRRS] Switch to only consume peer input channels
+	SetPeerOnlySupplier(bool)
+
+	// [DRRS] Set the in-flight barrier status for this upstream input channel
+	// In DRRS, we block input until all in-flight barriers are received
+	SetInflightBarrierReceived()
+	ResetInflightBarrier()
 }
 
 // Base implementation of SubSupplier
@@ -67,11 +75,11 @@ type SubSupplierBase[T tuple.Tuple] struct {
 	// [safety check] Flag to indicate all input channels are terminating
 	IsShuttingDown bool
 
-	// Flag to indicate if this is a warmup run
-	IsWarmUpRun bool
-
 	// Decoding function
 	Decoder network.TupleDecoder
+
+	// [DRRS] Flag to indicate we are only consuming peer channels
+	OnlyConsumePeers bool
 }
 
 // Constructor at compile time
@@ -98,6 +106,11 @@ func (ss *SubSupplierBase[T]) Setup() {
                    	 	SubSupplier API base implementation
 ******************************************************************************/
 
+// [DRRS] Set flag to only consume peer input channels
+func (ss *SubSupplierBase[T]) SetPeerOnlySupplier(onlyPeer bool) {
+	ss.OnlyConsumePeers = onlyPeer
+}
+
 // Get the name of the SubSupplier (upstream operator name)
 func (ss *SubSupplierBase[T]) GetOperatorName() string {
 	return ss.OperatorName
@@ -109,19 +122,18 @@ func (ss *SubSupplierBase[T]) AddUpstream(
 	config *configuration.Configuration,
 	metricCollector *metric.MetricCollector,
 	isPeer bool,
-	upstreamWorkerId uint16,
 ) {
 
 	newUpstream := network.NewUpstream[T](
 		conn,
 		config,
 		metricCollector,
-		upstreamWorkerId,
+		isPeer,
 	)
 
 	// Start network routine for this new upstream
 	// TODO: Add configurable network routines - now 1 per upstream
-	go newUpstream.SupplyInputBuffer(ss.Decoder, isPeer)
+	go newUpstream.SupplyInputBuffer(ss.Decoder)
 
 	ss.Upstreams = append(ss.Upstreams, newUpstream)
 }
@@ -156,9 +168,4 @@ func (ss *SubSupplierBase[T]) GetSubSupplierWM() (*buffer.Watermark, bool) {
 // Notify the SubSupplier that all upstream connections are shutting down
 func (ss *SubSupplierBase[T]) NotifyShuttingDown() {
 	ss.IsShuttingDown = true
-}
-
-// Notify the SubSupplier that this is a warmup run
-func (ss *SubSupplierBase[T]) NotifyIsWarmUpRun() {
-	ss.IsWarmUpRun = true
 }

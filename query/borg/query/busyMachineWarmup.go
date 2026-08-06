@@ -54,13 +54,7 @@ func BusyMachineWarmup(configFile string) *dataflow.Dataflow {
 
 	jobEventKeyAssigner := ka.NewKeyAssigner(
 		func(t *models.TaskEvent) string {
-			return strconv.FormatInt(
-				t.V3,
-				10,
-			) + "_" + strconv.FormatInt(
-				t.V4,
-				10,
-			)
+			return strconv.FormatInt(t.V3, 10) + "_" + strconv.FormatInt(t.V4, 10)
 		},
 	)
 

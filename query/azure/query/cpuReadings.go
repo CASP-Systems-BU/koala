@@ -16,7 +16,7 @@ import (
 
 type AzureConfig struct {
 	// We use the number of producers to be the sourceParallelism to gurantee
-	// that each source task will only read from a single kafka partition.
+	// that each source task will only read from a single
 	ProducerIPs                []string
 	CpuReadingStatsParallelism int
 	SinkParallelism            int
@@ -52,10 +52,7 @@ func IsWarmupRecord(r *CpuRecord) bool {
 	return r.V1 < 0
 }
 
-func medianFromFiltered(
-	filtered []*CpuRecord,
-	getVal func(*CpuRecord) float64,
-) float64 {
+func medianFromFiltered(filtered []*CpuRecord, getVal func(*CpuRecord) float64) float64 {
 	if len(filtered) == 0 {
 		return 0.0
 	}
@@ -124,13 +121,7 @@ func CPUReadings(configFile string) *dataflow.Dataflow {
 		) *CpuRecord {
 			list := state.Get()
 
-			rec := &CpuRecord{
-				V1: in.V1,
-				V2: in.V2,
-				V3: in.V3,
-				V4: in.V4,
-				V5: in.V5,
-			}
+			rec := &CpuRecord{V1: in.V1, V2: in.V2, V3: in.V3, V4: in.V4, V5: in.V5}
 			list = append(list, rec)
 
 			// Sort by timestamp descending - most recent first

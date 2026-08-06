@@ -3,7 +3,7 @@ package partition
 import (
 	"log"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
+	constants "github.com/CASP-Systems-BU/disaggregated-streaming/internal/constants"
 )
 
 type Bucket struct {
@@ -20,13 +20,13 @@ type Bucket struct {
 func MaxSupportedBuckets() int64 {
 
 	var res int64
-	switch constant.BucketIdxSize {
+	switch constants.BucketIdxSize {
 	case 4:
 		// we use uint32 to represent the bucket idx info
 		// the maximum number of buckets is 2^32 = 4,294,967,296
 		res = 1 << 32
 	default:
-		log.Fatalf("Unsupported bucket idx size: %d\n", constant.BucketIdxSize)
+		log.Fatalf("Unsupported bucket idx size: %d\n", constants.BucketIdxSize)
 	}
 
 	// We reserve 1 bucket for range queries where we use [bucketIdx,

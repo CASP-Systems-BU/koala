@@ -56,8 +56,7 @@ func NewDownStream[T tuple.Tuple](
 // Network routine that consumes the output buffer
 func (downstream *Downstream[T]) ConsumeOutputBuffer(
 	encoder TupleEncoder,
-	channelType uint8,
-	workerId uint16,
+	isPeerChannel bool,
 ) {
 
 	// Establish the connection to downstream
@@ -68,15 +67,9 @@ func (downstream *Downstream[T]) ConsumeOutputBuffer(
 		)
 	}
 
-	// Construct the header metadata for this connection:
-	// 1. Length of the sender operator name (8 bytes uint64)
-	// 2. Sender operator name (variable length string)
-	// 3. Connection type (1 byte uint8):
-	// 		0 - regular upstream channel;
-	//    	1 - single peer channel (single-upstream op)
-	//      2 - multi-peer channel (multi-upstream op) - primary
-	// 	    3 - multi-peer channel (multi-upstream op) - secondary
-	// 4. Sender Worker ID (2 bytes uint16)
+	// First identify which upstream operator this connection belongs to
+	// Each connection starts with the OperatorID as the first a few bytes:
+	// | Length of OperatorID string (8 bytes) | OperatorID string | ... ...
 	operatorIDLength := ord.SizeString(downstream.OperatorName, nil)
 	buf := make([]byte, 8)
 	raw.MarshalUint64(uint64(operatorIDLength), buf)
@@ -86,13 +79,16 @@ func (downstream *Downstream[T]) ConsumeOutputBuffer(
 	ord.MarshalString(downstream.OperatorName, nil, buf)
 	WriteAll(conn, buf)
 
+	// Identify the type of this connection: from peers or regular upstreams
+	// 1 byte: 0 - regular upstream channel; 1 - peer channel
 	buf = make([]byte, 1)
-	raw.MarshalUint8(channelType, buf)
-	WriteAll(conn, buf)
-
-	buf = make([]byte, 2)
-	raw.MarshalUint16(workerId, buf)
-	WriteAll(conn, buf)
+	if isPeerChannel {
+		raw.MarshalUint8(1, buf)
+		WriteAll(conn, buf)
+	} else {
+		raw.MarshalUint8(0, buf)
+		WriteAll(conn, buf)
+	}
 
 	// TODO: formally define the tcp protocol and specify each feild. Now the
 	// protocol bytes format is hard-coded as described below.
@@ -189,15 +185,6 @@ func (downstream *Downstream[T]) ConsumeOutputBuffer(
 			// serialized metadata to the network without interfering with
 			// pre-allocated buffer buf
 			err = WriteAll(conn, value.SerializedMetadata)
-			if err != nil {
-				log.Fatalf("Error tcp sending: %v", err)
-			}
-			continue
-
-		// This is a migrating key map for lazy-by-key protocol
-		case *buffer.MigratingKeyMap:
-			// Data is already serialized, push it to the network
-			err = WriteAll(conn, value.SerializedKeyMap)
 			if err != nil {
 				log.Fatalf("Error tcp sending: %v", err)
 			}

@@ -13,7 +13,7 @@ import (
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
 	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constants"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/state/stateBackend"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/worker"
 	"github.com/mus-format/mus-go/varint"
@@ -43,7 +43,7 @@ func TestSimpleJoin(t *testing.T) {
 	numWorkers := SOURCE1_PARALLELISM + SOURCE2_PARALLELISM + JOIN_PARALLELISM + 1
 	_, workers, _ := testutils.DeployJob(numWorkers, query, config)
 
-	// Wait for the test to be completed
+	// Wait for the test to be compeleted
 	time.Sleep(WAIT_TIME * time.Second)
 
 	log.Println("[E2E] Test completed")
@@ -126,12 +126,12 @@ func checkCorrectness(t *testing.T, workers []*worker.Worker) {
 			serializedValue := iter.Value()
 
 			// Extract the state id, key, and value
-			stateIDOffset := constant.OperatorIDSize + constant.BucketIdxSize
+			stateIDOffset := constants.OperatorIDSize + constants.BucketIdxSize
 			stateID := binary.BigEndian.Uint16(
-				serializedKey[stateIDOffset : stateIDOffset+constant.StateIDSize],
+				serializedKey[stateIDOffset : stateIDOffset+constants.StateIDSize],
 			)
 			key, _, _ := varint.UnmarshalInt(
-				serializedKey[constant.KeyPrefixSize:],
+				serializedKey[constants.KeyPrefixSize:],
 			)
 			value, _, _ := varint.UnmarshalInt64(serializedValue)
 

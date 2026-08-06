@@ -1,30 +1,23 @@
 
 global:
-  user: "root"
+  user: "your_ssh_login_user_name"
   ssh_port: 22
   deploy_dir: "/tidb-deploy"
-  data_dir: "/root/tidb-data"
+  data_dir: "/tidb-data"
 
 pd_servers:
-  - host: 10.10.1.5
+  - host: 10.10.1.1
     config:
       replication:
         max-replicas: 1
 
 # Nodes that deploy TiKV instances
 tikv_servers:
-  - host: 10.10.1.5
-  - host: 10.10.1.6
-  - host: 10.10.1.7
-  - host: 10.10.1.8
+  - host: 10.10.1.1
 
 # This should be all machines to be monitored (TiKV cluster can be a subset of this list)
 monitoring_servers:
   - host: 10.10.1.1
-  - host: 10.10.1.5
-  - host: 10.10.1.6
-  - host: 10.10.1.7
-  - host: 10.10.1.8
 
 grafana_servers:
   - host: 10.10.1.1

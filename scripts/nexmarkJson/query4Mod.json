@@ -4,105 +4,104 @@
   "AllNodeIPs": [
     "10.10.1.1",
     "10.10.1.2",
-    "10.10.1.3",
     "10.10.1.4",
     "10.10.1.5",
     "10.10.1.6",
     "10.10.1.7",
     "10.10.1.8",
     "10.10.1.9",
-    "10.10.1.10",
-    "10.10.1.9",
-    "10.10.1.10"
+    "10.10.1.11",
+    "10.10.1.12",
+    "10.10.1.13",
+    "10.10.1.14"
   ],
   "KafkaClusterIPs": [
     "10.10.1.1",
     "10.10.1.2",
-    "10.10.1.3",
-    "10.10.1.4"
+    "10.10.1.4",
+    "10.10.1.5",
+    "10.10.1.6",
+    "10.10.1.7",
+    "10.10.1.8",
+    "10.10.1.9"
   ],
   "ProducerIPs": [
     "10.10.1.1",
     "10.10.1.2",
-    "10.10.1.3",
     "10.10.1.4",
-    "10.10.1.1",
-    "10.10.1.2",
-    "10.10.1.3",
-    "10.10.1.4"
+    "10.10.1.5",
+    "10.10.1.6",
+    "10.10.1.7",
+    "10.10.1.8",
+    "10.10.1.9"
   ],
   "WorkerIPs": [
-    "10.10.1.9",
-
-    "10.10.1.9",
-    "10.10.1.10",
+    "10.10.1.11",
     "10.10.1.11",
     "10.10.1.12",
-
-    "10.10.1.9",
-    "10.10.1.10",
+    "10.10.1.13",
+    "10.10.1.14",
     "10.10.1.11",
     "10.10.1.12",
-
-    "10.10.1.9",
-    "10.10.1.10",
+    "10.10.1.13",
+    "10.10.1.14",
     "10.10.1.11",
     "10.10.1.12",
-
-    "10.10.1.9",
-    "10.10.1.10",
+    "10.10.1.13",
+    "10.10.1.14",
     "10.10.1.11",
-    "10.10.1.12"
+    "10.10.1.12",
+    "10.10.1.13",
+    "10.10.1.14"
   ],
   "NexmarkLogicalSourceConfigs": [
     {
       "EventType": "ClosedAuction",
       "NexmarkSourceConfig": {
-        "NumCategories":100000,
+        "NumCategories":1000000,
         "RateLimiterConfig": {
           "UseRateLimit": true,
           "RateLimit": [
-            10500
+            1000,
+            20000
           ],
           "RateChangeInterval": [
-            600
+            1200
           ]
         }
       } 
     }
   ],
   "TotalRuntimeSeconds": 600,
-  "ReconfigProtocol": "lazy",
-  "LazyProtocolVersion": "by-key",
-  "NumBuckets": 128,
-  "PartitionPolicy": "consistent-even",
-  "BufferSize": 50,
-  "BatchSize": 4096,
-  "StateBackendType": "pebble",
-  "IsWarmUp": false,
-  "LoadWarmUpData": false,
- "WarmUpDataFolder": {
-    "Pebble": "pebble_warmup_data/nexmark_query4_modified/128_consistent"
-  },
-  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/nexmark_query4_modified/128ByKey_consistent",
   "StatefulMapperParallelism": 4,
   "SinkParallelism": 1,
+  "Reconfigurations": [
+    {
+      "TriggerTimeSeconds": 300,
+      "Type": "scaleup",
+      "TargetOperator": "statefulMapper",
+      "TargetParrallelism": 8
+    },
+    {
+      "TriggerTimeSeconds": 480,
+      "Type": "scaledown",
+      "TargetOperator": "statefulMapper",
+      "TargetParrallelism": 4
+    }
+  ],
   "InitialCustomTaskPlacement": [
-    "source: 10.10.1.9",
-    "source: 10.10.1.10",
     "source: 10.10.1.11",
     "source: 10.10.1.12",
-
-    "source: 10.10.1.9",
-    "source: 10.10.1.10",
+    "source: 10.10.1.13",
+    "source: 10.10.1.14",
     "source: 10.10.1.11",
     "source: 10.10.1.12",
-
-    "statefulMapper: 10.10.1.9",
-    "statefulMapper: 10.10.1.10",
+    "source: 10.10.1.13",
+    "source: 10.10.1.14",
     "statefulMapper: 10.10.1.11",
     "statefulMapper: 10.10.1.12",
-
-    "sink:10.10.1.9"
+    "statefulMapper: 10.10.1.13",
+    "statefulMapper: 10.10.1.14",
+    "sink:10.10.1.11"
   ]
 }

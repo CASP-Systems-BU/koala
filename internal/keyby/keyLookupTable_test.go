@@ -58,8 +58,8 @@ func TestSerializationKeyLookupTable(t *testing.T) {
 	expectedUpperBucketIdx := []int64{1, 3, 6, 7, 8, 9}
 
 	for i, br := range bucketRanges {
-		if br.WorkerId != uint32(expectedWorkerId[i]) {
-			t.Fatalf("Invalid worker id: %d\n", br.WorkerId)
+		if br.WokerId != uint32(expectedWorkerId[i]) {
+			t.Fatalf("Invalid worker id: %d\n", br.WokerId)
 		}
 		if br.LowerBucketIdx != expectedLowerBucketIdx[i] {
 			t.Fatalf("Invalid lower bucket index: %d\n", br.LowerBucketIdx)
@@ -109,7 +109,7 @@ func TestReconfigure(t *testing.T) {
 		t.Fatalf("Invalid worker id: %d\n", workerId)
 	}
 
-	table.Reconfigure([]uint16{1, 2, 3, 4}, policy)
+	table.Reconfigure([]uint16{1, 2, 3, 4}, policy, true)
 
 	workerId = table.KeyToWorkerID(key)
 	if workerId != 4 {

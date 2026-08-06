@@ -5,7 +5,7 @@ import (
 	"log"
 	"unsafe"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constants"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/network"
 )
 
@@ -19,9 +19,9 @@ fields with fixed size:
 
 // Offsets in the key encoding
 const OperatorIDOffset = 0
-const BucketIDOffset = constant.OperatorIDSize
-const StateIDOffset = constant.OperatorIDSize + constant.BucketIdxSize
-const KeyOffset = constant.KeyPrefixSize
+const BucketIDOffset = constants.OperatorIDSize
+const StateIDOffset = constants.OperatorIDSize + constants.BucketIdxSize
+const KeyOffset = constants.KeyPrefixSize
 
 // Encode the simple key and return the bucket id this key belongs to.
 func (sc *StateClient[K]) encodeSimpleKey(
@@ -29,7 +29,7 @@ func (sc *StateClient[K]) encodeSimpleKey(
 	stateID uint16,
 ) ([]byte, int64) {
 
-	bufSize := constant.KeyPrefixSize + sc.keySizer(unsafe.Pointer(&key))
+	bufSize := constants.KeyPrefixSize + sc.keySizer(unsafe.Pointer(&key))
 	buf := make([]byte, bufSize)
 
 	// Encode the key and its prefix
@@ -48,7 +48,7 @@ func (sc *StateClient[K]) encodeWindowKey(
 	stateID uint16,
 ) ([]byte, int64) {
 
-	bufSize := constant.KeyPrefixSize + sc.keySizer(
+	bufSize := constants.KeyPrefixSize + sc.keySizer(
 		unsafe.Pointer(&key),
 	) + network.SizeInt64(
 		unsafe.Pointer(&windowStartTime),

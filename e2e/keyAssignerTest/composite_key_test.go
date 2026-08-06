@@ -12,7 +12,7 @@ import (
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
 	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constants"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/worker"
 	"github.com/mus-format/mus-go/varint"
 )
@@ -146,7 +146,7 @@ func verifyCompositeKeyPresence(
 		mapper := w.StateService.StateBackendImpl.GetIterator()
 		for mapper.First(); mapper.Valid(); mapper.Next() {
 			key := mapper.Key()
-			keyI, _, _ := varint.UnmarshalInt(key[constant.KeyPrefixSize:])
+			keyI, _, _ := varint.UnmarshalInt(key[constants.KeyPrefixSize:])
 
 			// Check if keyI is present in expected key set
 			if _, ok := expectedKeys[keyI]; !ok {

@@ -66,10 +66,10 @@
   ],
   "EventType": "Taxi",
   "ReconfigProtocol": "lazy",
-  "LazyProtocolVersion": "by-key",
+  "LazyProtocolVersion": "drrs",
   "TotalRuntimeSeconds": 300000000,
   "NumBuckets": 128,
-  "PartitionPolicy": "consistent-even",
+  "PartitionPolicy": "uniform",
   "BufferSize": 5,
   "BatchSize": 4096,
   "StateBackendType": "pebble",
@@ -78,16 +78,15 @@
   "PebbleGetManyBatchSize": 32,
   "IsWarmUp": true,
   "LoadWarmUpData": false,
-  "EnablePendingBatchTimeout":false,
   "CalculateCellIdParallelism":8,
   "MovingMedianTripTimeParallelism": 4,
   "Top10RouteParallelism": 8,
   "SinkParallelism": 1,
   "WindowDuration": "10s",
   "WarmUpDataFolder": {
-    "Pebble": "pebble_warmup_data/taxi/128_consistent_10GBTest"
+    "Pebble": "pebble_warmup_data/taxi/128_uniform_10GBTest"
   },
-  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/taxi/128ByKey_consistent_remote_10GBTest",
+  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/taxi/128ByKey_uniform_10GBTest",
   "InitialCustomTaskPlacement": [
     "source: 10.10.1.9",
     "source: 10.10.1.10",

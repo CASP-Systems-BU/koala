@@ -1,7 +1,6 @@
 package supplier
 
 import (
-	"encoding/binary"
 	"log"
 	"math"
 	"net"
@@ -13,7 +12,6 @@ import (
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/syncflag"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/utils"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/metric"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/state"
 	"github.com/mus-format/mus-go/ord"
 	"github.com/mus-format/mus-go/raw"
 )
@@ -30,7 +28,7 @@ type Supplier interface {
 
 	// Return one buffer element and which upstream operator (operator name) it
 	// comes from.
-	GetWorkUnit() (buffer.WorkUnit, string)
+	GetWorkUnit() (buffer.WorkUnit, bool, string, bool)
 
 	// Init a new upstream when a new upstream connection is established
 	InitNewUpstream(net.Conn)
@@ -56,6 +54,25 @@ type Supplier interface {
 	// 1. All in-flight barriers from upstreams are received
 	// 2. All inbound peer connections are closed
 	WaitTasksReconfigDone()
+
+	// [DRRS] Check if all inbound peer connections are closed
+	IfAllInboundPeersClosed() bool
+
+	// [DRRS] Set the flag to only consume peer input channels
+	// There are 3 places we may switch between peer-only and all-channel mode:
+	// 1. SplitBatchForDRRS(): push a non-processable batch into wait buffer
+	//      may turn to peer-only mode
+	// 2. BlockWatermarkDRRS(): push an un-progressed watermark into wait buffer
+	//      may turn to peer-only mode
+	// 3. ConsumeDRRSWaitBuffer(): consume from upstream wait buffer,
+	//      may turn to all-channel mode
+	// These 3 cases guarantee that upsrteam wait buffer will only accept more
+	// input when it has extra space. It blocks consuming upstream if upstream
+	// wait buffer is full. Note that a watermark from peer channel can still
+	// be pushed into upstream wait buffer even in peer-only mode.
+	SetPeerOnlySupplier(bool)
+
+	IsPeerOnlySupplier() bool
 }
 
 type SupplierBase struct {
@@ -96,6 +113,9 @@ type SupplierBase struct {
 	// [stop-and-restart] Track the data draining progress
 	DrainBarrierCounter int
 
+	// [Logging] Local worker id after task assignment
+	WorkerIdForLogging uint16
+
 	/**************************************************************************
 						    Lazy protocol related fields
 	**************************************************************************/
@@ -126,12 +146,11 @@ type SupplierBase struct {
 	// 2. All inbound peer connections are closed
 	ReconfigTerminated *syncflag.SyncFlag
 
-	// [Lazy-by-key] Synchronize the primary and secondary peer channels during
-	// for multi-upstream operators during fast forward phase
-	// Map: src peer worker id -> SyncFlag
-	PeerChannelSyncMap  map[uint16]*syncflag.SyncFlag
-	PeerChannelSyncLock sync.Mutex
-	LocalStateService   *state.StateService
+	// If the supplier is shutting down
+	IsShuttingDown bool
+
+	// [DRRS] Flag to indicate if the supplier should only consume peers
+	OnlyConsumePeers bool
 }
 
 // SupplierBase constructor at compile time
@@ -158,6 +177,24 @@ func NewSupplierBase(
  					Base implementation of interface methods
 ******************************************************************************/
 
+// [DRRS] Set the flag to only consume peer input channels
+func (s *SupplierBase) SetPeerOnlySupplier(onlyPeer bool) {
+	s.Lock()
+	defer s.Unlock()
+
+	s.OnlyConsumePeers = onlyPeer
+	for _, subSupplier := range s.SubSuppliers {
+		subSupplier.SetPeerOnlySupplier(onlyPeer)
+	}
+}
+
+// [DRRS] Check if the supplier is only consuming peer channels
+func (s *SupplierBase) IsPeerOnlySupplier() bool {
+	s.Lock()
+	defer s.Unlock()
+	return s.OnlyConsumePeers
+}
+
 // Setup at task placement time
 func (s *SupplierBase) Setup(para *utils.OperatorSetupParas) {
 
@@ -178,24 +215,12 @@ func (s *SupplierBase) Setup(para *utils.OperatorSetupParas) {
 		)
 	}
 
+	// Logging
+	s.WorkerIdForLogging = para.WorkerID
+
 	// Setup all SubSuppliers
 	for _, subSupplier := range s.SubSuppliers {
 		subSupplier.Setup()
-		if s.Config.IsWarmup {
-			subSupplier.NotifyIsWarmUpRun()
-		}
-	}
-
-	if s.Config.ReconfigProtocol == "lazy" &&
-		s.Config.LazyProtocolVersion == "by-key" {
-		s.PeerChannelSyncMap = make(map[uint16]*syncflag.SyncFlag)
-		s.LocalStateService = para.StateService
-	}
-
-	if s.Config.ReconfigProtocol == "lazy" &&
-		s.Config.LazyProtocolVersion == "by-key" {
-		s.PeerChannelSyncMap = make(map[uint16]*syncflag.SyncFlag)
-		s.LocalStateService = para.StateService
 	}
 }
 
@@ -225,12 +250,8 @@ func (s *SupplierBase) AddSubSupplier(subSupplier SubSupplier) {
 // into the supplier
 func (s *SupplierBase) InitNewUpstream(conn net.Conn) {
 
-	// Get the metadata for this connection. Channel type:
-	//     0 - regular upstream channel;
-	//     1 - single peer channel (single-upstream op)
-	//     2 - multi-peer channel (multi-upstream op) - primary (carry metadata)
-	//     3 - multi-peer channel (multi-upstream op) - secondary
-	upstreamName, channelType, upstreamWorkerID := getConnectionMetadata(conn)
+	// Identify the upstream operator name and connection type
+	upstreamName, isPeer := getConnectionNameAndType(conn)
 	subSupplier, ok := s.SubSuppliers[upstreamName]
 	if !ok {
 		log.Fatalf(
@@ -240,92 +261,12 @@ func (s *SupplierBase) InitNewUpstream(conn net.Conn) {
 		)
 	}
 
-	// [Lazy-by-key] Handle migrating key lookup table deserialization in tcp
-	// connection setup routine
-	if (channelType == 1 || channelType == 2) &&
-		s.Config.LazyProtocolVersion == "by-key" {
-
-		// The 1st work unit must be a MigratingKeyMap work unit. Read the work
-		// unit metadata to validate
-		buf := make([]byte, 2)
-		err := network.ReadAll(conn, buf, 2)
-		if err != nil {
-			log.Fatalf("Error tcp reading: %v", err)
-		}
-		workUnitType, _, err := raw.UnmarshalUint16(buf)
-		if err != nil {
-			log.Fatalf("Error decoding migratingKeyMap work unit type: %v", err)
-		}
-		if buffer.WorkUnitType(workUnitType) != buffer.MigratingKeyMapWorkUnit {
-			log.Fatalf(
-				"Expected MigratingKeyMap work unit at the beginning of primary peer channel, but got %v\n",
-				buffer.WorkUnitType(workUnitType),
-			)
-		}
-
-		// Read the total len of the migrating key map work unit
-		buf = make([]byte, 4)
-		err = network.ReadAll(conn, buf, 4)
-		if err != nil {
-			log.Fatalf("Error tcp reading: %v", err)
-		}
-		workUnitLen := binary.BigEndian.Uint32(buf)
-		if workUnitLen <= 4 {
-			log.Fatalf(
-				"Invalid migratingKeyMap work unit length: %d",
-				workUnitLen,
-			)
-		}
-		buf = make([]byte, workUnitLen)
-		err = network.ReadAll(conn, buf, uint64(workUnitLen))
-		if err != nil {
-			log.Fatalf("Error tcp reading: %v", err)
-		}
-
-		// Update the local KeyLookupTableV2 with the received migrating key
-		// maps - no lock needed for concurrent updates from different peers
-		// as they are updating different buckets in the key lookup table
-		s.LocalStateService.StateLookupTableV2.DeserializeMigratingKeyMaps(
-			buf,
-			s.LocalStateService.WorkerID,
-		)
-
-		// If this is a peer channel for multi-upstream operator, only the
-		// primary peer channel (channelType == 2) will send the key maps. If
-		// the secondary peer channel has data arriving before the key map is
-		// received, we should block the secondary channel. Now we have
-		// received the key map, we can unblock the secondary channel that
-		// corresponds to this primary channel (peer channels with same sender
-		// worker ID)
-		if channelType == 2 {
-			s.UnblockSecondaryPeerChannel(upstreamWorkerID)
-		}
-	}
-
-	// If this is a secondary peer channel, we should wait until the primary
-	// peer channel has inserted the migrating key map into the key table
-	if channelType == 3 && s.Config.LazyProtocolVersion == "by-key" {
-		s.WaitPrimaryPeerChannel(upstreamWorkerID)
-	}
-
-	isPeer := false
-	if channelType != 0 {
-		isPeer = true
-	}
-
 	s.Lock()
-	subSupplier.AddUpstream(
-		conn,
-		s.Config,
-		s.MetricCollector,
-		isPeer,
-		upstreamWorkerID,
-	)
+	subSupplier.AddUpstream(conn, s.Config, s.MetricCollector, isPeer)
 	totalNumUpstreams := s.getNumUpstreams()
 	if totalNumUpstreams == s.ExpectNumUpstream {
 		s.TaskDeploymentPhasePassed = true
 	}
-	taskDeploymentPhasePassFlagLogging := s.TaskDeploymentPhasePassed
 
 	// If this is a peer connection, increment the inbound peer counter and
 	// check if all inbound peers are connected. This could only be true for
@@ -341,14 +282,6 @@ func (s *SupplierBase) InitNewUpstream(conn net.Conn) {
 		s.InboundPeerCounter += 1
 		if s.InboundPeerCounter == s.ExpectedInboundPeers {
 
-			// [Lazy-by-key] Validate that the status of PeerChannelSyncMap
-			if s.Config.LazyProtocolVersion == "by-key" {
-				s.ValidateAndResetPeerChannelSyncMap(
-					channelType,
-					s.ExpectedInboundPeers,
-				)
-			}
-
 			// Mark the supplier status to waiting for terminations of all peers
 			s.ExpectedInboundPeers = -2
 
@@ -361,12 +294,10 @@ func (s *SupplierBase) InitNewUpstream(conn net.Conn) {
 	s.Unlock()
 
 	log.Printf(
-		"[%s Supplier] New upstream added from %s (WorkerId: %d). Current number of upstreams: %d. Task deployment phase passed: %v\n",
+		"[%s Supplier] New upstream added from operator %s. Current number of upstreams: %d\n",
 		s.OperatorName,
 		upstreamName,
-		upstreamWorkerID,
 		totalNumUpstreams,
-		taskDeploymentPhasePassFlagLogging,
 	)
 }
 
@@ -391,6 +322,11 @@ func (s *SupplierBase) GetSubSupplierNames() []string {
 func (s *SupplierBase) NotifyShuttingDown() {
 	s.Lock()
 	defer s.Unlock()
+
+	// Set shutting down flag in Subpplier
+	s.IsShuttingDown = true
+
+	// Set shutting down flag in SubSuppliers
 	for _, subSupplier := range s.SubSuppliers {
 		subSupplier.NotifyShuttingDown()
 	}
@@ -431,27 +367,31 @@ func (s *SupplierBase) WaitAllInboundPeersToConnect() {
 
 func (s *SupplierBase) WaitTasksReconfigDone() {
 
+	// 1. Wait until all in-flight barriers from upstreams are received
+	// 2. Wait until all inbound peer connections are closed
 	s.ReconfigTerminated.Wait()
 
 	// Reset the sync flag for future reconfigurations
 	s.ReconfigTerminated.Reset()
 }
 
+// [DRRS] Check if all peers are closed
+func (s *SupplierBase) IfAllInboundPeersClosed() bool {
+	s.Lock()
+	defer s.Unlock()
+	return s.ExpectedInboundPeers == -1
+}
+
 /******************************************************************************
  							 Supplier common utils
 ******************************************************************************/
 
-// Extract the metadata of the newly established upstream connection:
-//  1. Upstream operator name
-//  2. Type of the input channel:
-//     0 - regular upstream channel;
-//     1 - single peer channel (single-upstream op)
-//     2 - multi-peer channel (multi-upstream op) - primary (carry metadata)
-//     3 - multi-peer channel (multi-upstream op) - secondary
-//  3. Upstream worker ID
-func getConnectionMetadata(conn net.Conn) (string, uint8, uint16) {
+// Get the upstream operator name and connection type of the newly established
+// upstream connection. Return:
+// 1. upstream operator name
+// 2. if the connection is a peer connection
+func getConnectionNameAndType(conn net.Conn) (string, bool) {
 
-	// Read upstream operator name
 	buf := make([]byte, 8)
 	err := network.ReadAll(conn, buf, 8)
 	if err != nil {
@@ -478,23 +418,15 @@ func getConnectionMetadata(conn net.Conn) (string, uint8, uint16) {
 	if err != nil {
 		log.Fatalf("Error tcp reading connection type: %v", err)
 	}
-	channelType, _, err := raw.UnmarshalUint8(buf)
+	isPeerChannel, _, err := raw.UnmarshalUint8(buf)
 	if err != nil {
 		log.Fatalf("Error decoding connection type: %v", err)
 	}
 
-	// Read upstream worker ID
-	buf = make([]byte, 2)
-	err = network.ReadAll(conn, buf, 2)
-	if err != nil {
-		log.Fatalf("Error tcp reading worker ID: %v", err)
+	if isPeerChannel == 1 {
+		return upstreamName, true
 	}
-	upstreamWorkerID, _, err := raw.UnmarshalUint16(buf)
-	if err != nil {
-		log.Fatalf("Error decoding worker ID: %v", err)
-	}
-
-	return upstreamName, channelType, upstreamWorkerID
+	return upstreamName, false
 }
 
 // Get total number of upstreams across all SubSuppliers
@@ -543,7 +475,7 @@ func (s *SupplierBase) preprocessWorkUnit(
 		// [lazy protocol] All inflight records after reconfiguration at this
 		// upstream have all arrived. Check if all barriers from all upstreams
 		// are received
-		if s.handleInflightBarrier() {
+		if s.handleInflightBarrier(subSupplierame) {
 			return workUnit, true
 		} else {
 			return nil, false
@@ -582,6 +514,11 @@ func (s *SupplierBase) preprocessWorkUnit(
 			s.InboundPeerCounter -= 1
 			if s.InboundPeerCounter == 0 {
 
+				log.Printf(
+					"[Worker %d Inbound Peer INFO] All inbound peers are closed",
+					s.WorkerIdForLogging,
+				)
+
 				// All inbound peer connections are closed, reset
 				s.ExpectedInboundPeers = -1
 
@@ -592,12 +529,10 @@ func (s *SupplierBase) preprocessWorkUnit(
 				}
 			}
 			// Whenever an inbound peer is removed, check the watermark of
-			// remaining
-			// upstreams, there could be a case remaining upstreams can already
-			// trigger to fire the next watermark. This step is not necessary
-			// for correctness, just to not delaying the watermark progress in
-			// case a
-			// delayed/slow inbound peer channel
+			// remaining upstreams, there could be a case remaining upstreams
+			// can already trigger to fire the next watermark. This step is not
+			// necessary for correctness, just to not delaying the watermark
+			// progress in case a delayed/slow inbound peer channel
 			return s.checkTaskWatermarkProgress()
 		}
 		return nil, false
@@ -636,7 +571,7 @@ func (s *SupplierBase) handleDrainBarrier() bool {
 }
 
 // [lazy protocol] Process InflightBarrier within Supplier
-func (s *SupplierBase) handleInflightBarrier() bool {
+func (s *SupplierBase) handleInflightBarrier(subSupplierame string) bool {
 
 	// Validate Supplier status
 	if s.ExpectedInflightBarriers <= 0 {
@@ -645,12 +580,25 @@ func (s *SupplierBase) handleInflightBarrier() bool {
 		)
 	}
 
+	// [DRRS] Set the in-flight barrier status for this upstream input channel
+	// for in-flight barrier alignment, we block the received channel until
+	// all in-flight barriers are received - this is to avoid fullfill wait
+	// buffer (block new data from upstream) before all in-flight barriers are
+	// received (deadlock may happen if upstream is blocked on sending)
+	subSupplier := s.SubSuppliers[subSupplierame]
+	subSupplier.SetInflightBarrierReceived()
+
 	s.InflightBarrierCounter += 1
 	if s.InflightBarrierCounter == s.ExpectedInflightBarriers {
 
 		// In-flight barriers have reached alignment, reset related fields
 		s.InflightBarrierCounter = 0
 		s.ExpectedInflightBarriers = -1
+
+		// Reset in-flight barrier status for all upstream input channels
+		for _, subSupplier := range s.SubSuppliers {
+			subSupplier.ResetInflightBarrier()
+		}
 
 		// Mark termination of reconfiguration on this task if inbound peers
 		// tracking are also inactive
@@ -735,72 +683,5 @@ func (s *SupplierBase) checkTaskWatermarkProgress() (*buffer.Watermark, bool) {
 		return curMinWM, true
 	} else {
 		return nil, false
-	}
-}
-
-// [Lazy-by-key] Primary peer: unblock the secondary peer channel
-func (s *SupplierBase) UnblockSecondaryPeerChannel(
-	upstreamWorkerID uint16,
-) {
-	s.PeerChannelSyncLock.Lock()
-	syncFlag, exists := s.PeerChannelSyncMap[upstreamWorkerID]
-	if !exists {
-		syncFlag = syncflag.NewSyncFlag()
-		s.PeerChannelSyncMap[upstreamWorkerID] = syncFlag
-	}
-	s.PeerChannelSyncLock.Unlock()
-	syncFlag.Signal()
-}
-
-// [Lazy-by-key] Secondary peer: wait primary peer channel to unblock
-func (s *SupplierBase) WaitPrimaryPeerChannel(
-	upstreamWorkerID uint16,
-) {
-	s.PeerChannelSyncLock.Lock()
-	syncFlag, exists := s.PeerChannelSyncMap[upstreamWorkerID]
-	if !exists {
-		syncFlag = syncflag.NewSyncFlag()
-		s.PeerChannelSyncMap[upstreamWorkerID] = syncFlag
-	}
-	s.PeerChannelSyncLock.Unlock()
-	syncFlag.Wait()
-}
-
-// [Lazy-by-key] Validate the status of PeerChannelSyncMap when all expected
-// inbound peer connections are established
-func (s *SupplierBase) ValidateAndResetPeerChannelSyncMap(
-	channelType uint8,
-	numExpectedInboundPeers int,
-) {
-
-	// If this is a single-upstream operator, PeerChannelSyncMap should be empty
-	if channelType == 1 {
-		if len(s.PeerChannelSyncMap) != 0 {
-			log.Fatalln(
-				"ValidateAndResetPeerChannelSyncMap: PeerChannelSyncMap should be empty for single-upstream operator",
-			)
-		}
-	}
-
-	// For multi-upstream operators, the size of PeerChannelSyncMap should be
-	// equal to half of the number of expected inbound peers
-	if channelType == 2 || channelType == 3 {
-		expectedSize := numExpectedInboundPeers / 2
-		mod := numExpectedInboundPeers % 2
-		if mod != 0 {
-			log.Fatalln(
-				"ValidateAndResetPeerChannelSyncMap: number of expected inbound peers should be even for multi-upstream operator",
-			)
-		}
-		if len(s.PeerChannelSyncMap) != expectedSize {
-			log.Fatalf(
-				"ValidateAndResetPeerChannelSyncMap: PeerChannelSyncMap size %d not equal to expected size %d\n",
-				len(s.PeerChannelSyncMap),
-				expectedSize,
-			)
-		}
-
-		// Reset the PeerChannelSyncMap for future reconfigurations
-		s.PeerChannelSyncMap = make(map[uint16]*syncflag.SyncFlag)
 	}
 }

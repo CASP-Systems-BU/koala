@@ -7,11 +7,10 @@ import (
 )
 
 // Define interfaces all state backend implementation should implement
-// We now support 4 types of state backends:
+// We now support 3 types of state backends:
 // 1. In-memory (local)
 // 2. Pebble (local)
-// 3. Remote Pebble (remote)
-// 4. TiKV (remote)
+// 3. TiKV (remote)
 
 type StateBackend interface {
 
@@ -39,18 +38,15 @@ type StateBackend interface {
 	// Delete the keys from the StateBackend
 	DeleteMany([][]byte)
 
-	// RangeQuery. Returned []byte is safe to modify by the caller
-	RangeQuery([]byte, []byte) ([][]byte, [][]byte)
+	Close()
 
 	// GetIterator returns an iterator for the state store
 	// TODO: check the concurrent access safety if multiple iterators are
 	// accessing state at the same time - for both memory and pebble DB
 	GetIterator() StateIterator
 
-	Close()
-
-	// Is this is an embedded (local) state backend
-	IsEmbeddedState() bool
+	// RangeQuery. Returned []byte is safe to modify by the caller
+	RangeQuery([]byte, []byte) ([][]byte, [][]byte)
 }
 
 // Init state backend based on config
@@ -63,12 +59,8 @@ func NewStateBackend(config *configuration.Configuration) StateBackend {
 		stateBackend = NewMemoryStateBackend()
 	case "pebble":
 		stateBackend = NewPebbleStateBackend(config)
-	case "remote-pebble":
-		stateBackend = NewRemotePebbleStateBackend(config)
 	case "tikv":
 		stateBackend = NewTikvStateBackend(config)
-	case "preLoadedMemory":
-		stateBackend = NewPreLoadedMemoryStateBackend(config)
 	default:
 		log.Fatalln("Invalid state backend type")
 		stateBackend = NewMemoryStateBackend()

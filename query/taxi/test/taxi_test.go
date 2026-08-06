@@ -717,7 +717,7 @@ func TestTaxiCorrectness(t *testing.T) {
 	// Wait till we receive the ending watermark
 	go testutils.MonitorEndOfTest(sink, done, expectedWM)
 
-	// Wait for the test to be completed
+	// Wait for the test to be compeleted
 	<-done
 	log.Println("[E2E] Test completed")
 
@@ -936,10 +936,7 @@ func Taxi() *dataflow.Dataflow {
 			in *tuple.Tuple3[string, int64, int64],
 		) *stateType.ListState[*tuple.Tuple3[string, int64, int64]] {
 			allRoutesRaw := acc.Get()
-			allRoutes := make(
-				[]*tuple.Tuple3[string, int64, int64],
-				len(allRoutesRaw),
-			)
+			allRoutes := make([]*tuple.Tuple3[string, int64, int64], len(allRoutesRaw))
 			copy(allRoutes, allRoutesRaw)
 			routeInfo := &tuple.Tuple3[string, int64, int64]{
 				V1: in.V1,

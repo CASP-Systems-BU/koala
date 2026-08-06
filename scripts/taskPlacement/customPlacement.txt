@@ -1,21 +1,9 @@
 source: 10.10.1.9
 source: 10.10.1.10
-source: 10.10.1.8
+source: 10.10.1.11
 source: 10.10.1.12
-source: 10.10.1.9
-source: 10.10.1.10
-source: 10.10.1.8
-source: 10.10.1.12
-source: 10.10.1.9
-source: 10.10.1.10
-source: 10.10.1.8
-source: 10.10.1.12
-source: 10.10.1.9
-source: 10.10.1.10
-source: 10.10.1.8
-source: 10.10.1.12
-statefulMapper: 10.10.1.9
-statefulMapper: 10.10.1.10
-statefulMapper: 10.10.1.8
-statefulMapper: 10.10.1.12
-sink:10.10.1.9
+vmCreated: 10.10.1.9
+vmCreated: 10.10.1.10
+vmCreated: 10.10.1.11
+vmCreated: 10.10.1.12
+sink: 10.10.1.9

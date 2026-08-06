@@ -8,7 +8,7 @@ package buffer
 // 5. *InflightBarrier (lazy protocol)
 // 6. *TerminationSignal (lazy protocol)
 // 7. *FastForwardMetadata (lazy protocol)
-// 8. *MigratingKeyMap (lazy protocol - lazy-by-key)
+// 8. *DRRSBatch (DRRS protocol)
 
 type WorkUnitType uint16
 
@@ -20,7 +20,7 @@ const (
 	InflightBarrierWorkUnit
 	TerminationSignalWorkUnit
 	FastForwardMetadataWorkUnit
-	MigratingKeyMapWorkUnit
+	DRRSBatchWorkUnit
 )
 
 type WorkUnit interface {

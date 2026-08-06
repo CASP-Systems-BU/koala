@@ -37,7 +37,7 @@ message CoordinatorToWorker {
         InitLazyReconfig initLazyReconfig_msg = 10;
         WaitInboundPeersToConnect waitInboundPeersToConnect_msg = 11;
         WaitReconfigDone waitReconfigDone_msg = 12;
-        EventualStateMigration eventualStateMigration_msg = 13;
+        StateMigration pushStateDRRS_msg = 13;
     }
 }
 
@@ -54,7 +54,7 @@ message TaskAssignment {
 
     // Key routing table for keyby collector
     // Only needed if output is a keyed stream
-    optional SerializedPartitionTable keybyCollectorRoutingTable = 4;
+    optional SerializedKeyLookupTable keybyCollectorRoutingTable = 4;
 
     // If the operator is a source operator, provide the source's
     // replica ID
@@ -62,7 +62,7 @@ message TaskAssignment {
 
     // [lazy protocol] If lazy protocl is configured and the task is stateful,
     // provide the state lookup table for StateService
-    optional SerializedPartitionTable stateLookupTable = 6;
+    optional SerializedKeyLookupTable stateLookupTable = 6;
 
     // [lazy protocol] If lazy protocl is configured and the task is stateful,
     // provide peer state service addresses for remote state access.
@@ -73,6 +73,10 @@ message TaskAssignment {
 
     // [lazy protocol] Expected number inbound peer connections
     optional int32 expectedInboundPeers = 9;
+
+    // [DRRS] Not nil if this task is a new task for reconfig. Furthermore,
+    // If the info list is not empty, this is a receiver task
+    optional StateMigration drrsMigrationInfo = 10;
 }
 
 message InitLazyReconfig {
@@ -90,31 +94,14 @@ message InitLazyReconfig {
     // state service addresses for existing tasks - they could be used for
     // multi-reconfiguration scenarios
     PeerStateService peerStateService = 4;
+
+    // [DRRS] If the list is not empty, this is a receiver task
+    StateMigration drrsMigrationInfo = 5;
 }
 
 message WaitInboundPeersToConnect {}
 
 message WaitReconfigDone {}
-
-// [lazy-by-key] Notify remaining tasks to eventually fetch all state from
-// cancelling tasks. Sent between upstream routing update and wait reconfig done.
-message EventualStateMigration {
-
-    // List of affected bucket info: which buckets may have state on cancelling
-    // workers and need eventual migration
-    repeated AffectedBucketInfo affectedBuckets = 1;
-}
-
-// A bucket that may have state residing on cancelling workers due to lazy
-// migration across past reconfigurations
-message AffectedBucketInfo {
-
-    // Bucket index
-    int64 bucketId = 1;
-
-    // Cancelling worker IDs that may hold state for keys in this bucket
-    repeated uint32 cancellingWorkerIds = 2;
-}
 
 message DownstreamInfo {
     // Downstream WorkerId - uint16 is used but in proto only uint32 is 
@@ -184,7 +171,7 @@ message UpdateDownstreamRouting {
     repeated DownstreamInfo downstreamsToRemove = 2;
 
     // Updated routing table if downstream is stateful operator
-    optional SerializedPartitionTable keybyCollectorRoutingTable = 3;
+    optional SerializedKeyLookupTable keybyCollectorRoutingTable = 3;
 }
 
 message Terminate {}
@@ -198,10 +185,19 @@ message Restart {}
 message StartFastForward {
 
     // Updated routing table
-    SerializedPartitionTable updatedRoutingTable = 1;
+    SerializedKeyLookupTable updatedRoutingTable = 1;
 
     // Info to establish peer connections for fast forward
     repeated DownstreamInfo PeerInfoList = 2;
+}
+
+// [DRRS] 
+message DRRSReceiverInfo {
+    // Worker ID of the receiver worker
+    uint32 workerId = 1;
+
+    // Address of the receiver worker's state service
+    string stateServiceAddr = 2;
 }
 
 /******************************************************************************
@@ -256,64 +252,22 @@ service StateCommService {
     rpc RemoteDelete(stream DeleteRequest) returns (stream Response) {}
 
     // [lazy-optimized] Async state migration
-    rpc RemoteAsyncBucketMigration(stream LazyOptStateRequest) returns (stream LazyOptStateResponse) {}
+    rpc RemoteAsyncBucketMigration(stream AsyncBucketMigrationRequest) returns (stream AsyncBucketMigrationResponse) {}
 
-    // [lazy-by-key] Per-key based state migration
-    rpc RemoteByKeyMigration(stream LazyByKeyStateRequest) returns (stream KeyResponse) {}
+    // [DRRS] Push based state migration
+    rpc PushStateMigrationDRRS(stream BucketState) returns (Response) {}
 }
 
-// [lazy-by-key] Request message for per-key based state migration
-message LazyByKeyStateRequest {
+// [DRRS] Message that contains all state for a bucket
+message BucketState {
+    // Bucket ID
+    int64 bucketId = 1;
 
-    // Reqested keys - grouped by state ID
-    repeated StateKeyList stateKeyLists = 1;
-}
-
-
-// [lazy-optimized] Request message for async state migration
-message LazyOptStateRequest {
-
-    // Requested operator ID
-    uint32 operatorId = 1;
-
-    // Source worker id - used to update state lookup table at remote worker
-    uint32 sourceWorkerId = 2;
-
-    // Requested keys - grouped by state ID
-    repeated StateKeyList stateKeyLists = 3;
-
-    // Requested bucket ids - associated with requested keys
-    repeated int64 bucketIds = 4;
-}
-
-// [lazy-optimized] List of keys for a specific state ID
-message StateKeyList {
-    uint32 stateId = 1;
+    // [][]byte for list of keys
     repeated bytes keys = 2;
-}
 
-// [lazy-optimized] List of values for a specific state ID
-message StateValueList {
-    uint32 stateId = 1;
-    repeated bytes values = 2;
-}
-
-// [lazy-optimized][lazy-by-key] Values for requested keys
-message KeyResponse {
-    // List of values for requested keys
-    repeated StateValueList stateValueLists = 1;
-}
-
-// [lazy-optimized] Response message for async state migration
-message LazyOptStateResponse {
-
-    oneof message {
-        // Values for requested keys
-        KeyResponse keyResponse = 1;
-
-        // State chunk for bucket migration
-        StateChunk stateChunk = 2;
-    }
+    // [][]byte for list of values
+    repeated bytes values = 3;
 }
 
 // [stop-and-restart] Bucket ranges to be pulled from the target worker
@@ -393,66 +347,29 @@ message DeleteRequest {
     repeated bytes keys = 2;
 }
 
-/******************************************************************************
-                 Remote Pebble Service (Remote Pebble-only nodes)
-******************************************************************************/
+// [lazy-optimized] Request for async remote bucket migration
+message AsyncBucketMigrationRequest {
 
-service RemotePebbleService {
+    oneof message {
+        // Keys read request
+        ReadRequest readRequest = 1;
 
-    // Remote pebble read batch of keys
-    rpc Read(PebbleReadRequest) returns (PebbleReadResponse) {}
-
-    // Remote pebble write (overwrite or merge) keys
-    rpc Write(PebbleWriteRequest) returns (PebbleWriteResponse) {}
-
-    // Remote pebble delete keys
-    rpc Delete(PebbleDeleteRequest) returns (Response) {}
-
-    // Remote pebble range query [lower, upper)
-    rpc RangeQuery(PebbleRangeQueryRequest) returns (PebbleRangeQueryResponse) {}
+        // Bucket migration request
+        BucketMigrationRequest bucketMigrationRequest = 2;
+    }
 }
 
-// Remote pebble read by specific keys
-message PebbleReadRequest {
-    repeated bytes keys = 1;
-}
+// [lazy-optimized] Response for async remote bucket migration
+message AsyncBucketMigrationResponse {
 
-// Values for requested keys
-message PebbleReadResponse {
-    repeated bytes values = 1;
-    int64 ReadTime = 2 ;
-}
+   oneof message {
+        // Values for requested keys
+        ReadResponse readResponse = 1;
 
-// Local WriteTimePerWrite request
-message PebbleWriteResponse {
-    string info = 1 ;
-    int64 WriteTime = 2 ;
+        // State chunk for bucket migration
+        StateChunk stateChunk = 2;
+    }
 }
-
-// Remote pebble write request (overwrite or merge)
-message PebbleWriteRequest {
-    repeated bytes keys = 1;
-    repeated bytes values = 2;
-    bool merge = 3;
-}
-
-// Remote pebble delete by specific keys
-message PebbleDeleteRequest {
-    repeated bytes keys = 1;
-}
-
-// Remote pebble range query request
-message PebbleRangeQueryRequest {
-    bytes lower = 1;
-    bytes upper = 2;
-}
-
-// Remote pebble range query response
-message PebbleRangeQueryResponse {
-    repeated bytes keys = 1;
-    repeated bytes values = 2;
-}
-
 
 /******************************************************************************
                             Key partition messages
@@ -461,13 +378,13 @@ message PebbleRangeQueryResponse {
 // Range of consecutive buckets that are owned by the same worker
 // lower and upper are inclusive [lower, upper]
 message BucketRange {
-    uint32 workerId = 1;
+    uint32 wokerId = 1;
     int64 lowerBucketIdx = 2;
     int64 upperBucketIdx = 3;
 }
 
-// Serialized key space partition table with list of bucket ranges
-message SerializedPartitionTable {
+// Serialized key lookup table with list of bucket ranges
+message SerializedKeyLookupTable {
     repeated BucketRange bucketRanges = 1;
 }
 

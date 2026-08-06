@@ -1,4 +1,4 @@
-package query
+package twitch
 
 import (
 	"encoding/json"
@@ -205,9 +205,7 @@ func TwitchPipeline(configFile string) *dataflow.Dataflow {
 	retentionAnalyzer.SetParallelism(config.RetentionAnalyzerParallelism)
 	dataflow.AddOperator(df, retentionAnalyzer)
 
-	dummyFieldGenerator := dummyfieldgenerator.NewDummyFieldGenerator(
-		config.DummyFieldSize,
-	)
+	dummyFieldGenerator := dummyfieldgenerator.NewDummyFieldGenerator(config.DummyFieldSize)
 	dummyFieldContent := ""
 	// Keyby streamerID to shuffle input
 	keyAssignerForViewerLoyaltyCalculator := ka.NewKeyAssigner(

@@ -31,14 +31,18 @@ func NewPebbleStateBackend(
 	config *configuration.Configuration,
 ) *PebbleStateBackend {
 
-	// Hardcode the pebble db path. DataCommPort is added to avoid conflict on
+	// Hardcode the pebble db path. DataPlanePort is added to avoid conflict on
 	// concurrent local workers
-	path := "data/pebble/" + config.StateCommPort + "localPebble.DB"
+	path := "data/pebble/" + config.DataPlanePort + "localPebble.DB"
 
+	maxConcurrentCompactions := config.PebbleMaxConcurrentCompactions
 	db, err := pebble.Open(path, &pebble.Options{
-		DisableWAL:   config.PebbleDisableWAL,
-		MemTableSize: config.PebbleMemTableSize,
-		Cache:        pebble.NewCache(512 << 20),
+		DisableWAL:                config.PebbleDisableWAL,
+		MemTableSize:              config.PebbleMemTableSize,
+		Cache:                     pebble.NewCache(512 << 20),
+		MaxConcurrentCompactions:  func() int { return maxConcurrentCompactions },
+		LBaseMaxBytes:             config.PebbleLBaseMaxBytes,
+		MemTableStopWritesThreshold: config.PebbleMemTableStopWritesThreshold,
 	})
 	if err != nil {
 		log.Fatalf("Failed to open pebble db: %v", err)
@@ -302,8 +306,4 @@ func (p *PebbleStateBackend) RangeQuery(
 	}
 
 	return resKeys, resValues
-}
-
-func (p *PebbleStateBackend) IsEmbeddedState() bool {
-	return true
 }

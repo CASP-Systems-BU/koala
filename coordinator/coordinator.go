@@ -1,8 +1,6 @@
 package coordinator
 
 import (
-	"sync/atomic"
-
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/keyby"
@@ -20,41 +18,19 @@ type Coordinator struct {
 	WorkerManager *WorkerManager
 
 	// Task placement plan
-	// Map: Operator ID -> list of workers hosting the operator tasks
+	// Key: Operator ID, Value: List of selected workers
 	TaskPlacementPlan map[string][]*ManagedWorker
 
-	// [Temporary] Workers whose previously deployed tasks are removed
-	// This is a temporary (to be deleted) structure for lazy protocol to keep
-	// acces to the remaining state on removed workers
-	// Map: Operator ID -> list of removed workers that previously hosted the
-	// operator tasks
-	RemovedWorkers map[string][]*ManagedWorker
-
-	// KeyPartitions: key space partitioning for each stateful operator
-	// Map: Operator ID -> key space partition table
+	// KeyPartitions: expected key space partition for each stateful operator
+	// Key: Stateful operator ID, Value: Key space partition
 	// Only stateful operators are presnet in this map
-	KeyPartitions map[string]*keyby.PartitionTable
+	KeyPartitions map[string]*keyby.KeyLookupTable
 
 	// [Lazy protocol] State Lookup Table: actual state location
 	// Maintain a centralized view of state lookup table for all stateful
 	// operators. This table can differ from KeyPartitions based on actual
-	// state location. Note that the view Coordinator maintains can be stale
-	// and the ground truth of state location is owned by local workers based
-	// on actual state migration
-	// [Lazy-by-key] Same as KeyPartitions since coordinator will not keep
-	// track of actual state location for keys. Consider deprecate this
-	StateLookupTables map[string]*keyby.PartitionTable
-
-	// [lazy-by-key] [eventual migration for cancelling task] Bucket ownership
-	// history: tracks all workers that have ever owned each bucket across
-	// reconfigurations. Used to identify affected buckets that need eventual
-	// state migration.
-	// Map: Operator ID -> []set of worker IDs (indexed by bucket index)
-	BucketOwnerHistory map[string][]map[uint16]bool
-
-	// Atomic flag to indicate if there is an ongoing reconfiguration. We do
-	// not allow concurrent reconfigurations
-	ReconfigInProgress atomic.Bool
+	// state location
+	StateLookupTables map[string]*keyby.KeyLookupTable
 }
 
 func NewCoordinator(
@@ -63,18 +39,16 @@ func NewCoordinator(
 ) *Coordinator {
 
 	coordinator := &Coordinator{
-		Config:             config,
-		Dataflow:           df,
-		WorkerManager:      NewWorkerManager(),
-		RemovedWorkers:     make(map[string][]*ManagedWorker),
-		KeyPartitions:      make(map[string]*keyby.PartitionTable),
-		BucketOwnerHistory: make(map[string][]map[uint16]bool),
+		Config:        config,
+		Dataflow:      df,
+		WorkerManager: NewWorkerManager(),
+		KeyPartitions: make(map[string]*keyby.KeyLookupTable),
 	}
 
 	// Need to maintain a centralized view of state lookup tables if lazy
 	// protocol is used
 	if config.ReconfigProtocol == "lazy" {
-		coordinator.StateLookupTables = make(map[string]*keyby.PartitionTable)
+		coordinator.StateLookupTables = make(map[string]*keyby.KeyLookupTable)
 	}
 
 	return coordinator

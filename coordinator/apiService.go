@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 
@@ -59,9 +60,11 @@ func (s *APIServer) RunJob(
 	if numTasks > numWorkers {
 		return nil, status.Errorf(
 			codes.Internal,
-			"Number of tasks exceeds the number of workers, numTasks=%d, numWorkers=%d",
-			numTasks,
-			numWorkers,
+			fmt.Sprintf(
+				"Number of tasks exceeds the number of workers, numTasks=%d, numWorkers=%d",
+				numTasks,
+				numWorkers,
+			),
 		)
 	}
 
@@ -85,15 +88,6 @@ func (s *APIServer) Rescale(
 	rescaleConfig *pb.RescaleConfig,
 ) (*pb.Response, error) {
 
-	// Reject if there is an ongoing reconfiguration
-	if !s.Coordinator.ReconfigInProgress.CompareAndSwap(false, true) {
-		return nil, status.Errorf(
-			codes.Internal,
-			"Another reconfiguration is in progress, please retry later",
-		)
-	}
-	defer s.Coordinator.ReconfigInProgress.Store(false)
-
 	// Check if there is deployed job by checking the task placement plan
 	if s.Coordinator.TaskPlacementPlan == nil {
 		return nil, status.Errorf(
@@ -106,12 +100,18 @@ func (s *APIServer) Rescale(
 	case "stop-and-restart":
 		s.rescaleStopAndRestart(rescaleConfig)
 	case "lazy":
-		s.rescaleLazy(rescaleConfig)
+		if s.Coordinator.Config.LazyProtocolVersion == "drrs" {
+			s.rescaleDRRSMultiSubscale(rescaleConfig)
+		} else {
+			s.rescaleLazy(rescaleConfig)
+		}
 	default:
 		return nil, status.Errorf(
 			codes.Internal,
-			"Unsupported reconfiguration protocol: %s",
-			s.Coordinator.Config.ReconfigProtocol,
+			fmt.Sprintf(
+				"Unsupported reconfiguration protocol: %s",
+				s.Coordinator.Config.ReconfigProtocol,
+			),
 		)
 	}
 
@@ -200,18 +200,77 @@ func (s *APIServer) rescaleLazy(rescaleConfig *pb.RescaleConfig) {
 		upstreamTasks,
 	)
 
-	// Step 4.5: [eventual migration for cancelling task] Notify remaining
-	// tasks to eventually fetch all state from cancelling tasks. Only applies
-	// when (i) there are removed workers, and (ii) the cancelling task
-	// migration mode is "eventual".
-	migrationMode := s.Coordinator.Config.LazyByKeyCancellingTaskMigrationMode
-	if len(removedWorkers) > 0 && migrationMode == "eventual" {
-		s.notifyEventualStateMigration(targetOperator, removedWorkers)
-	}
-
 	// Step 5: Wait for termination signal from all target tasks
 	s.waitAllTasksReconfigDone(updatedWorkers, removedWorkers)
 
 	// Step 6: Stop removed tasks and update task placement plan in coordinator
 	s.terminateTasks(targetOperator, updatedWorkers, removedWorkers)
+}
+
+/******************************************************************************
+				   		 	    	 DRRS
+******************************************************************************/
+
+// [DRRS] DRRS with multiple subscales
+func (s *APIServer) rescaleDRRSMultiSubscale(rescaleConfig *pb.RescaleConfig) {
+
+	// Step 0: Get updated worker list and prepare the reconfiguration
+	updatedWorkers, newWorkers, removedWorkers, targetOperator := s.prepareReconfiguration(
+		rescaleConfig,
+	)
+
+	// Now we only allow rescaling stateful operators under DRRS
+	if !targetOperator.IsStatefulOperator() {
+		log.Fatalln(
+			"DRRS reconfiguration protocol is only supported for stateful operators",
+		)
+	}
+
+	// Get bucket owner changes for the complete reconfiguration
+	// bucketOwnerChanges: map[source worker]map[dest worker][]bucketIdx
+	bucketOwnerChanges := s.updateKeyPartition(
+		targetOperator,
+		updatedWorkers,
+	)
+
+	// Get the number of subscales for DRRS
+	numSubscales := s.Coordinator.Config.NumSubscales
+	if numSubscales == -1 {
+		// Calculate the number of subscales as total number of worker-to-worker
+		// migration pairs
+		numSubscales = 0
+		for _, destMap := range bucketOwnerChanges {
+			numSubscales += len(destMap)
+		}
+	} else if numSubscales <= 0 {
+		log.Fatalln("Invalid NumSubscales config for DRRS:", numSubscales)
+	}
+	log.Println("[DRRS INFO] Number of subscales used:", numSubscales)
+
+	// Generate a list of DRRS subscale info
+	drrsSubscales := s.getDRRSSubscales(
+		updatedWorkers,
+		newWorkers,
+		removedWorkers,
+		bucketOwnerChanges,
+		numSubscales,
+	)
+
+	// Execute each subscale reconfiguration
+	for i, subscale := range drrsSubscales {
+
+		s.reconfigDRRSSubscale(
+			targetOperator,
+			subscale.UpdatedWorkers,
+			subscale.NewWorkers,
+			subscale.RemovedWorkers,
+			subscale.BucketOwnerChanges,
+			i+1,
+			numSubscales,
+		)
+	}
+
+	log.Printf("===========================================\n")
+	log.Printf("	   DRRS reconfiguration done!\n")
+	log.Printf("===========================================\n")
 }

@@ -1,4 +1,4 @@
-package query
+package taxi
 
 import (
 	"encoding/json"

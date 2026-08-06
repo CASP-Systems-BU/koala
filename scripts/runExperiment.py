@@ -38,7 +38,6 @@ allowedQueries = {
     "nexmark_query8",
     "taxi",
     "taxi_warmup",
-    "taxi_skew",
     "twitch",
     "borg",
     "borg_warmup",
@@ -103,41 +102,6 @@ def runExperiment(
     # Lazy protocol version
     lazyProtocolVersion = getJsonConfigByKey(configMap, "LazyProtocolVersion")
 
-    # [Optional][lazy-by-key] How state of a cancelling task is migrated:
-    # "fetch-on-demand" (only keys that are accessed) or "eventual" (gradually
-    # piggyback extra keys on remote fetches until the task is drained).
-    # None means the key is absent from the JSON - config.yaml is then left
-    # untouched and whatever value it already holds is used
-    cancellingTaskMigrationMode = getJsonConfigByKeyWithDefault(
-        configMap, "LazyByKeyCancellingTaskMigrationMode", None
-    )
-
-    # [Optional][lazy-by-key] Extra keys piggybacked per batch during eventual
-    # migration. -1 fetches all remaining keys at once. Only used when the mode
-    # above is "eventual". None means absent - see above
-    gradualMigrationBatchSize = getJsonConfigByKeyWithDefault(
-        configMap, "LazyByKeyGradualMigrationBatchSize", None
-    )
-
-    # Validation for cancelling task migration config - only what was provided
-    allowedMigrationModes = {"fetch-on-demand", "eventual"}
-    if (
-        cancellingTaskMigrationMode is not None
-        and cancellingTaskMigrationMode not in allowedMigrationModes
-    ):
-        raise Exception(
-            f"[ERROR] LazyByKeyCancellingTaskMigrationMode must be one of "
-            f"{allowedMigrationModes}, got {cancellingTaskMigrationMode!r}"
-        )
-    if gradualMigrationBatchSize is not None and (
-        not isinstance(gradualMigrationBatchSize, int)
-        or (gradualMigrationBatchSize != -1 and gradualMigrationBatchSize < 1)
-    ):
-        raise Exception(
-            f"[ERROR] LazyByKeyGradualMigrationBatchSize must be -1 (fetch all "
-            f"at once) or a positive integer, got {gradualMigrationBatchSize!r}"
-        )
-
     # Number of buckets
     numBuckets = getJsonConfigByKey(configMap, "NumBuckets")
 
@@ -190,7 +154,7 @@ def runExperiment(
     )
 
      # [Optional] EnablePendingBatchTimeout. Default value is true
-    enablePendingBatchTimeout =  getJsonConfigByKeyWithDefault(configMap, "EnablePendingBatchTimeout", False)
+    enablePendingBatchTimeout =  getJsonConfigByKeyWithDefault(configMap, "EnablePendingBatchTimeout", True)
 
     # Validate the JSON input
     validateConfigJsonInput(
@@ -266,8 +230,6 @@ def runExperiment(
             pebbleGetManyMaxConcurrency,
             pebbleGetManyBatchSize,
             enablePendingBatchTimeout,
-            cancellingTaskMigrationMode,
-            gradualMigrationBatchSize,
         )
     except Exception as e:
         print(f"[ERROR] Experiment failed with exception: {e}")
@@ -317,8 +279,6 @@ def runExperimentImpl(
     pebbleGetManyMaxConcurrency: int,
     pebbleGetManyBatchSize: int,
     enablePendingBatchTimeout: bool,
-    cancellingTaskMigrationMode: Optional[str],
-    gradualMigrationBatchSize: Optional[int],
 ) -> None:
 
     ###########################################################################
@@ -381,33 +341,6 @@ def runExperimentImpl(
     updateConfigYamlFile(f"{workDir}/config.yaml", "PebbleGetManyMaxConcurrency", pebbleGetManyMaxConcurrency)
     updateConfigYamlFile(f"{workDir}/config.yaml", "PebbleGetManyBatchSize", pebbleGetManyBatchSize)
     updateConfigYamlFile(f"{workDir}/config.yaml", "EnablePendingBatchTimeout", enablePendingBatchTimeout)
-
-    # - Update cancelling task migration config, only for the fields the JSON
-    #   actually provides. If a field is absent, config.yaml is left as-is
-    if cancellingTaskMigrationMode is not None:
-        updateConfigYamlFile(
-            f"{workDir}/config.yaml",
-            "LazyByKeyCancellingTaskMigrationMode",
-            cancellingTaskMigrationMode,
-        )
-    else:
-        updateConfigYamlFile(
-                    f"{workDir}/config.yaml",
-                    "LazyByKeyCancellingTaskMigrationMode",
-                    "fetch-on-demand",
-                )
-    if gradualMigrationBatchSize is not None:
-        updateConfigYamlFile(
-            f"{workDir}/config.yaml",
-            "LazyByKeyGradualMigrationBatchSize",
-            gradualMigrationBatchSize,
-        )
-    else:
-        updateConfigYamlFile(
-                    f"{workDir}/config.yaml",
-                    "LazyByKeyGradualMigrationBatchSize",
-                    100,
-                )
 
 
     ###########################################################################

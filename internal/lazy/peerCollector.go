@@ -34,10 +34,8 @@ type PeerCollector[T tuple.Tuple] struct {
 	// Copy of operator name this PeerCollector belongs to
 	OperatorName string
 
-	// Copy of the local worker ID
-	WorkerId uint16
-
-	// Upstream operator name of the current task
+	// Upstream operator name. This indicates which upstream operator this
+	// PeerCollector is forwarding records to
 	UpstreamName string
 
 	// Downstreams: mapping from workerId to Downstream structure
@@ -66,7 +64,6 @@ type PeerCollector[T tuple.Tuple] struct {
 // Compile time constructor
 func NewPeerCollector[T tuple.Tuple](
 	operatorName string,
-	workerId uint16,
 	upstreamName string,
 	config *configuration.Configuration,
 ) *PeerCollector[T] {
@@ -78,7 +75,6 @@ func NewPeerCollector[T tuple.Tuple](
 	return &PeerCollector[T]{
 		Config:       config,
 		OperatorName: operatorName,
-		WorkerId:     workerId,
 		UpstreamName: upstreamName,
 		Encoder:      encoder,
 		GetSize:      sizer,
@@ -89,61 +85,50 @@ func NewPeerCollector[T tuple.Tuple](
 						PeerCollector exposed APIs
 ******************************************************************************/
 
-// Activate PeerCollector when re-config is triggered. Output channel type:
-// 1 - single peer channel (single-upstream op)
-// 2 - multi-peer channel (multi-upstream op) - primary (carry metadata)
-// 3 - multi-peer channel (multi-upstream op) - secondary
-// TODO: we need to distinguish the type of peer channel due to the current
-// implementation of multi-upstream operators (2 peer connections per task)
-// Only lazy-by-key needs this. Refactor this implementation in the future
+// Activate PeerCollector when re-config is triggered
 func (c *PeerCollector[T]) Activate(
-	peerList []*pb.DownstreamInfo,
+	downstreamInfoList []*pb.DownstreamInfo,
 	metricCollector *metric.MetricCollector,
-	outputChannelType uint8,
 ) {
 
 	// Initialize empty CurBatches
 	curBatches := make(
 		map[uint16]*buffer.Batch[T],
-		len(peerList),
+		len(downstreamInfoList),
 	)
-	for _, peer := range peerList {
-		curBatches[uint16(peer.WorkerId)] = buffer.AllocateOutputBatch[T]()
+	for _, downstreamInfo := range downstreamInfoList {
+		curBatches[uint16(downstreamInfo.WorkerId)] = buffer.AllocateOutputBatch[T]()
 	}
 	c.CurBatches = curBatches
 
 	// Initialize the downstream structures
 	c.Downstreams = make(
 		map[uint16]*network.Downstream[T],
-		len(peerList),
+		len(downstreamInfoList),
 	)
 
-	for _, peer := range peerList {
+	for _, downstreamInfo := range downstreamInfoList {
 
 		log.Printf(
 			"[INFO] Op %s creating peer connection struct %s from upstream %s",
 			c.OperatorName,
-			peer.String(),
+			downstreamInfo.String(),
 			c.UpstreamName,
 		)
 
 		// Init the downstream connection using the upstream's name
 		downstream := network.NewDownStream[T](
-			peer.DataPlaneAddr,
+			downstreamInfo.DataPlaneAddr,
 			c.Config,
 			metricCollector,
 			c.UpstreamName,
 		)
-		c.Downstreams[uint16(peer.WorkerId)] = downstream
+		c.Downstreams[uint16(downstreamInfo.WorkerId)] = downstream
 	}
 
 	// Start network routines to consume the buffer
 	for _, downstream := range c.Downstreams {
-		go downstream.ConsumeOutputBuffer(
-			c.Encoder,
-			outputChannelType,
-			c.WorkerId,
-		)
+		go downstream.ConsumeOutputBuffer(c.Encoder, true)
 	}
 
 	// Start the timer timeout routine if it's enabled
@@ -251,23 +236,6 @@ func (c *PeerCollector[T]) BroadcastWatermark(
 	for _, downstream := range c.Downstreams {
 		// Push the watermark to the downstream buffer
 		downstream.PushToBuffer(watermark)
-	}
-}
-
-// [lazy-by-key] Send the key lookup table - KeyMaps for affected buckets
-func (c *PeerCollector[T]) SendKeyMaps(
-	serializedKeyMaps map[uint16]*buffer.MigratingKeyMap,
-) {
-	// Timer routine can concurently flush batches to Downstreams
-	c.Lock()
-	defer c.Unlock()
-
-	// Send each KeyMap to the corresponding downstream
-	for workerId, keyMap := range serializedKeyMaps {
-		downstream := c.getDownstreamByWorkerID(workerId)
-
-		// Push the KeyMap to the downstream buffer
-		downstream.PushToBuffer(keyMap)
 	}
 }
 

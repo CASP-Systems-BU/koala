@@ -16,6 +16,3 @@ __pycache__/
 
 # Results folder
 results/
-
-plot/
-*.log

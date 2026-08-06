@@ -61,7 +61,7 @@ func DeserializeKeyLookupTable(
 		for i := bucketRange.LowerBucketIdx; i <= bucketRange.UpperBucketIdx; i++ {
 			buckets = append(
 				buckets,
-				&partition.Bucket{WorkerID: uint16(bucketRange.WorkerId)},
+				&partition.Bucket{WorkerID: uint16(bucketRange.WokerId)},
 			)
 		}
 	}
@@ -128,7 +128,7 @@ func (table *KeyLookupTable) Serialize() []*grpc.BucketRange {
 
 	lastOwner := table.Buckets[0].WorkerID
 	bucketRange := &grpc.BucketRange{
-		WorkerId:       uint32(lastOwner),
+		WokerId:        uint32(lastOwner),
 		LowerBucketIdx: 0,
 		UpperBucketIdx: 0,
 	}
@@ -140,7 +140,7 @@ func (table *KeyLookupTable) Serialize() []*grpc.BucketRange {
 			bucketRanges = append(bucketRanges, bucketRange)
 			lastOwner = bucket.WorkerID
 			bucketRange = &grpc.BucketRange{
-				WorkerId:       uint32(lastOwner),
+				WokerId:        uint32(lastOwner),
 				LowerBucketIdx: int64(i),
 				UpperBucketIdx: int64(i),
 			}
@@ -155,6 +155,7 @@ func (table *KeyLookupTable) Serialize() []*grpc.BucketRange {
 func (table *KeyLookupTable) Reconfigure(
 	updatedWorkers []uint16,
 	policy partition.PartitionPolicy,
+	updateTable bool,
 ) map[uint16]map[uint16][]int {
 
 	if len(updatedWorkers) == 0 {
@@ -166,17 +167,33 @@ func (table *KeyLookupTable) Reconfigure(
 		updatedWorkers,
 		table.Buckets,
 	)
-	table.Buckets = newBuckets
+	if updateTable {
+		table.Buckets = newBuckets
+	}
 
 	// Print out the number of buckets assigned to each worker
 	bucketCountPerWorker := make(map[uint16]int)
-	for _, br := range table.Buckets {
+	for _, br := range newBuckets {
 		bucketCountPerWorker[br.WorkerID] += 1
 	}
 	log.Printf(
-		"[Bucket Partition INFO] bucket count per worker: %+v\n",
+		"[Reconfig KeyPartition INFO] bucket count per worker: %+v\n",
 		bucketCountPerWorker,
 	)
 
 	return bucketOwnerChanges
+}
+
+// [DRRS] Partially update the key lookup table based on bucket owner changes
+func (table *KeyLookupTable) UpdateBucketOwnersDRRS(
+	bucketOwnerChanges map[uint16]map[uint16][]int,
+) {
+
+	for _, destMap := range bucketOwnerChanges {
+		for destWorkerId, bucketIdxList := range destMap {
+			for _, bucketIdx := range bucketIdxList {
+				table.ChangeBucketOwner(int64(bucketIdx), destWorkerId)
+			}
+		}
+	}
 }

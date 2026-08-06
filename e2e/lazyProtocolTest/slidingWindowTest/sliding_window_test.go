@@ -86,7 +86,7 @@ func TestSlidingWindowLazyProtocol(t *testing.T) {
 	numWorkers := 5
 	client, workers, _ := testutils.DeployJob(
 		numWorkers,
-		slidingWindowQuery,
+		func() *dataflow.Dataflow { return slidingWindowQuery(2) },
 		config,
 	)
 
@@ -113,7 +113,7 @@ func TestSlidingWindowLazyProtocol(t *testing.T) {
 	expectedWM := int64(TIMEBUCKETSPAN * NUMTIMEBUCKETS)
 	go testutils.MonitorEndOfTest(sink, done, expectedWM)
 
-	// Wait for the test to be completed
+	// Wait for the test to be compeleted
 	<-done
 	log.Println("[E2E] Test completed")
 
@@ -129,7 +129,7 @@ func TestSlidingWindowLazyProtocol(t *testing.T) {
 	testutils.CleanUpDataFolder()
 }
 
-func slidingWindowQuery() *dataflow.Dataflow {
+func slidingWindowQuery(windowParallelism int) *dataflow.Dataflow {
 
 	query := dataflow.NewDataflow()
 
@@ -226,7 +226,7 @@ func slidingWindowQuery() *dataflow.Dataflow {
 		WINDOWSPAN,
 		SLIDE,
 	)
-	window.SetParallelism(2)
+	window.SetParallelism(windowParallelism)
 	dataflow.AddOperator(query, window)
 
 	// Define Sink

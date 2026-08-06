@@ -37,7 +37,7 @@ type LazyProtocolBase[K comparable] struct {
 
 	// Routing Table to identify the key ownership: key([]byte) -> workerId.
 	// Used for fast forwarding. This is set upon StartFastForward message
-	RoutingTable *keyby.PartitionTable
+	RoutingTable *keyby.KeyLookupTable
 }
 
 // Initialize LazyProtocolBase during stateful operator Setup() under lazy

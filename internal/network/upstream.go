@@ -15,9 +15,6 @@ import (
 
 type Upstream[T tuple.Tuple] struct {
 
-	// Upstream worker id
-	UpstreamWorkerId uint16
-
 	// Store the global config
 	Config *configuration.Configuration
 
@@ -33,6 +30,13 @@ type Upstream[T tuple.Tuple] struct {
 	// Pointer to the MetricCollector. This is used to record the network
 	// related metrics during runtime
 	MetricCollector *metric.MetricCollector
+
+	// If this upstream is from peer
+	IsPeer bool
+
+	// [DRRS] In-flight barrier received - set true when an in-flight barrier
+	// is received and reset to false after all in-flight barriers are received
+	InflightBarrierReceived bool
 }
 
 // Initialize an upstream struct - including allocate input buffer
@@ -40,7 +44,7 @@ func NewUpstream[T tuple.Tuple](
 	conn net.Conn,
 	config *configuration.Configuration,
 	metricCollector *metric.MetricCollector,
-	upstreamWorkerId uint16,
+	isPeer bool,
 ) *Upstream[T] {
 
 	if metricCollector == nil {
@@ -48,19 +52,18 @@ func NewUpstream[T tuple.Tuple](
 	}
 
 	return &Upstream[T]{
-		Config:           config,
-		Connection:       conn,
-		InputBuffer:      buffer.NewInputRingBuffer[T](config),
-		WM:               buffer.NewWatermark(-1),
-		MetricCollector:  metricCollector,
-		UpstreamWorkerId: upstreamWorkerId,
+		Config:          config,
+		Connection:      conn,
+		InputBuffer:     buffer.NewInputRingBuffer[T](config),
+		WM:              buffer.NewWatermark(-1),
+		MetricCollector: metricCollector,
+		IsPeer:          isPeer,
 	}
 }
 
 // Network routine that reads from connection and supplies input buffer
 func (upstream *Upstream[T]) SupplyInputBuffer(
 	decoder TupleDecoder,
-	isPeer bool,
 ) {
 
 	// Pre-allocate network buffer byte[] limited by the configured batch size
@@ -93,7 +96,7 @@ func (upstream *Upstream[T]) SupplyInputBuffer(
 
 				// Push the termination signal into the input buffer
 				workUnit := buffer.NewTerminationSignal()
-				if isPeer {
+				if upstream.IsPeer {
 					workUnit.SetPeer()
 				}
 				for {
@@ -172,7 +175,7 @@ func (upstream *Upstream[T]) SupplyInputBuffer(
 			// Decode data from buffer to pre-allocated batch
 			offset = 18
 			var n int
-			for i := range numRecords {
+			for i := uint32(0); i < numRecords; i++ {
 				n, err = decoder(receiverBatch.Records[i], buf[offset:])
 				if err != nil {
 					log.Fatalf("Error decoding batch data: %v", err)
