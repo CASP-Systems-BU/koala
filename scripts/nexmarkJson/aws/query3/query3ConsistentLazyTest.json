@@ -44,27 +44,17 @@
     "10.10.1.11",
     "10.10.1.12",
     
-    "10.10.1.9",
-    "10.10.1.10",
-    "10.10.1.11",
-    "10.10.1.12",
-    
-    "10.10.1.9",
-    "10.10.1.10",
-    "10.10.1.11",
-    "10.10.1.12",
-    
     "10.10.1.9"
   ],
   "NexmarkLogicalSourceConfigs":[
     {
       "EventType": "Person",
       "NexmarkSourceConfig":{
-        "OutputEventNumber": 5970000,
+        "OutputEventNumber": 5000000,
         "RateLimiterConfig": {
           "UseRateLimit": true,
           "RateLimit": [
-            725
+            500
           ],
           "RateChangeInterval": [
             60000
@@ -75,14 +65,14 @@
     {
       "EventType": "Auction",
       "NexmarkSourceConfig":{
-        "OutputEventNumber": 17910000,
+        "OutputEventNumber": 2900000,
         "NumActivePeople": 1000,
         "HotSellerRatio": 0.25,
         "HotSellerRange": 100,
         "RateLimiterConfig": {
           "UseRateLimit": true,
           "RateLimit": [
-            2175
+            1500
           ],
           "RateChangeInterval": [
             60000
@@ -96,8 +86,8 @@
   "LazyProtocolVersion": "by-key",
   "NumBuckets": 128,
   "PartitionPolicy": "consistent-even",
-  "BufferSize": 50,
-  "BatchSize": 4096,
+  "BufferSize": 20,
+  "BatchSize": 1024,
   "StateBackendType": "pebble",
   "PebbleEnableConcurrentGetMany": true,
   "PebbleGetManyMaxConcurrency": 4,
@@ -108,8 +98,6 @@
     "Pebble": "pebble_warmup_data/nexmark_q3/128ByKey_consistent_10GB"
   },
   "LookupTableWarmUpDataFolder":"pebbleLookUpTable/nexmark_q3/128ByKey_consistent_10GB",
-  "PersonFilterParallelism": 4,
-  "AuctionFilterParallelism": 4,
   "JoinParallelism": 4,
   "SinkParallelism": 1,
   "DummyFieldSize":2048,
@@ -124,16 +112,6 @@
     "auctionSource: 10.10.1.10",
     "auctionSource: 10.10.1.11",
     "auctionSource: 10.10.1.12",
-
-    "personFilter: 10.10.1.9",
-    "personFilter: 10.10.1.10",
-    "personFilter: 10.10.1.11",
-    "personFilter: 10.10.1.12",
-
-    "auctionFilter: 10.10.1.9",
-    "auctionFilter: 10.10.1.10",
-    "auctionFilter: 10.10.1.11",
-    "auctionFilter: 10.10.1.12",
 
     "join: 10.10.1.9",
     "join: 10.10.1.10",

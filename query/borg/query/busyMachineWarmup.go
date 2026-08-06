@@ -14,6 +14,8 @@ import (
 	"github.com/CASP-Systems-BU/disaggregated-streaming/query/borg/models"
 )
 
+var dummyTaskRecords []*TaskRecord
+
 // BusyMachineWarmup pre-populates the state backend with incompressible dummy
 // records so that state access latencies reflect steady-state behaviour from
 // the first real event. No real computation or meaningful output is produced.
@@ -54,13 +56,7 @@ func BusyMachineWarmup(configFile string) *dataflow.Dataflow {
 
 	jobEventKeyAssigner := ka.NewKeyAssigner(
 		func(t *models.TaskEvent) string {
-			return strconv.FormatInt(
-				t.V3,
-				10,
-			) + "_" + strconv.FormatInt(
-				t.V4,
-				10,
-			)
+			return strconv.FormatInt(t.V3, 10) + "_" + strconv.FormatInt(t.V4, 10)
 		},
 	)
 

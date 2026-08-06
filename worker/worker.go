@@ -115,7 +115,12 @@ func (w *Worker) Run() {
 				// WorkUnit is a batch of data records
 
 				// Update input-related metrics in MetricCollector
-				w.AssignedTask.UpdateInputMetrics(workUnit)
+				// [TEMP] Hard code only for Nexmark Q3 to only measure the Auction Batch!
+				if w.AssignedTask.GetName() == "join" && subSupplierName == "auctionFliter" {
+					w.AssignedTask.UpdateInputMetrics(workUnit)
+				} else {
+					w.AssignedTask.UpdateInputMetrics(workUnit)
+				}
 
 				// [Lazy protocol] Fast forward in-flight records if the worker
 				// is during reconfiguration phase under lazy protocol: trigger

@@ -69,7 +69,7 @@
   "LoadWarmUpData": true,
   "JobEventStatsParallelism": 4,
   "SinkParallelism": 1,
-  "ListStateSize": 10,
+  "ListStateSize": 100,
   "WarmUpDataFolder": {
     "Pebble": "pebble_warmup_data/borg/128_consistent_3GBTest"
   },

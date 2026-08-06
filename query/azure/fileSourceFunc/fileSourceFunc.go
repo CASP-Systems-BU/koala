@@ -83,11 +83,7 @@ func AzureFileSourceFunc[OUT tuple.Tuple](
 		runtime.GC()
 		query.PrintMemUsage("After Loading File & GC")
 		totalEventNumber := len(totalEvents)
-		log.Printf(
-			"Successfully loaded %d events in %v\n",
-			totalEventNumber,
-			time.Since(startTimestamp),
-		)
+		log.Printf("Successfully loaded %d events in %v\n", totalEventNumber, time.Since(startTimestamp))
 		outputEventNumber := 0
 		eventIndex := int(alreadyOutputEventNumber) % len(totalEvents)
 		timeBase := int64(0)
@@ -126,11 +122,7 @@ func AzureFileSourceFunc[OUT tuple.Tuple](
 
 					// Check if we already genreated a whole round
 					if outputEventNumber%totalEventNumber == 0 {
-						log.Println(
-							"source has generated a singleRound, total",
-							totalEventNumber,
-							"events.",
-						)
+						log.Println("source has generated a singleRound, total", totalEventNumber, "events.")
 					}
 				}
 

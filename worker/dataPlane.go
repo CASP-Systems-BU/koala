@@ -11,7 +11,7 @@ func (w *Worker) startDataPlaneService() {
 	// Start listening on the data plane port
 	listener, err := net.Listen("tcp", ":"+w.Config.DataPlanePort)
 	if err != nil {
-		log.Fatalf("Error tcp sending: %v", err)
+		log.Fatalf("Error tcp sending aaaa: %v", err)
 	}
 	defer listener.Close()
 	log.Printf(

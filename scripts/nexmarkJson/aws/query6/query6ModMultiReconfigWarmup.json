@@ -10,8 +10,8 @@
     "10.10.1.10",
     "10.10.1.11",
     "10.10.1.12",
-    "10.10.1.5",
-    "10.10.1.6"
+    "10.10.1.13",
+    "10.10.1.14"
   ],
   "KafkaClusterIPs": [
     "10.10.1.1",
@@ -65,15 +65,15 @@
     "10.10.1.10",
     "10.10.1.11",
     "10.10.1.12",
-    "10.10.1.5",
-    "10.10.1.6",
+    "10.10.1.13",
+    "10.10.1.14",
 
     "10.10.1.9",
     "10.10.1.10",
     "10.10.1.11",
     "10.10.1.12",
-    "10.10.1.5",
-    "10.10.1.6"
+    "10.10.1.13",
+    "10.10.1.14"
   ],
   "NexmarkLogicalSourceConfigs": [
     {
@@ -111,9 +111,9 @@
   "IsWarmUp": true,
   "LoadWarmUpData": false,
   "WarmUpDataFolder": {
-    "Pebble": "pebble_warmup_data/nexmark_q6_mod/128_consistent_10GB_multiReconfig"
+    "Pebble": "pebble_warmup_data/nexmark_q6_mod/128_consistent_10GB"
   },
-  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/nexmark_q6_mod/128ByKey_consistent_10GB_multiReconfig",
+  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/nexmark_q6_mod/128ByKey_consistent_10GB",
   "StatefulMapperParallelism": 4,
   "SinkParallelism": 1,
   "DummyFieldSize":2048,

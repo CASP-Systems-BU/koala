@@ -13,6 +13,8 @@ import (
 	"github.com/CASP-Systems-BU/disaggregated-streaming/query/azure/models"
 )
 
+var dummyCpuRecords []*CpuRecord
+
 func CPUReadingsWarmup(configFile string) *dataflow.Dataflow {
 	rand := rand.New(rand.NewSource(1024))
 	df := dataflow.NewDataflow()
@@ -81,7 +83,6 @@ func CPUReadingsWarmup(configFile string) *dataflow.Dataflow {
 					v1 = ^v1
 				}
 
-				// Fill the list with dummy records
 				list[i] = &CpuRecord{
 					V1: v1,
 					V2: d.V2,

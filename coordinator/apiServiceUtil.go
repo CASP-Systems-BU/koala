@@ -143,6 +143,8 @@ func (s *APIServer) updateKeyPartition(
 	switch s.Coordinator.Config.PartitionPolicy {
 	case "consistent-hashing":
 		policy = partition.NewHashPartitionPolicy(s.Coordinator.Config)
+	case "consistent-hashing-v2":
+		policy = partition.NewHashPartitionPolicyV2(s.Coordinator.Config)
 	case "uniform":
 		policy = partition.NewUniformPartitionPolicy(s.Coordinator.Config)
 	case "consistent-even":

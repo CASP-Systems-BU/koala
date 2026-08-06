@@ -44,18 +44,13 @@
     "10.10.1.11",
     "10.10.1.12",
 
-    "10.10.1.9",
-    "10.10.1.10",
-    "10.10.1.11",
-    "10.10.1.12",
-
     "10.10.1.9"
   ],
   "NexmarkLogicalSourceConfigs":[
     {
       "EventType": "Person",
       "NexmarkSourceConfig":{
-        "NumEvents": 5970000,
+        "NumEvents": 2600000,
         "RateLimiterConfig": {
           "UseRateLimit": false,
           "RateLimit": [
@@ -103,11 +98,9 @@
     "Pebble": "pebble_warmup_data/nexmark_q3/1638400_uniform_10GB"
   },
   "LookupTableWarmUpDataFolder":"pebbleLookUpTable/nexmark_q3/128ByKey_uniform_10GB",
-  "PersonFilterParallelism": 4,
-  "AuctionFilterParallelism": 4,
   "JoinParallelism": 4,
   "SinkParallelism": 1,
-  "DummyFieldSize":2048,
+  "DummyFieldSize":4096,
   "UseDummyField": true,
   "InitialCustomTaskPlacement": [
     "personSource: 10.10.1.9",
@@ -119,16 +112,6 @@
     "auctionSource: 10.10.1.10",
     "auctionSource: 10.10.1.11",
     "auctionSource: 10.10.1.12",
-
-    "personFilter: 10.10.1.9",
-    "personFilter: 10.10.1.10",
-    "personFilter: 10.10.1.11",
-    "personFilter: 10.10.1.12",
-
-    "auctionFilter: 10.10.1.9",
-    "auctionFilter: 10.10.1.10",
-    "auctionFilter: 10.10.1.11",
-    "auctionFilter: 10.10.1.12",
 
     "join: 10.10.1.9",
     "join: 10.10.1.10",

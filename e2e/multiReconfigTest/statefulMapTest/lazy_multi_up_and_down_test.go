@@ -98,7 +98,7 @@ func TestMultiUpAndDownLazy(t *testing.T) {
 	}
 	log.Printf("6th job rescale response: %v\n", resp.Info)
 
-	// Wait for the test to be completed
+	// Wait for the test to be compeleted
 	time.Sleep(30 * time.Second)
 
 	/*************************************************

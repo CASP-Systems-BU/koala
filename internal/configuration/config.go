@@ -81,6 +81,15 @@ type Configuration struct {
 	// [pebble] Expected batch size per GetMany() routine executor
 	PebbleGetManyBatchSize int `yaml:"PebbleGetManyBatchSize"`
 
+	// [pebble] Max number of concurrent compactions
+	PebbleMaxConcurrentCompactions int `yaml:"PebbleMaxConcurrentCompactions"`
+
+	// [pebble] Target size of the base level (L-Base) in bytes
+	PebbleLBaseMaxBytes int64 `yaml:"PebbleLBaseMaxBytes"`
+
+	// [pebble] Number of memtables before writes are stopped to allow flushing
+	PebbleMemTableStopWritesThreshold int `yaml:"PebbleMemTableStopWritesThreshold"`
+
 	// [remote-pebble] list of remote pebble addresses (host:port)
 	RemotePebbleAddrs []string `yaml:"RemotePebbleAddrs"`
 
@@ -210,6 +219,9 @@ func Default() *Configuration {
 		PebbleEnableConcurrentGetMany: false,
 		PebbleGetManyMaxConcurrency:   4,
 		PebbleGetManyBatchSize:        64,
+		PebbleMaxConcurrentCompactions:    1,         // pebble default: 1
+		PebbleLBaseMaxBytes:               67108864,  // pebble default: 64MB
+		PebbleMemTableStopWritesThreshold: 2,         // pebble default: 2
 		TiKVAddr:                      "192.168.1.101:2379",
 		RemotePebbleAddrs:             []string{},
 		StateMigrationChunkSize:       1048576,

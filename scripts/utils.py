@@ -379,6 +379,7 @@ def validateConfigJsonInput(
     # Validate partition policy
     allowedPartitionPolicies = [
         "consistent-hashing",
+        "consistent-hashing-v2",
         "uniform",
         "consistent-even",
     ]

@@ -58,7 +58,7 @@ func TestSlidingWindowCounter(t *testing.T) {
 	}
 	go testutils.MonitorEndOfTest(sink, done, END_WATERMARK)
 
-	// Wait for the test to be completed
+	// Wait for the test to be compeleted
 	<-done
 	log.Println("[E2E] Test completed")
 

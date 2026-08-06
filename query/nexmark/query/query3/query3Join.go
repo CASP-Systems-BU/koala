@@ -1,6 +1,9 @@
 package query3
 
 import (
+	"log"
+	"time"
+
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/collector"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
 	ka "github.com/CASP-Systems-BU/disaggregated-streaming/api/keyAssigner"
@@ -11,8 +14,8 @@ import (
 )
 
 func Query3Join(
-	personFilter dataflow.OperatorWith1OutputStream[*models.PersonEvent],
-	auctionFilter dataflow.OperatorWith1OutputStream[*models.AuctionEvent],
+	personSource dataflow.OperatorWith1OutputStream[*models.PersonEvent],
+	auctionSource dataflow.OperatorWith1OutputStream[*models.AuctionEvent],
 	useDummyField bool,
 	dummyFieldSize int,
 ) *dataflow.Join[
@@ -42,7 +45,7 @@ func Query3Join(
 
 	join := dataflow.NewJoin[*tuple.Tuple4[string, string, string, int64]](
 		"join",
-		personFilter,
+		personSource,
 		personKeyAssigner,
 		// Processing PersonEvent
 		func(
@@ -52,9 +55,12 @@ func Query3Join(
 			// In state2, we only store the auctionId
 			state2 *stateType.ListState[*tuple.Tuple1[int64]],
 			co collector.Collector,
-		) {
+		) time.Duration {
+			generationTime := time.Duration(0)
 			if useDummyField {
+				startGeneration := time.Now()
 				dummyFieldContent = dummyFieldGenerator.GenerateDummyField()
+				generationTime = time.Since(startGeneration)
 				state1.Set(&tuple.Tuple4[string, string, string, string]{
 					V1: in.V2,
 					V2: in.V5,
@@ -84,8 +90,9 @@ func Query3Join(
 				})
 			}
 			state2.Clear()
+			return generationTime
 		},
-		auctionFilter,
+		auctionSource,
 		auctionKeyAssigner,
 		// Processing AuctionEvent
 		func(
@@ -95,7 +102,7 @@ func Query3Join(
 			// In state2, we only store the auctionId
 			state2 *stateType.ListState[*tuple.Tuple1[int64]],
 			co collector.Collector,
-		) {
+		) time.Duration {
 			personState, hasPersonState := state1.Get()
 			if hasPersonState {
 				// Output:
@@ -110,10 +117,12 @@ func Query3Join(
 					V4: in.V1,
 				})
 			} else {
+				log.Fatal("AuctionEvent arrives before the corresponding PersonEvent, which should not happen in Nexmark!")
 				state2.Add(&tuple.Tuple1[int64]{
 					V1: in.V1,
 				})
 			}
+			return 0
 		},
 	)
 

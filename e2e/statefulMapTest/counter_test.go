@@ -38,7 +38,7 @@ func TestCounter(t *testing.T) {
 	numWorkers := 4
 	_, workers, _ := testutils.DeployJob(numWorkers, query, config)
 
-	// Wait for the test to be completed
+	// Wait for the test to be compeleted
 	time.Sleep(5 * time.Second)
 
 	log.Println("[E2E] Test completed")

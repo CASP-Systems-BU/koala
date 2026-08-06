@@ -1,4 +1,4 @@
-package query
+package taxi
 
 import (
 	"encoding/json"
@@ -17,6 +17,8 @@ import (
 	"github.com/CASP-Systems-BU/disaggregated-streaming/query/taxi/models"
 	taxiUtils "github.com/CASP-Systems-BU/disaggregated-streaming/query/taxi/utils"
 )
+
+var dummyTaxiTrip []models.RouteInfo
 
 // Find the top 10 most frequent routes during the last 30 minute.
 func TaxiWarmup(configFile string) *dataflow.Dataflow {

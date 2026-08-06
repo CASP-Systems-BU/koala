@@ -47,6 +47,7 @@ func NewUpstream[T tuple.Tuple](
 		log.Fatalln("[info] No metric collector is configured")
 	}
 
+	println("connection", conn)
 	return &Upstream[T]{
 		Config:           config,
 		Connection:       conn,
@@ -107,7 +108,7 @@ func (upstream *Upstream[T]) SupplyInputBuffer(
 				return
 
 			} else {
-				log.Fatalf("Error tcp reading: %v", err)
+				log.Fatalf("Error tcp reading2: %v", err)
 			}
 		}
 		workUnitType, _, err := raw.UnmarshalUint16(buf)
@@ -124,7 +125,7 @@ func (upstream *Upstream[T]) SupplyInputBuffer(
 			// Read batch metadata - batch size
 			err = ReadAll(upstream.Connection, buf[2:], 4)
 			if err != nil {
-				log.Fatalf("Error tcp reading: %v", err)
+				log.Fatalf("Error tcp reading3: %v", err)
 			}
 			batchSize, _, err := raw.UnmarshalUint32(buf[2:])
 			if err != nil {
@@ -134,7 +135,7 @@ func (upstream *Upstream[T]) SupplyInputBuffer(
 			// Read batch metadata - num records
 			err = ReadAll(upstream.Connection, buf[6:], 4)
 			if err != nil {
-				log.Fatalf("Error tcp reading: %v", err)
+				log.Fatalf("Error tcp reading4: %v", err)
 			}
 			numRecords, _, err := raw.UnmarshalUint32(buf[6:])
 			if err != nil {
@@ -145,7 +146,7 @@ func (upstream *Upstream[T]) SupplyInputBuffer(
 			// stack in the upstream operator
 			err = ReadAll(upstream.Connection, buf[10:], 8)
 			if err != nil {
-				log.Fatalf("Error tcp reading: %v", err)
+				log.Fatalf("Error tcp reading5: %v", err)
 			}
 			networkPushTime, _, err = raw.UnmarshalInt64(buf[10:])
 			if err != nil {
@@ -155,7 +156,7 @@ func (upstream *Upstream[T]) SupplyInputBuffer(
 			// Read actual batch data
 			err = ReadAll(upstream.Connection, buf[18:], uint64(batchSize))
 			if err != nil {
-				log.Fatalf("Error tcp reading: %v", err)
+				log.Fatalf("Error tcp reading6: %v", err)
 			}
 
 			// Decode a batch
@@ -214,7 +215,7 @@ func (upstream *Upstream[T]) SupplyInputBuffer(
 			// Read watermark timestamp
 			err = ReadAll(upstream.Connection, buf[2:], 8)
 			if err != nil {
-				log.Fatalf("Error tcp reading: %v", err)
+				log.Fatalf("Error tcp reading6: %v", err)
 			}
 			timestamp, _, err := raw.UnmarshalInt64(buf[2:])
 			if err != nil {
@@ -232,7 +233,7 @@ func (upstream *Upstream[T]) SupplyInputBuffer(
 			// metadata
 			err = ReadAll(upstream.Connection, buf[2:], 4)
 			if err != nil {
-				log.Fatalf("Error tcp reading: %v", err)
+				log.Fatalf("Error tcp reading7: %v", err)
 			}
 			metadataSize, _, err := raw.UnmarshalUint32(buf[2:])
 			if err != nil {
@@ -248,7 +249,7 @@ func (upstream *Upstream[T]) SupplyInputBuffer(
 				uint64(metadataSize),
 			)
 			if err != nil {
-				log.Fatalf("Error tcp reading: %v", err)
+				log.Fatalf("Error tcp reading8: %v", err)
 			}
 
 			// Create a new FastForwardMetadata WorkUnit with the serialized

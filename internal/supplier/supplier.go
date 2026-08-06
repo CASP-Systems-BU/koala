@@ -455,7 +455,7 @@ func getConnectionMetadata(conn net.Conn) (string, uint8, uint16) {
 	buf := make([]byte, 8)
 	err := network.ReadAll(conn, buf, 8)
 	if err != nil {
-		log.Fatalf("Error tcp reading: %v", err)
+		log.Fatalf("Error tcp reading9: %v", err)
 	}
 	length, _, err := raw.UnmarshalUint64(buf)
 	if err != nil {
@@ -465,7 +465,7 @@ func getConnectionMetadata(conn net.Conn) (string, uint8, uint16) {
 	buf = make([]byte, length)
 	err = network.ReadAll(conn, buf, length)
 	if err != nil {
-		log.Fatalf("Error tcp reading: %v", err)
+		log.Fatalf("Error tcp reading10: %v", err)
 	}
 	upstreamName, _, err := ord.UnmarshalString(nil, buf)
 	if err != nil {

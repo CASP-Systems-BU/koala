@@ -55,7 +55,7 @@
     {
       "EventType": "ClosedAuction",
       "NexmarkSourceConfig": {
-        "NumEvents":1275000,
+        "NumEvents":1250000,
         "NumActivePeople": 2000000,
         "WarmupRun":true,
         "HotSellerRatio":0.25,

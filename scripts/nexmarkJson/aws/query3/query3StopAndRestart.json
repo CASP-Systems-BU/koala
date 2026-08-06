@@ -24,15 +24,6 @@
     "10.10.1.4"
   ],
   "WorkerIPs": [
-    "10.10.1.9",
-    "10.10.1.10",
-    "10.10.1.11",
-    "10.10.1.12",
-
-    "10.10.1.9",
-    "10.10.1.10",
-    "10.10.1.11",
-    "10.10.1.12",
 
     "10.10.1.9",
     "10.10.1.10",
@@ -60,11 +51,11 @@
     {
       "EventType": "Person",
       "NexmarkSourceConfig":{
-        "OutputEventNumber": 5970000,
+        "OutputEventNumber": 5000000,
         "RateLimiterConfig": {
           "UseRateLimit": true,
           "RateLimit": [
-            1000,2000
+            630, 1260
           ],
           "RateChangeInterval": [
             600
@@ -75,14 +66,14 @@
     {
       "EventType": "Auction",
       "NexmarkSourceConfig":{
-        "OutputEventNumber": 17910000,
+        "OutputEventNumber": 2900000,
         "NumActivePeople": 1000,
         "HotSellerRatio": 0.25,
         "HotSellerRange": 100,
         "RateLimiterConfig": {
           "UseRateLimit": true,
           "RateLimit": [
-            3000,6000
+            1890, 3780
           ],
           "RateChangeInterval": [
             600
@@ -96,8 +87,8 @@
   "LazyProtocolVersion": "optimized",
   "NumBuckets": 128,
   "PartitionPolicy": "consistent-even",
-  "BufferSize": 15,
-  "BatchSize": 4096,
+  "BufferSize": 10,
+  "BatchSize": 1024,
   "StateBackendType": "pebble",
   "PebbleEnableConcurrentGetMany": true,
   "PebbleGetManyMaxConcurrency": 4,
@@ -116,8 +107,6 @@
       "TargetParrallelism": 8
     }
   ],
-  "PersonFilterParallelism": 4,
-  "AuctionFilterParallelism": 4,
   "JoinParallelism": 4,
   "SinkParallelism": 1,
   "DummyFieldSize":2048,
@@ -132,16 +121,6 @@
     "auctionSource: 10.10.1.10",
     "auctionSource: 10.10.1.11",
     "auctionSource: 10.10.1.12",
-
-    "personFilter: 10.10.1.9",
-    "personFilter: 10.10.1.10",
-    "personFilter: 10.10.1.11",
-    "personFilter: 10.10.1.12",
-
-    "auctionFilter: 10.10.1.9",
-    "auctionFilter: 10.10.1.10",
-    "auctionFilter: 10.10.1.11",
-    "auctionFilter: 10.10.1.12",
 
     "join: 10.10.1.9",
     "join: 10.10.1.10",

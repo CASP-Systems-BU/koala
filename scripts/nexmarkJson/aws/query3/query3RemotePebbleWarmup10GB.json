@@ -54,18 +54,13 @@
     "10.10.1.11",
     "10.10.1.12",
 
-    "10.10.1.9",
-    "10.10.1.10",
-    "10.10.1.11",
-    "10.10.1.12",
-
     "10.10.1.9"
   ],
   "NexmarkLogicalSourceConfigs":[
     {
       "EventType": "Person",
       "NexmarkSourceConfig":{
-        "NumEvents": 5970000,
+        "NumEvents": 5000000,
         "RateLimiterConfig": {
           "UseRateLimit": false,
           "RateLimit": [
@@ -102,7 +97,7 @@
   "NumBuckets": 128,
   "PartitionPolicy": "consistent-even",
   "BufferSize": 50,
-  "BatchSize": 4096,
+  "BatchSize": 1024,
   "StateBackendType": "remote-pebble",
   "PebbleEnableConcurrentGetMany": true,
   "PebbleGetManyMaxConcurrency": 4,
@@ -113,8 +108,6 @@
     "Pebble": "pebble_warmup_data/nexmark_q3/128ByKey_consistent_10GB"
   },
   "LookupTableWarmUpDataFolder":"pebbleLookUpTable/nexmark_q3/128ByKey_consistent_remote_10GB",
-  "PersonFilterParallelism": 4,
-  "AuctionFilterParallelism": 4,
   "JoinParallelism": 4,
   "SinkParallelism": 1,
   "DummyFieldSize":2048,
@@ -129,16 +122,6 @@
     "auctionSource: 10.10.1.10",
     "auctionSource: 10.10.1.11",
     "auctionSource: 10.10.1.12",
-
-    "personFilter: 10.10.1.9",
-    "personFilter: 10.10.1.10",
-    "personFilter: 10.10.1.11",
-    "personFilter: 10.10.1.12",
-
-    "auctionFilter: 10.10.1.9",
-    "auctionFilter: 10.10.1.10",
-    "auctionFilter: 10.10.1.11",
-    "auctionFilter: 10.10.1.12",
 
     "join: 10.10.1.9",
     "join: 10.10.1.10",

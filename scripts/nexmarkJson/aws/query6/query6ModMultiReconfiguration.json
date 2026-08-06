@@ -11,8 +11,8 @@
     "10.10.1.10",
     "10.10.1.11",
     "10.10.1.12",
-    "10.10.1.5",
-    "10.10.1.6"
+    "10.10.1.13",
+    "10.10.1.14"
   ],
   "KafkaClusterIPs": [
     "10.10.1.1",
@@ -65,15 +65,15 @@
     "10.10.1.10",
     "10.10.1.11",
     "10.10.1.12",
-    "10.10.1.5",
-    "10.10.1.6",
+    "10.10.1.13",
+    "10.10.1.14",
 
     "10.10.1.9",
     "10.10.1.10",
     "10.10.1.11",
     "10.10.1.12",
-    "10.10.1.5",
-    "10.10.1.6"
+    "10.10.1.13",
+    "10.10.1.14"
   ],
   "NexmarkLogicalSourceConfigs": [
     {
@@ -86,7 +86,7 @@
         "RateLimiterConfig": {
           "UseRateLimit": true,
           "RateLimit": [
-            6400, 12800, 19200, 14400, 9600
+            7000, 14000, 21000, 15750, 10500
           ],
           "RateChangeInterval": [
             600, 900, 900, 900
@@ -106,14 +106,12 @@
   "PebbleEnableConcurrentGetMany": true,
   "PebbleGetManyMaxConcurrency": 4,
   "PebbleGetManyBatchSize": 64,
-  "LazyByKeyCancellingTaskMigrationMode": "eventual",
-  "LazyByKeyGradualMigrationBatchSize": 10,
   "IsWarmUp": false,
   "LoadWarmUpData": true,
    "WarmUpDataFolder": {
-    "Pebble": "pebble_warmup_data/nexmark_q6_mod/128_consistent_10GB_multiReconfig"
+    "Pebble": "pebble_warmup_data/nexmark_q6_mod/128_consistent_10GB"
   },
-  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/nexmark_q6_mod/128ByKey_consistent_10GB_multiReconfig",
+  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/nexmark_q6_mod/128ByKey_consistent_10GB",
   "Reconfigurations": [
     {
       "TriggerTimeSeconds": 180,
