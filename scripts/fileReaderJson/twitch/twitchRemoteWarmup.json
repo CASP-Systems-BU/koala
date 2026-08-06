@@ -1,0 +1,123 @@
+{
+  "QueryName": "twitch",
+  "WorkDir": "~/disaggregated-streaming",
+  "AllNodeIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4",
+
+    "10.10.1.5",
+    "10.10.1.6",
+    "10.10.1.7",
+    "10.10.1.8",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12"
+],
+  "KafkaClusterIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4"
+  ],
+  "RemotePebbleAddrs":[
+    "10.10.1.5:2379",
+    "10.10.1.6:2379",
+    "10.10.1.7:2379",
+    "10.10.1.8:2379"
+  ],
+  "ProducerIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4"
+  ],
+  "WorkerIPs": [
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9"
+],
+  "NumEvents":480000,
+  "RateLimiterConfig":{
+    "UseRateLimit": false,
+    "RateLimit": [10000,20000],
+    "RateChangeInterval": [600]
+  },
+  "FilePath": [
+    "scripts/fileReaderJson/twitchWarmup0.csv",
+    "scripts/fileReaderJson/twitchWarmup1.csv",
+    "scripts/fileReaderJson/twitchWarmup2.csv",
+    "scripts/fileReaderJson/twitchWarmup3.csv"
+  ],
+  "ReconfigProtocol": "stop-and-restart",
+  "LazyProtocolVersion": "optimized",
+  "TotalRuntimeSeconds": 3000000,
+  "NumBuckets": 128,
+  "PartitionPolicy": "consistent-even",
+  "BufferSize": 50,
+  "BatchSize": 4096,
+  "StateBackendType": "remote-pebble",
+  "PebbleEnableConcurrentGetMany": true,
+  "PebbleGetManyMaxConcurrency": 8,
+  "PebbleGetManyBatchSize": 32,
+  "IsWarmUp": true,
+  "LoadWarmUpData": false,
+  "WarmUpDataFolder": {
+    "Pebble": "pebble_warmup_data/twitch/128_consistent"
+  },
+  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/twitch/128ByKey_consistent",
+  "RetentionAnalyzerParallelism": 4,
+  "ViewerLoyaltyCalculatorParallelism": 4,
+  "LoyaltyTrendAnalyzerParallelism": 4,
+  "SinkParallelism": 1,
+  "DummyFieldSize": 15360,
+  "InitialCustomTaskPlacement": [
+    "twitchFileSource: 10.10.1.9",
+    "twitchFileSource: 10.10.1.10",
+    "twitchFileSource: 10.10.1.11",
+    "twitchFileSource: 10.10.1.12",
+
+    "retention-Analyzer: 10.10.1.9",
+    "retention-Analyzer: 10.10.1.10",
+    "retention-Analyzer: 10.10.1.11",
+    "retention-Analyzer: 10.10.1.12",
+
+    "viewer-Loyalty-Calculator: 10.10.1.9",
+    "viewer-Loyalty-Calculator: 10.10.1.10",
+    "viewer-Loyalty-Calculator: 10.10.1.11",
+    "viewer-Loyalty-Calculator: 10.10.1.12",
+
+    "loyalty-Trend-Analyzer: 10.10.1.9",
+    "loyalty-Trend-Analyzer: 10.10.1.10",
+    "loyalty-Trend-Analyzer: 10.10.1.11",
+    "loyalty-Trend-Analyzer: 10.10.1.12",
+
+    "sink: 10.10.1.9"
+]
+}

@@ -1,0 +1,115 @@
+{
+  "QueryName": "nexmark_query7",
+  "WorkDir": "~/disaggregated-streaming",
+  "AllNodeIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4",
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12"
+  ],
+  "KafkaClusterIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4"
+  ],
+  "ProducerIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4"
+  ],
+  "WorkerIPs": [
+    "10.10.1.9",
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+    
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12"
+  ],
+  "NexmarkLogicalSourceConfigs":[{
+      "EventType": "Bid",
+      "NexmarkSourceConfig":{
+        "NumActivePeople": 1000,
+        "HotBidderRatio": 0.25,
+        "HotBidderRange": 100,
+        "RateLimiterConfig": {
+          "UseRateLimit": true,
+          "RateLimit": [
+            8800, 17600
+          ],
+          "RateChangeInterval": [
+            600
+          ]
+        }
+      }
+  }],
+  "Reconfigurations": [
+    {
+      "TriggerTimeSeconds": 180,
+      "Type": "scaleup",
+      "TargetOperator": "tumblingWindow",
+      "TargetParrallelism": 8
+    }
+  ],
+  "TotalRuntimeSeconds": 360,
+  "ReconfigProtocol": "lazy",
+  "LazyProtocolVersion": "by-key",
+  "NumBuckets": 128,
+  "PartitionPolicy": "consistent-even",
+  "BufferSize": 50,
+  "BatchSize": 4096,
+  "DummyFieldSize": 4096,
+  "StateBackendType": "pebble",
+  "PebbleEnableConcurrentGetMany": true,
+  "PebbleGetManyMaxConcurrency": 8,
+  "PebbleGetManyBatchSize": 32,
+  "IsWarmUp": false,
+  "LoadWarmUpData": false,
+  "WarmUpDataFolder": {
+    "Pebble": "pebble_warmup_data/nexmark_q7_mod/128_consistent_10GB"
+  },
+  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/nexmark_q7_mod/128ByKey_consistent_10GB",
+  "TumblingWindowParallelism": 4,
+  "HighestBidParallelism":4,
+  "SinkParallelism": 1,
+  "WatermarkInterval": "100ms",
+  "MaxAllowedDelay": "0ms",
+  "WindowDuration": "10s",
+  "InitialCustomTaskPlacement": [
+    "source: 10.10.1.9",
+    "source: 10.10.1.10",
+    "source: 10.10.1.11",
+    "source: 10.10.1.12",
+    
+    "tumblingWindow: 10.10.1.9",
+    "tumblingWindow: 10.10.1.10",
+    "tumblingWindow: 10.10.1.11",
+    "tumblingWindow: 10.10.1.12",
+
+    "highestBid: 10.10.1.9",
+    "highestBid: 10.10.1.10",
+    "highestBid: 10.10.1.11",
+    "highestBid: 10.10.1.12",
+    
+    "sink:10.10.1.9"
+  ]
+}

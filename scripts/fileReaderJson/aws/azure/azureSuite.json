@@ -1,0 +1,24 @@
+{
+  "WorkDir": "/home/ubuntu/ssd/disaggregated-streaming",
+
+  "CooldownSeconds": 30,
+  "MaxAttempts": 1,
+  "RetryDelaySeconds": 60,
+  "StopOnFailure": false,
+  "GitFetch": false,
+  "RestoreBranch": true,
+
+  "Experiments": [
+    {
+      "Name": "remote",
+      "ConfigPath": "fileReaderJson/aws/azure/azureRemotePebble.json",
+      "ResultKeyword": "Remote"
+    },
+    {
+      "Name": "drrs",
+      "ConfigPath": "fileReaderJson/aws/azure/azureDrrs.json",
+      "ResultKeyword": "DRRS",
+      "Branch": "DRRS_Compare"
+    }
+  ]
+}

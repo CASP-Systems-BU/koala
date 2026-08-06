@@ -1,0 +1,186 @@
+CoordinatorAddr: 10.10.1.1:8888
+CoordinatorAPIAddr: 10.10.1.1:9999
+CoordinatorMetricCollectorAddr: 10.10.1.1:8887
+DataPlanePort: 8900
+StateCommPort: 8901
+BufferSize: 50
+BufferSleepInterval: 1ms
+BatchSize: 4096
+PreAllocatedBatchInitCapacity: 2000
+EnablePendingBatchTimeout: true
+PendingBatchTimeoutInterval: 100ms
+TaskPlacementPolicy: custom
+CustomTaskPlacementFile: ./scripts/taskPlacement/customPlacement.txt
+StateBackendType: pebble
+PebbleDisableWAL: true
+PebbleMemTableSize: 67108864
+PebbleSyncOnWrite: false
+PebbleEnableConcurrentGetMany: true
+
+# [pebble] Max number of concurrency for GetMany() parallel reads
+PebbleGetManyMaxConcurrency: 8
+
+# [pebble] Expected batch size per GetMany() routine executor
+PebbleGetManyBatchSize: 32
+
+# [remote-pebble] list of remote pebble addresses (host:port)
+RemotePebbleAddrs: []
+TiKVAddr: 192.168.1.101:2379
+StateMigrationChunkSize: 1048576
+NumBuckets: 128
+HashFuncType: murmurhash
+KeyHashSeed: 1234
+PartitionPolicy: consistent-even
+HashPartitionNumTokens: 256
+HashPartitionSeeds:
+- 37277
+- 37319
+- 37368
+- 37412
+- 37453
+- 37497
+- 37541
+- 37589
+- 37631
+- 37678
+- 37723
+- 37769
+- 37811
+- 37859
+- 37904
+- 37946
+- 37991
+- 38032
+- 38079
+- 38123
+- 38169
+- 38214
+- 38258
+- 38306
+- 38347
+- 38395
+- 38439
+- 38483
+- 38529
+- 38570
+- 38617
+- 38663
+- 38708
+- 38752
+- 38797
+- 38839
+- 38886
+- 38928
+- 38972
+- 39014
+- 39059
+- 39105
+- 39147
+- 39192
+- 39236
+- 39280
+- 39328
+- 39373
+- 39415
+- 39462
+- 39504
+- 39549
+- 39591
+- 39638
+- 39682
+- 39725
+- 39773
+- 39815
+- 39859
+- 39903
+- 39948
+- 39992
+- 40037
+- 40079
+- 40125
+- 40168
+- 40212
+- 40257
+- 40303
+- 40346
+- 40391
+- 40435
+- 40481
+- 40527
+- 40570
+- 40616
+- 40659
+- 40704
+- 40747
+- 40791
+- 40836
+- 40881
+- 40925
+- 40968
+- 41015
+- 41059
+- 41103
+- 41145
+- 41190
+- 41235
+- 41279
+- 41323
+- 41367
+- 41412
+- 41458
+- 41500
+- 41546
+- 41589
+- 41632
+- 41676
+- 41720
+- 41764
+- 41807
+- 41852
+- 41897
+- 41939
+- 41984
+- 42029
+- 42074
+- 42118
+- 42162
+- 42207
+- 42252
+- 42298
+- 42340
+- 42384
+- 42429
+- 42475
+- 42518
+- 42563
+- 42606
+- 42651
+MetricsInterval: 1s
+ReconfigProtocol: lazy
+LazyProtocolVersion: by-key
+StateFlushRoutinePoolSize: 1
+StateReadRoutinePoolSize: 1
+LazyOptBucketMigrationChunkSize: 4096
+
+# [lazy-by-key] State comm API type for state fetch: "grpc" or "tcp"
+LazyByKeyStateCommAPIType: tcp
+
+# [lazy-by-key] Migration mode for buckets from a cancelling task:
+# "fetch-on-demand" or "eventual"
+LazyByKeyCancellingTaskMigrationMode: fetch-on-demand
+
+# [lazy-by-key] Max number of additional keys to fetch per batch during
+# eventual migration from cancelling tasks. Set to -1 to fetch all keys at
+# once. Only used when mode is "eventual"
+LazyByKeyGradualMigrationBatchSize: 100
+
+###############################################################################
+#                                  DEBUG Flag                                 #
+###############################################################################
+
+# Debug mode: print general debug messages
+DebugMode: false
+WatermarkDebug: false
+IsWarmup: false
+LoadWarmupData: true
+LookupTableWarmUpDataFolder: pebbleLookUpTable/nexmark_q6_mod/128ByKey_consistent_40GB

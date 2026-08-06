@@ -1,0 +1,99 @@
+{
+  "QueryName": "borg",
+  "WorkDir": "/home/ubuntu/ssd/disaggregated-streaming",
+  "AllNodeIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12"
+],
+  "KafkaClusterIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4"
+  ],
+  "ProducerIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4"
+  ],
+  "WorkerIPs": [
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+   
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9"
+],
+  "RateLimiterConfig":{
+    "UseRateLimit": true,
+    "RateLimit": [6500,13000],
+    "RateChangeInterval": [700]
+  },
+  "FilePath": [
+    "borgData/borg0.csv",
+    "borgData/borg1.csv",
+    "borgData/borg2.csv",
+    "borgData/borg3.csv"
+  ],
+  "EventType": "Borg",
+  "ReconfigProtocol": "lazy",
+  "LazyProtocolVersion": "by-key",
+  "TotalRuntimeSeconds": 620,
+  "NumBuckets": 128,
+  "PartitionPolicy": "consistent-even",
+  "BufferSize": 50,
+  "BatchSize": 4096,
+  "StateBackendType": "pebble",
+  "PebbleEnableConcurrentGetMany": true,
+  "PebbleGetManyMaxConcurrency": 8,
+  "PebbleGetManyBatchSize": 32,
+  "IsWarmUp": false,
+  "LoadWarmUpData": true,
+  "JobEventStatsParallelism": 4,
+  "SinkParallelism": 1,
+  "ListStateSize": 10,
+  "WarmUpDataFolder": {
+    "Pebble": "pebble_warmup_data/borg/128_consistent_3GBTest"
+  },
+  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/borg/128ByKey_consistent_remote_3GBTest",
+  "Reconfigurations": [
+    {
+      "TriggerTimeSeconds": 200,
+      "Type": "scaleup",
+      "TargetOperator": "jobEventStats",
+      "TargetParrallelism": 8
+    }
+   
+  ],
+  "InitialCustomTaskPlacement": [
+    "source: 10.10.1.9",
+    "source: 10.10.1.10",
+    "source: 10.10.1.11",
+    "source: 10.10.1.12",
+
+    "jobEventStats: 10.10.1.9",
+    "jobEventStats: 10.10.1.10",
+    "jobEventStats: 10.10.1.11",
+    "jobEventStats: 10.10.1.12",
+
+    "sink: 10.10.1.9"
+]
+}

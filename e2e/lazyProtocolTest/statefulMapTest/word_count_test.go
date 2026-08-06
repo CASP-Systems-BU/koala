@@ -1,0 +1,247 @@
+package statefulMapTest
+
+import (
+	"context"
+	"log"
+	"testing"
+	"time"
+
+	"github.com/CASP-Systems-BU/disaggregated-streaming/api/collector"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
+	ka "github.com/CASP-Systems-BU/disaggregated-streaming/api/keyAssigner"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/api/stateClient/stateType"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/coordinator"
+	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
+	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/state/stateBackend"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/worker"
+	"github.com/mus-format/mus-go/varint"
+)
+
+// [Testing Note] this test requires longer time to finish. Default testing
+// timeout in vscode is 30s. You should change the setting to a larger duration
+// Change the VS Code setting file settings.json: e.g. "go.testTimeout": "2m"
+
+// In this test, we apply scale-up operation under lazy protocol. We verify
+// that the count of all keys is still correct with reconfiguration.
+// Specifically, we check the following:
+// 1. The count of each key == REPEAT
+// 2. The number of appeared keys == NUM_KEYS
+// 3. The keys affected by repartition are processed by the new worker
+// Note that new worker lazily fetch state from old workers while old workers
+// do not delete the migrated state after fetch.
+
+// We have target keys in range [0, NUM_KEYS)
+// Each key is repeated REPEAT times
+const NUM_KEYS = 6000
+const REPEAT = 6000
+
+func TestLazyReconfigWordCount(t *testing.T) {
+
+	log.Println("[E2E] Starting the deployment")
+	config := configuration.Default()
+	config.ReconfigProtocol = "lazy"
+
+	numWorkers := 5
+	client, workers, coordinator := testutils.DeployJob(
+		numWorkers,
+		func() *dataflow.Dataflow { return query(2) },
+		config,
+	)
+
+	// Find which worker is the empty worker for scale up
+	var workerIdForScaleup uint16
+	for _, w := range workers {
+		if w.AssignedTask == nil {
+			// This is the empty worker
+			workerIdForScaleup = w.WorkerId
+			break
+		}
+	}
+
+	// Wait for 10s before rescaling
+	time.Sleep(10 * time.Second)
+	rescaleConfig := &pb.RescaleConfig{
+		TargetRescaleOp:   "statefulMapper",
+		TargetParallelism: 3,
+	}
+	resp, err := client.Rescale(context.Background(), rescaleConfig)
+	if err != nil {
+		log.Fatalf("Failed to rescale the job: %v", err)
+	}
+	log.Printf("Job rescale response: %v\n", resp.Info)
+
+	// Wait for the test to be completed
+	time.Sleep(15 * time.Second)
+
+	/*************************************************
+			CHECK CORRECTNESS
+	*************************************************/
+	checkCorrectness(t, workerIdForScaleup, workers, coordinator, true)
+
+	/*************************************************
+			CLEANUP
+	*************************************************/
+	testutils.CleanUpDataFolder()
+}
+
+func query(mapParallelism int) *dataflow.Dataflow {
+
+	query := dataflow.NewDataflow()
+
+	// Define Source
+	source := dataflow.NewSource[*tuple.Tuple1[int64]](
+		"source",
+		func(co collector.Collector) {
+			// First send the target keys, each key is repeated REPEAT times
+			for range REPEAT {
+				for i := range NUM_KEYS {
+					co.Emit(&tuple.Tuple1[int64]{
+						V1: int64(i),
+					})
+				}
+			}
+			log.Println("[E2E] Source finished emitting all keys")
+		},
+	)
+	source.SetParallelism(1)
+	dataflow.AddOperator(query, source)
+
+	// Define counter
+	// KeyAssigner assigns keys to the stateful mapper
+	keyAssigner := ka.NewKeyAssigner(func(t *tuple.Tuple1[int64]) int64 {
+		return t.V1
+	})
+
+	// Define Counter
+	counter := dataflow.NewStatefulMapper(
+		"statefulMapper",
+		keyAssigner,
+		func(
+			in *tuple.Tuple1[int64],
+			state *stateType.ValueState[*tuple.Tuple1[int]],
+		) *tuple.Tuple2[int64, int] {
+
+			// Read the state
+			curCount, exist := state.Get()
+			if !exist {
+				curCount = tuple.NewTuple1(0)
+			}
+
+			// Increment the counter
+			curCount.V1++
+
+			// Write the state
+			state.Set(curCount)
+
+			return &tuple.Tuple2[int64, int]{
+				V1: in.V1,
+				V2: curCount.V1,
+			}
+		},
+	)
+	counter.SetParallelism(mapParallelism)
+	dataflow.AddOperator(query, counter)
+
+	// Define Sink
+	sink := dataflow.NewSink("sink", func(in *tuple.Tuple2[int64, int]) {
+
+		// Send signal to indicate the end of the stream
+		// e.g. through channel
+	})
+	sink.SetParallelism(1)
+	dataflow.AddOperator(query, sink)
+
+	// Connect Mapper -> Counter -> Sink
+	dataflow.Add1To1Stream(query, source, counter)
+	dataflow.Add1To1Stream(query, counter, sink)
+
+	return query
+}
+
+func checkCorrectness(
+	t *testing.T,
+	newWorkerId uint16,
+	workers []*worker.Worker,
+	coordinator *coordinator.Coordinator,
+	checkWorkerAddr bool,
+) {
+
+	// Get all stateful mappers
+	iters := make([]stateBackend.StateIterator, 0)
+	for _, w := range workers {
+		// Skip the sink and source
+		if w.AssignedTask.IsSink() || w.AssignedTask.IsSource() {
+			continue
+		}
+
+		// Get the state
+		iters = append(iters, w.StateService.StateBackendImpl.GetIterator())
+	}
+
+	// We track all existing keys in the map. If a duplicate key appears, it
+	// indicates that this is a migrated key and the larger value should be
+	// kept for evaluation - since we do not delete key after migration.
+	results := make(map[int64]int)
+
+	// Iterate the state
+	for _, iter := range iters {
+		for iter.First(); iter.Valid(); iter.Next() {
+			key := iter.Key()
+			value := iter.Value()
+
+			keyI, _, _ := varint.UnmarshalInt64(key[constant.KeyPrefixSize:])
+			valueI, _, _ := varint.UnmarshalInt(value)
+
+			val, exist := results[keyI]
+			if !exist {
+				results[keyI] = valueI
+			} else {
+				if valueI > val {
+					results[keyI] = valueI
+				}
+
+				// This is a key that is affected by the repartition
+				workerId := coordinator.KeyPartitions["statefulMapper"].KeyToWorkerID(
+					key[constant.KeyPrefixSize:],
+				)
+
+				// Check if the repartitioned key is processed by the new worker
+				if checkWorkerAddr {
+					if workerId != newWorkerId {
+						t.Error(
+							"Expected key ",
+							keyI,
+							" to be processed by worker ",
+							workerId,
+							" but got worker ",
+							newWorkerId,
+						)
+					}
+				}
+			}
+		}
+	}
+
+	// Check the number of appeared keys
+	if len(results) != NUM_KEYS {
+		t.Error("Expect ", NUM_KEYS, " keys, but got ", len(results))
+	}
+
+	// Check if the count for each key is correct
+	for k, v := range results {
+		if v != REPEAT {
+			t.Error(
+				"Expect ",
+				REPEAT,
+				" for key ",
+				k,
+				", but got ",
+				v,
+			)
+		}
+	}
+}

@@ -1,0 +1,496 @@
+syntax = "proto3";
+
+option go_package = "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc";
+
+package grpc;
+
+/******************************************************************************
+                Control plane service (Coordinator and Worker)
+******************************************************************************/
+
+service CooridnatorService {
+
+    // Bidirectional control plane communication channel
+    rpc RegisterToCoordinator(stream WorkerToCoordinator) returns (stream CoordinatorToWorker) {}
+}
+
+// Message from Worker to Coordinator
+message WorkerToCoordinator {
+    oneof message {
+        Registration registration_msg = 1;
+        Response response_msg = 2;
+    }
+}
+
+// Message from Coordinator to Worker
+message CoordinatorToWorker {
+    oneof message {
+        Pause pause_msg = 1;
+        Restart restart_msg = 2;
+        TaskAssignment taskAssignment_msg = 3;
+        Response response_msg = 4;
+        StateMigration stateMigration_msg = 5;
+        UpdateDownstreamRouting updateDownstreamRouting_msg = 6;
+        RegistrationResponse registrationResponse_msg = 7;
+        StartFastForward startFastForward_msg = 8;
+        Terminate terminate_msg = 9;
+        InitLazyReconfig initLazyReconfig_msg = 10;
+        WaitInboundPeersToConnect waitInboundPeersToConnect_msg = 11;
+        WaitReconfigDone waitReconfigDone_msg = 12;
+        EventualStateMigration eventualStateMigration_msg = 13;
+    }
+}
+
+message TaskAssignment {
+    // Task ID - same as Operator ID
+    string taskId = 1;
+
+    // Downstream addresses - needed by Collector
+    repeated DownstreamInfo downstreamInfoList = 2;
+
+    // Number of expected upstream tasks: used by blocking watermark progress
+    // at the task deployment phase
+    int32 expectedNumUpstream = 3;
+
+    // Key routing table for keyby collector
+    // Only needed if output is a keyed stream
+    optional SerializedPartitionTable keybyCollectorRoutingTable = 4;
+
+    // If the operator is a source operator, provide the source's
+    // replica ID
+    optional int64 sourceReplicaId = 5;
+
+    // [lazy protocol] If lazy protocl is configured and the task is stateful,
+    // provide the state lookup table for StateService
+    optional SerializedPartitionTable stateLookupTable = 6;
+
+    // [lazy protocol] If lazy protocl is configured and the task is stateful,
+    // provide peer state service addresses for remote state access.
+    optional PeerStateService peerStateService = 7;
+
+    // [lazy protocol] Expected number of in-flight barriers to reach alignment 
+    optional int32 expectedDrainBarriers = 8;
+
+    // [lazy protocol] Expected number inbound peer connections
+    optional int32 expectedInboundPeers = 9;
+}
+
+message InitLazyReconfig {
+
+    // Expected number of in-flight barriers to reach alignment 
+    int32 expectedDrainBarriers = 1;
+
+    // Expected number inbound peer connections
+    int32 expectedInboundPeers = 2;
+
+    // For error checking purposes: notify the task it is shutting down
+    bool isShuttingDown = 3;
+
+    // If new tasks are added during reconfig, we should provide their peer
+    // state service addresses for existing tasks - they could be used for
+    // multi-reconfiguration scenarios
+    PeerStateService peerStateService = 4;
+}
+
+message WaitInboundPeersToConnect {}
+
+message WaitReconfigDone {}
+
+// [lazy-by-key] Notify remaining tasks to eventually fetch all state from
+// cancelling tasks. Sent between upstream routing update and wait reconfig done.
+message EventualStateMigration {
+
+    // List of affected bucket info: which buckets may have state on cancelling
+    // workers and need eventual migration
+    repeated AffectedBucketInfo affectedBuckets = 1;
+}
+
+// A bucket that may have state residing on cancelling workers due to lazy
+// migration across past reconfigurations
+message AffectedBucketInfo {
+
+    // Bucket index
+    int64 bucketId = 1;
+
+    // Cancelling worker IDs that may hold state for keys in this bucket
+    repeated uint32 cancellingWorkerIds = 2;
+}
+
+message DownstreamInfo {
+    // Downstream WorkerId - uint16 is used but in proto only uint32 is 
+    // available
+    uint32 workerId = 1;
+
+    // Downstream data plane address
+    string dataPlaneAddr = 2;
+}
+
+message PeerStateService {
+    // List of addresses for all peer state services
+    repeated PeerStateServiceInfo peerStateServiceInfoList = 1;
+}
+
+message PeerStateServiceInfo {
+    // Peer state service worker ID
+    uint32 workerId = 1;
+
+    // Peer state service address
+    string stateServiceAddr = 2;
+}
+
+message Registration {
+    string dataPlanePort = 1;
+    string stateCommPort = 2;
+}
+
+message RegistrationResponse {
+    string info = 1;
+
+    // Worker ID assigned by Coordinator
+    uint32 workerId = 2;
+}
+
+message Response {
+    string info = 1;
+}
+
+// Notify Worker to pull state from other Workers
+message StateMigration {
+
+    // List of migration info: could migrate states from multiple workers
+    repeated MigrationInfo migrationInfoList = 1;
+}
+
+// A single migration info: pull what buckets from which worker
+message MigrationInfo {
+
+    // Target workers to pull state from
+    // Each targetWorker is identified as "IP:StateCommPort"
+    string targetWorkerAddr = 1;
+
+    // What buckets to pull from targetWorker
+    repeated BucketRange bucketRanges = 2;
+}
+
+// Message worker to update its downstream routing:
+// 1. Add/Remove downstream connections
+// 2. Update keyby collector routing table
+message UpdateDownstreamRouting {
+
+    // List of downstreams to add
+    repeated DownstreamInfo downstreamsToAdd = 1;
+
+    // List of downstreams to remove
+    repeated DownstreamInfo downstreamsToRemove = 2;
+
+    // Updated routing table if downstream is stateful operator
+    optional SerializedPartitionTable keybyCollectorRoutingTable = 3;
+}
+
+message Terminate {}
+
+message Pause {}
+
+message Restart {}
+
+// [Lazy protocol] Notify current workers of the reconfiguring operator to
+// update the local routing table and fast forward in-flight records
+message StartFastForward {
+
+    // Updated routing table
+    SerializedPartitionTable updatedRoutingTable = 1;
+
+    // Info to establish peer connections for fast forward
+    repeated DownstreamInfo PeerInfoList = 2;
+}
+
+/******************************************************************************
+                            Metric collector service
+******************************************************************************/
+
+service MetricCollectorService {
+    // One directional metric collector service communication channel
+    rpc CollectMetrics(stream MetricBatch) returns (MetricCollectionResponse){}
+}
+
+message MetricBatch {
+    string OperatorId = 1;
+    repeated MetricData metrics = 2;
+}
+
+message MetricData {
+    string MetricType = 1;
+    double MetricValue = 2; 
+}
+
+message MetricCollectionResponse {
+    string message = 1;
+}
+
+/******************************************************************************
+                 State Comm Service (Worker to Worker)
+******************************************************************************/
+
+service StateCommService {
+
+    // [stop-and-restart] State migration api exposed by worker
+    // The destination worker calls this api to pull state from source worker
+    rpc PullStatePartition(BucketsToBePulled) returns (stream StateChunk) {}
+
+    // [stop-and-restart] Migrate in-memory task metadata
+    rpc MigrateTaskMetadata(BucketsToBePulled) returns (TaskMetadata) {}
+
+    // [lazy-basic] Bucket-based state migration
+    rpc RemoteBucketMigration(stream BucketMigrationRequest) returns (stream StateChunk) {}
+
+    // [lazy-no-migration] Remote state read without migration
+    rpc RemoteRead(stream ReadRequest) returns (stream ReadResponse) {}
+
+    // [lazy-no-migration] Remote state write (overwrite)
+    rpc RemoteOverwrite(stream WriteRequest) returns (stream Response) {}
+
+    // [lazy-no-migration] Remote state write (merge)
+    rpc RemoteMerge(stream WriteRequest) returns (stream Response) {}
+
+    // [lazy-no-migration] Remote state delete
+    rpc RemoteDelete(stream DeleteRequest) returns (stream Response) {}
+
+    // [lazy-optimized] Async state migration
+    rpc RemoteAsyncBucketMigration(stream LazyOptStateRequest) returns (stream LazyOptStateResponse) {}
+
+    // [lazy-by-key] Per-key based state migration
+    rpc RemoteByKeyMigration(stream LazyByKeyStateRequest) returns (stream KeyResponse) {}
+}
+
+// [lazy-by-key] Request message for per-key based state migration
+message LazyByKeyStateRequest {
+
+    // Reqested keys - grouped by state ID
+    repeated StateKeyList stateKeyLists = 1;
+}
+
+
+// [lazy-optimized] Request message for async state migration
+message LazyOptStateRequest {
+
+    // Requested operator ID
+    uint32 operatorId = 1;
+
+    // Source worker id - used to update state lookup table at remote worker
+    uint32 sourceWorkerId = 2;
+
+    // Requested keys - grouped by state ID
+    repeated StateKeyList stateKeyLists = 3;
+
+    // Requested bucket ids - associated with requested keys
+    repeated int64 bucketIds = 4;
+}
+
+// [lazy-optimized] List of keys for a specific state ID
+message StateKeyList {
+    uint32 stateId = 1;
+    repeated bytes keys = 2;
+}
+
+// [lazy-optimized] List of values for a specific state ID
+message StateValueList {
+    uint32 stateId = 1;
+    repeated bytes values = 2;
+}
+
+// [lazy-optimized][lazy-by-key] Values for requested keys
+message KeyResponse {
+    // List of values for requested keys
+    repeated StateValueList stateValueLists = 1;
+}
+
+// [lazy-optimized] Response message for async state migration
+message LazyOptStateResponse {
+
+    oneof message {
+        // Values for requested keys
+        KeyResponse keyResponse = 1;
+
+        // State chunk for bucket migration
+        StateChunk stateChunk = 2;
+    }
+}
+
+// [stop-and-restart] Bucket ranges to be pulled from the target worker
+message BucketsToBePulled {
+    repeated BucketRange bucketRanges = 1;
+}
+
+// Requested state is truncated to smaller chunks for data transfer
+message StateChunk {
+
+    // Flag to indicate the end of stream
+    bool endOfStream = 1;
+
+    // [][]byte for list of keys
+    repeated bytes keys = 2;
+
+    // [][]byte for list of values
+    repeated bytes values = 3;
+}
+
+// [stop-and-restart] In-memory task metadata that needs to be migrated e.g.
+// timer, active windows
+message TaskMetadata{
+    bytes metadata = 1;
+}
+
+// [lazy-basic] Request for remote bucket migration
+message BucketMigrationRequest {
+
+    // Operator ID to be fetched
+    uint32 operatorId = 1;
+
+    // Worker ID of the source worker
+    uint32 sourceWorkerId = 2;
+
+    // List of bucket ids to be pulled from the target worker
+    repeated int64 bucketIds = 3;
+}
+
+// [lazy-no-migration] Remote state read by specific keys
+message ReadRequest {
+
+    // Operator ID to be fetched
+    uint32 operatorId = 1;
+
+    // [][]byte for list of requested keys
+    repeated bytes keys = 2;
+}
+
+// [lazy-no-migration] Values for requested keys
+message ReadResponse {
+
+    // [][]byte for list of values corresponding to the requested keys
+    repeated bytes values = 1;
+}
+
+// [lazy-no-migration] Remote state write request (overwrite or merge)
+message WriteRequest {
+
+    // Operator ID to be updated
+    uint32 operatorId = 1;
+
+    // [][]byte for list of keys
+    repeated bytes keys = 2;
+
+    // [][]byte for list of values
+    repeated bytes values = 3;
+}
+
+// [lazy-no-migration] Remote state delete by specific keys
+message DeleteRequest {
+
+    // Operator ID to be updated
+    uint32 operatorId = 1;
+
+    // [][]byte for list of keys to be deleted
+    repeated bytes keys = 2;
+}
+
+/******************************************************************************
+                 Remote Pebble Service (Remote Pebble-only nodes)
+******************************************************************************/
+
+service RemotePebbleService {
+
+    // Remote pebble read batch of keys
+    rpc Read(PebbleReadRequest) returns (PebbleReadResponse) {}
+
+    // Remote pebble write (overwrite or merge) keys
+    rpc Write(PebbleWriteRequest) returns (PebbleWriteResponse) {}
+
+    // Remote pebble delete keys
+    rpc Delete(PebbleDeleteRequest) returns (Response) {}
+
+    // Remote pebble range query [lower, upper)
+    rpc RangeQuery(PebbleRangeQueryRequest) returns (PebbleRangeQueryResponse) {}
+}
+
+// Remote pebble read by specific keys
+message PebbleReadRequest {
+    repeated bytes keys = 1;
+}
+
+// Values for requested keys
+message PebbleReadResponse {
+    repeated bytes values = 1;
+    int64 ReadTime = 2 ;
+}
+
+// Local WriteTimePerWrite request
+message PebbleWriteResponse {
+    string info = 1 ;
+    int64 WriteTime = 2 ;
+}
+
+// Remote pebble write request (overwrite or merge)
+message PebbleWriteRequest {
+    repeated bytes keys = 1;
+    repeated bytes values = 2;
+    bool merge = 3;
+}
+
+// Remote pebble delete by specific keys
+message PebbleDeleteRequest {
+    repeated bytes keys = 1;
+}
+
+// Remote pebble range query request
+message PebbleRangeQueryRequest {
+    bytes lower = 1;
+    bytes upper = 2;
+}
+
+// Remote pebble range query response
+message PebbleRangeQueryResponse {
+    repeated bytes keys = 1;
+    repeated bytes values = 2;
+}
+
+
+/******************************************************************************
+                            Key partition messages
+******************************************************************************/
+
+// Range of consecutive buckets that are owned by the same worker
+// lower and upper are inclusive [lower, upper]
+message BucketRange {
+    uint32 workerId = 1;
+    int64 lowerBucketIdx = 2;
+    int64 upperBucketIdx = 3;
+}
+
+// Serialized key space partition table with list of bucket ranges
+message SerializedPartitionTable {
+    repeated BucketRange bucketRanges = 1;
+}
+
+/******************************************************************************
+                          Coordinator APIs for Clients
+******************************************************************************/
+
+service APIService {
+
+    // Unary API to submit a job
+    rpc RunJob(JobConfig) returns (Response) {}
+
+    // Unary API to rescale a job
+    rpc Rescale(RescaleConfig) returns (Response) {}
+}
+
+message JobConfig {}
+
+
+message RescaleConfig {
+    // Id of operator to be rescaled
+    string targetRescaleOp = 1;
+
+    // Target parallelism after rescale
+    int64 targetParallelism = 2;
+}

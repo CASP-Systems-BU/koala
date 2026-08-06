@@ -1,0 +1,30 @@
+{
+  "_comment": [
+    "Section 5.3: High parallelism - Figure 9. One experiment.",
+    "Koala (lazy/by-key) on Nexmark Q6* at parallelism 16 scaling to 32",
+    "",
+    "Warm-up state must already exist on the worker nodes: the config here sets",
+    "LoadWarmUpData=true and points at pebble_warmup_data/nexmark_q6_mod/ and",
+    "pebbleLookUpTable/nexmark_q6_mod/.",
+    "",
+    "Runtime: 1 x ~10 min + 30s cooldown ~= 11 min (longer if retries fire)."
+  ],
+
+  "WorkDir": "~/disaggregated-streaming",
+
+  "CooldownSeconds": 30,
+  "MaxAttempts": 2,
+  "RetryDelaySeconds": 60,
+  "StopOnFailure": false,
+  "GitFetch": false,
+  "RestoreBranch": true,
+
+  "Experiments": [
+    {
+      "Name": "parallelism_16_to_32",
+      "Branch": "warmupStateServiceTest",
+      "ConfigPath": "nexmarkJson/query6/highParallelism/query6ModByKeyLazyParallelism16.json",
+      "ResultKeyword": "parallelism_16_to_32"
+    }
+  ]
+}

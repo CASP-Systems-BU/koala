@@ -1,0 +1,26 @@
+{
+  "QueryName": "nexmark_query1",
+  "WorkDir": "~/disaggregated-streaming",
+  "AllNodeIPs": ["10.10.1.1"],
+  "KafkaClusterIPs": ["10.10.1.1"],
+  "ProducerIPs": ["10.10.1.1"],
+  "WorkerIPs": ["10.10.1.1", "10.10.1.1", "10.10.1.1", "10.10.1.1"],
+  "NexmarkLogicalSourceConfigs": [{
+    "EventType": "Bid",
+    "NexmarkSourceConfig": {}
+  }],
+  "TotalRuntimeSeconds": 300,
+  "MapperParallelism": 1,
+  "SinkParallelism": 1,
+  "Reconfigurations": [{
+    "TriggerTimeSeconds": 30,
+    "Type": "scaleup",
+    "TargetOperator": "mapper",
+    "TargetParrallelism": 2
+  }],
+  "InitialCustomTaskPlacement": [
+    "source: 10.10.1.1",
+    "mapper: 10.10.1.1",
+    "sink: 10.10.1.1"
+  ]
+}

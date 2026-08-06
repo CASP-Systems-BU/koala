@@ -1,0 +1,15 @@
+{
+  "QueryName": "nexmark_query2",
+  "WorkDir": "~/disaggregated-streaming",
+  "AllNodeIPs": ["10.10.1.1"],
+  "KafkaClusterIPs": ["10.10.1.1"],
+  "ProducerIPs": ["10.10.1.1"],
+  "WorkerIPs": ["10.10.1.1", "10.10.1.1", "10.10.1.1"],
+  "NexmarkLogicalSourceConfigs":[{
+      "EventType": "Bid",
+      "NexmarkSourceConfig":{}
+  }],
+  "TotalRuntimeSeconds": 300,
+  "FilterParallelism": 1,
+  "SinkParallelism": 1
+}

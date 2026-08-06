@@ -1,0 +1,102 @@
+{
+  "_comment": [
+    "Section 5.4 microbenchmarks - Figures 14, 15, 16. All 12 experiments run",
+    "Koala (lazy/by-key) on Nexmark Q6*",
+    "Three sweeps, four experiments each:",
+    "  state_*    - total state size 10/20/40/80 GB   -> Fig 14, Fig 15a",
+    "  locality_* - active key space 500K/1M/2M/4M    -> Fig 16a",
+    "  skew_*     - hot key ratio 0/25/50/75 %        -> Fig 16b",
+    "",
+    "Warm-up state must already exist on the worker nodes: every config here sets",
+    "LoadWarmUpData=true and points at pebble_warmup_data/nexmark_q6_mod/ and",
+    "pebbleLookUpTable/nexmark_q6_mod/.",
+    "",
+    "Runtime: 12 x ~11 min + 11 x 30s cooldown ~= 2h 20m (longer if retries fire)."
+  ],
+
+  "WorkDir": "~/disaggregated-streaming",
+
+  "CooldownSeconds": 30,
+  "MaxAttempts": 2,
+  "RetryDelaySeconds": 60,
+  "StopOnFailure": false,
+  "GitFetch": false,
+  "RestoreBranch": true,
+
+  "Experiments": [
+    {
+      "Name": "state_10gb",
+      "Branch": "warmupStateServiceTest",
+      "ConfigPath": "nexmarkJson/query6/stateSize/query6ModByKeyLazy10GB.json",
+      "ResultKeyword": "lazy_5MKeys"
+    },
+    {
+      "Name": "state_20gb",
+      "Branch": "warmupStateServiceTest",
+      "ConfigPath": "nexmarkJson/query6/stateSize/query6ModByKeyLazy20GB.json",
+      "ResultKeyword": "lazy_10MKeys"
+    },
+    {
+      "Name": "state_40gb",
+      "Branch": "warmupStateServiceTest",
+      "ConfigPath": "nexmarkJson/query6/stateSize/query6ModByKeyLazy40GB.json",
+      "ResultKeyword": "lazy_20MKeys"
+    },
+    {
+      "Name": "state_80gb",
+      "Branch": "warmupStateServiceTest",
+      "ConfigPath": "nexmarkJson/query6/stateSize/query6ModByKeyLazy80GB.json",
+      "ResultKeyword": "lazy_40MKeys"
+    },
+
+    {
+      "Name": "locality_500k",
+      "Branch": "warmupStateServiceTest",
+      "ConfigPath": "nexmarkJson/query6/key_locality/query6ModByKeyLazyActiveKey500k.json",
+      "ResultKeyword": "lazy_500k_50k_25"
+    },
+    {
+      "Name": "locality_1m",
+      "Branch": "warmupStateServiceTest",
+      "ConfigPath": "nexmarkJson/query6/key_locality/query6ModByKeyLazyActiveKey1M.json",
+      "ResultKeyword": "lazy_1M_100k_25"
+    },
+    {
+      "Name": "locality_2m",
+      "Branch": "warmupStateServiceTest",
+      "ConfigPath": "nexmarkJson/query6/key_locality/query6ModByKeyLazyActiveKey2M.json",
+      "ResultKeyword": "lazy_2M_200k_25"
+    },
+    {
+      "Name": "locality_4m",
+      "Branch": "warmupStateServiceTest",
+      "ConfigPath": "nexmarkJson/query6/key_locality/query6ModByKeyLazyActiveKey4M.json",
+      "ResultKeyword": "lazy_4M_400k_25"
+    },
+
+    {
+      "Name": "skew_0",
+      "Branch": "warmupStateServiceTest",
+      "ConfigPath": "nexmarkJson/query6/hotKeyRatio/query6ModByKeyLazyHotKeyRatio0.json",
+      "ResultKeyword": "lazy_2M_200k_0"
+    },
+    {
+      "Name": "skew_25",
+      "Branch": "warmupStateServiceTest",
+      "ConfigPath": "nexmarkJson/query6/hotKeyRatio/query6ModByKeyLazyHotKeyRatio25.json",
+      "ResultKeyword": "lazy_2M_200k"
+    },
+    {
+      "Name": "skew_50",
+      "Branch": "warmupStateServiceTest",
+      "ConfigPath": "nexmarkJson/query6/hotKeyRatio/query6ModByKeyLazyHotKeyRatio50.json",
+      "ResultKeyword": "lazy_2M_200k_50"
+    },
+    {
+      "Name": "skew_75",
+      "Branch": "warmupStateServiceTest",
+      "ConfigPath": "nexmarkJson/query6/hotKeyRatio/query6ModByKeyLazyHotKeyRatio75.json",
+      "ResultKeyword": "lazy_2M_200k_75"
+    }
+  ]
+}

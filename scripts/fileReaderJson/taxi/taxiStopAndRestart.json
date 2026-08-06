@@ -1,0 +1,122 @@
+{
+  "QueryName": "taxi",
+  "WorkDir": "~/disaggregated-streaming",
+  "AllNodeIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4",
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12"
+],
+  "KafkaClusterIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4"
+  ],
+  "ProducerIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4"
+  ],
+  "WorkerIPs": [
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9"
+],
+"OutputEventNumber": 0,
+"ListLength": 150,
+"RateLimiterConfig":{
+    "UseRateLimit": true,
+    "RateLimit": [360,720],
+    "RateChangeInterval": [900]
+  },
+  "FilePath": [
+    "scripts/fileReaderJson/taxi0.csv",
+    "scripts/fileReaderJson/taxi1.csv",
+    "scripts/fileReaderJson/taxi2.csv",
+    "scripts/fileReaderJson/taxi3.csv"
+],
+  "EventType": "Taxi",
+  "ReconfigProtocol": "stop-and-restart",
+  "LazyProtocolVersion": "optimized",
+  "TotalRuntimeSeconds": 950,
+  "NumBuckets": 128,
+  "PartitionPolicy": "consistent-even",
+  "BufferSize": 5,
+  "BatchSize": 4096,
+  "StateBackendType": "pebble",
+  "PebbleEnableConcurrentGetMany": true,
+  "PebbleGetManyMaxConcurrency": 8,
+  "PebbleGetManyBatchSize": 32,
+  "IsWarmUp": false,
+  "LoadWarmUpData": true,
+  "EnablePendingBatchTimeout":false,
+  "CalculateCellIdParallelism":8,
+  "MovingMedianTripTimeParallelism": 4,
+  "Top10RouteParallelism": 8,
+  "SinkParallelism": 1,
+  "WindowDuration": "10s",
+  "Reconfigurations": [
+    {
+      "TriggerTimeSeconds": 240,
+      "Type": "scaleup",
+      "TargetOperator": "movingMedianTripTime",
+      "TargetParrallelism": 8
+    }
+  ],
+  "WarmUpDataFolder": {
+    "Pebble": "pebble_warmup_data/taxi/128_consistent_10GBTest"
+  },
+  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/taxi/128ByKey_consistent_remote_10GBTest",
+  "InitialCustomTaskPlacement": [
+    "source: 10.10.1.9",
+    "source: 10.10.1.10",
+    "source: 10.10.1.11",
+    "source: 10.10.1.12",
+
+    "calculateCellId: 10.10.1.9",
+    "calculateCellId: 10.10.1.10",
+    "calculateCellId: 10.10.1.11",
+    "calculateCellId: 10.10.1.12",
+
+    "calculateCellId: 10.10.1.9",
+    "calculateCellId: 10.10.1.10",
+    "calculateCellId: 10.10.1.11",
+    "calculateCellId: 10.10.1.12",
+
+    "movingMedianTripTime: 10.10.1.9",
+    "movingMedianTripTime: 10.10.1.10",
+    "movingMedianTripTime: 10.10.1.11",
+    "movingMedianTripTime: 10.10.1.12",
+
+    "sink: 10.10.1.9"
+]
+}

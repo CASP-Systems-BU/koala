@@ -1,0 +1,117 @@
+{
+  "QueryName": "nexmark_query5",
+  "WorkDir": "/home/ubuntu/ssd/disaggregated-streaming",
+  "AllNodeIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4",
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12"
+  ],
+  "KafkaClusterIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4"
+  ],
+  "ProducerIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4"
+  ],
+  "WorkerIPs": [
+    "10.10.1.9",
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12"
+  ],
+  "NexmarkLogicalSourceConfigs":[
+    {
+      "EventType": "Bid",
+      "NexmarkSourceConfig": {
+        "NumActiveAuctions": 90,
+        "HotAuctionRatio": 0.5,
+        "HotAuctionRange": 100,
+        "RateLimiterConfig": {
+          "UseRateLimit": true,
+          "RateLimit": [
+             10800, 21600  
+          ],
+          "RateChangeInterval": [
+            600
+          ]
+        }
+      }
+    }
+  ],
+  "Reconfigurations": [
+    {
+      "TriggerTimeSeconds": 180,
+      "Type": "scaleup",
+      "TargetOperator": "slidingWindow",
+      "TargetParrallelism": 8
+    }
+  ],
+  "TotalRuntimeSeconds": 420,
+  "ReconfigProtocol": "stop-and-restart",
+  "LazyProtocolVersion": "optimized",
+  "NumBuckets": 128,
+  "PartitionPolicy": "consistent-even",
+  "BufferSize": 50,
+  "BatchSize": 4096,
+  "StateBackendType": "pebble",
+  "PebbleEnableConcurrentGetMany": true,
+  "PebbleGetManyMaxConcurrency": 4,
+  "PebbleGetManyBatchSize": 64,
+  "IsWarmUp": false,
+  "LoadWarmUpData": false,
+  "WarmUpDataFolder": {
+    "Pebble": "pebble_warmup_data/nexmark_q5_mod/128_consistent_10GB"
+  },
+  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/nexmark_q5_mod/128ByKey_consistent_10GB",
+  
+  "SlidingWindowParallelism": 4,
+  "HottestItemParallelism":4,
+  "SinkParallelism": 1,
+
+  "WatermarkInterval": "100ms",
+  "MaxAllowedDelay": "0ms",
+  "WindowDuration": "10s",
+  "WindowSlide": "5s",
+  
+  "InitialCustomTaskPlacement": [
+    "source: 10.10.1.9",
+    "source: 10.10.1.10",
+    "source: 10.10.1.11",
+    "source: 10.10.1.12",
+
+    "slidingWindow: 10.10.1.9",
+    "slidingWindow: 10.10.1.10",
+    "slidingWindow: 10.10.1.11",
+    "slidingWindow: 10.10.1.12",
+
+    "HottestItem: 10.10.1.9",
+    "HottestItem: 10.10.1.10",
+    "HottestItem: 10.10.1.11",
+    "HottestItem: 10.10.1.12",
+
+    "sink:10.10.1.9"
+  ]
+}

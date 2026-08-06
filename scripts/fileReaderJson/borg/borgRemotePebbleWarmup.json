@@ -1,0 +1,103 @@
+{
+  "QueryName": "borg_warmup",
+  "WorkDir": "~/disaggregated-streaming",
+  "AllNodeIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4",
+    "10.10.1.5",
+    "10.10.1.6",
+    "10.10.1.7",
+    "10.10.1.8",
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12"
+],
+  "KafkaClusterIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4"
+  ],
+  "ProducerIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4"
+  ],
+"RemotePebbleAddrs":[
+    "10.10.1.5:2379",
+    "10.10.1.6:2379",
+    "10.10.1.7:2379",
+    "10.10.1.8:2379"
+  ],
+  "WorkerIPs": [
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+   
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9"
+],
+  "NumEvents": 7000000,
+  "RateLimiterConfig":{
+    "UseRateLimit": false,
+    "RateLimit": [4000,8000],
+    "RateChangeInterval": [600]
+  },
+  "FilePath": [
+    "scripts/fileReaderJson/borg0.csv",
+    "scripts/fileReaderJson/borg1.csv",
+    "scripts/fileReaderJson/borg2.csv",
+    "scripts/fileReaderJson/borg3.csv"
+  ],
+  "EventType": "Borg",
+  "ReconfigProtocol": "stop-and-restart",
+  "LazyProtocolVersion": "by-key",
+  "TotalRuntimeSeconds": 400,
+  "NumBuckets": 128,
+  "PartitionPolicy": "consistent-even",
+  "BufferSize": 20,
+  "BatchSize": 4096,
+  "StateBackendType": "remote-pebble",
+  "PebbleEnableConcurrentGetMany": true,
+  "PebbleGetManyMaxConcurrency": 8,
+  "PebbleGetManyBatchSize": 32,
+  "IsWarmUp": true,
+  "LoadWarmUpData": false,
+  "JobEventStatsParallelism": 4,
+  "SinkParallelism": 1,
+  "ListStateSize": 10,
+  "WarmUpDataFolder": {
+
+    "Pebble": "pebble_warmup_data/borg/128_consistent_3GBTest"
+
+  },
+
+  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/borg/128ByKey_consistent_remote_3GBTest",
+  "InitialCustomTaskPlacement": [
+    "source: 10.10.1.9",
+    "source: 10.10.1.10",
+    "source: 10.10.1.11",
+    "source: 10.10.1.12",
+
+    "jobEventStats: 10.10.1.9",
+    "jobEventStats: 10.10.1.10",
+    "jobEventStats: 10.10.1.11",
+    "jobEventStats: 10.10.1.12",
+
+    "sink: 10.10.1.9"
+]
+}

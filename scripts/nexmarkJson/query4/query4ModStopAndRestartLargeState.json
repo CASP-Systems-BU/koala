@@ -1,0 +1,106 @@
+{
+  "QueryName": "nexmark_query4_modified",
+  "WorkDir": "~/disaggregated-streaming",
+  "AllNodeIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4",
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12"
+  ],
+  "KafkaClusterIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4"
+  ],
+  "ProducerIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4"
+  ],
+  "WorkerIPs": [
+    "10.10.1.9",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12"
+  ],
+  "NexmarkLogicalSourceConfigs": [
+    {
+      "EventType": "ClosedAuction",
+      "NexmarkSourceConfig": {
+        "OutputEventNumber":1000000,
+        "NumCategories":4000000,
+        "HotCategoryRatio":0.2,
+        "HotCategoryRange":50000,
+        "RateLimiterConfig": {
+          "UseRateLimit": false,
+          "RateLimit": [
+           875,1750
+          ],
+          "RateChangeInterval": [
+            600
+          ]
+        }
+      } 
+    }
+  ],
+  "Reconfigurations": [
+    {
+      "TriggerTimeSeconds": 300,
+      "Type": "scaleup",
+      "TargetOperator": "statefulMapper",
+      "TargetParrallelism": 8
+    }
+  ],
+  "TotalRuntimeSeconds": 240,
+  "ReconfigProtocol": "stop-and-restart",
+  "LazyProtocolVersion": "optimized",
+  "NumBuckets": 128,
+  "PartitionPolicy": "consistent-even",
+  "BufferSize": 5,
+  "BatchSize": 4096,
+  "StateBackendType": "pebble",
+  "PebbleEnableConcurrentGetMany": true,
+  "PebbleGetManyMaxConcurrency": 8,
+  "PebbleGetManyBatchSize": 32,
+  "IsWarmUp": false,
+  "LoadWarmUpData": true,
+  "EnablePendingBatchTimeout":false,
+  "DummyFieldSize":4096,
+ "WarmUpDataFolder": {
+    "Pebble": "pebble_warmup_data/nexmark_query4_modified/128_consistent_test"
+  },
+  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/nexmark_query4_modified/128ByKey_consistent_test",
+  "StatefulMapperParallelism": 4,
+  "SinkParallelism": 1,
+  "InitialCustomTaskPlacement": [
+    "source: 10.10.1.9",
+    "source: 10.10.1.10",
+    "source: 10.10.1.11",
+    "source: 10.10.1.12",
+
+    "statefulMapper: 10.10.1.9",
+    "statefulMapper: 10.10.1.10",
+    "statefulMapper: 10.10.1.11",
+    "statefulMapper: 10.10.1.12",
+
+    "sink:10.10.1.9"
+  ]
+}

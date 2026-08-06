@@ -1,0 +1,120 @@
+{
+  "QueryName": "nexmark_query6_modified",
+  "WorkDir": "~/disaggregated-streaming",
+  "AllNodeIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4",
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.8",
+    "10.10.1.12"
+  ],
+  "KafkaClusterIPs": [
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.4"
+  ],
+  "ProducerIPs": [
+    "10.10.1.1",
+    "10.10.1.1",
+    "10.10.1.2",
+    "10.10.1.2",
+    "10.10.1.3",
+    "10.10.1.3",
+    "10.10.1.4",
+    "10.10.1.4"
+  ],
+  "WorkerIPs": [
+    "10.10.1.9",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.8",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.8",
+    "10.10.1.12",
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.8",
+    "10.10.1.12",
+    
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.8",
+    "10.10.1.12"
+
+  ],
+  "NexmarkLogicalSourceConfigs": [
+    {
+      "EventType": "ClosedAuction",
+      "NexmarkSourceConfig": {
+        "OutputEventNumber":28750000,
+        "NumActivePeople": 2000000,
+        "HotSellerRatio": 0.25,
+        "HotSellerRange": 200000,
+        "RateLimiterConfig": {
+          "UseRateLimit": true,
+          "RateLimit": [
+            4000,8000
+          ],
+          "RateChangeInterval": [
+            600
+          ]
+        }
+      } 
+    }
+  ],
+  "TotalRuntimeSeconds": 600,
+  "ReconfigProtocol": "lazy",
+  "LazyProtocolVersion": "by-key",
+  "NumBuckets": 128,
+  "PartitionPolicy": "consistent-even",
+  "BufferSize": 50,
+  "BatchSize": 4096,
+  "StateBackendType": "pebble",
+  "PebbleEnableConcurrentGetMany": true,
+  "PebbleGetManyMaxConcurrency": 4,
+  "PebbleGetManyBatchSize": 64,
+  "IsWarmUp": false,
+  "LoadWarmUpData": true,
+   "WarmUpDataFolder": {
+    "Pebble": "pebble_warmup_data/nexmark_q6_mod/128_consistent_10GB"
+  },
+  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/nexmark_q6_mod/128ByKey_consistent_10GB",
+  "Reconfigurations": [
+    {
+      "TriggerTimeSeconds": 180,
+      "Type": "scaleup",
+      "TargetOperator": "statefulMapper",
+      "TargetParrallelism": 8
+    }
+  ],
+  "StatefulMapperParallelism": 4,
+  "SinkParallelism": 1,
+  "DummyFieldSize": 2048,
+  "InitialCustomTaskPlacement": [
+    "source: 10.10.1.9",
+    "source: 10.10.1.10",
+    "source: 10.10.1.8",
+    "source: 10.10.1.12",
+
+    "source: 10.10.1.9",
+    "source: 10.10.1.10",
+    "source: 10.10.1.8",
+    "source: 10.10.1.12",
+
+    "statefulMapper: 10.10.1.9",
+    "statefulMapper: 10.10.1.10",
+    "statefulMapper: 10.10.1.8",
+    "statefulMapper: 10.10.1.12",
+
+    "sink:10.10.1.9"
+  ]
+}

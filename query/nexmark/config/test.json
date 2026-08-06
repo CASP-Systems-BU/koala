@@ -1,0 +1,7 @@
+{
+    "BidProportion": 111,
+    "InterEventDelay": "1s",
+    "RateLimiterConfig":{
+        "RateLimit": [1000, 2000, 3000]
+    }
+}

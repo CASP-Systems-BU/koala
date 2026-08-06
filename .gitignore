@@ -1,0 +1,21 @@
+
+# Binary file
+bin/
+
+# MacOS
+.DS_Store
+
+# Data folder - includes temp DB
+data/
+
+# Kafka related
+kafka_*
+
+# Python cache
+__pycache__/
+
+# Results folder
+results/
+
+plot/
+*.log
