@@ -72,7 +72,6 @@ func (w *Worker) startControlPlane() {
 					if err != nil {
 						log.Fatalf("Failed to create file %s: %v\n", filePath, err)
 					}
-					defer file.Close()
 					encoder := gob.NewEncoder(file)
 					if err := encoder.Encode(warmupMessage); err != nil {
 						log.Fatalf("Failed to encode data: %v\n", err)
@@ -112,8 +111,6 @@ func (w *Worker) startControlPlane() {
 			w.HandleWaitInboundPeers(msg)
 		case *pb.CoordinatorToWorker_WaitReconfigDoneMsg:
 			w.HandleWaitReconfigDone(msg)
-		case *pb.CoordinatorToWorker_EventualStateMigrationMsg:
-			w.HandleEventualStateMigration(msg)
 		default:
 			log.Fatalf("Unknown message type: %v\n", msg)
 		}
@@ -665,26 +662,6 @@ func (w *Worker) HandleWaitReconfigDone(
 	w.AssignedTask.WaitTasksReconfigDone()
 
 	ackMsg := "Reconfiguration done"
-	w.AckCoordinator(ackMsg)
-}
-
-// [lazy-by-key][eventual migration for cancelling task] Handle eventual state
-// migration: store affected bucket metadata in StateService, flip the atomic
-// flag to trigger additional fetch in remoteReadWithByKeyMigration, then block
-// until all affected keys are migrated before ACKing the coordinator.
-func (w *Worker) HandleEventualStateMigration(
-	msg *pb.CoordinatorToWorker_EventualStateMigrationMsg,
-) {
-
-	req := msg.EventualStateMigrationMsg
-
-	// Start eventual state migration process
-	w.StateService.SetEventualMigrationMeta(req.AffectedBuckets)
-
-	// Block until all affected keys are migrated
-	w.StateService.WaitEventualMigrationDone()
-
-	ackMsg := "Eventual state migration done"
 	w.AckCoordinator(ackMsg)
 }
 

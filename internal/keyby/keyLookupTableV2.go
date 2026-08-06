@@ -431,8 +431,6 @@ func (skm *SerializedKepMap) AddBucket(
 	skm.numBuckets += 1
 
 	// Validate the current offset shouldn't exceed the max allowed size
-	// Note that system will crash if offset exceeds MaxKeyMapSize in any case
-	// above when we try to write to the data slice
 	if skm.offset > MaxKeyMapSize {
 		log.Fatalf(
 			"Serialized key map size exceeds the max allowed size: %d bytes\n",

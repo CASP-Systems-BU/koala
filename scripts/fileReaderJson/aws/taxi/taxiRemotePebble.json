@@ -54,13 +54,18 @@
     "10.10.1.11",
     "10.10.1.12",
 
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12",
+
     "10.10.1.9"
 ],
 "OutputEventNumber": 0,
 "ListLength": 150,
 "RateLimiterConfig":{
     "UseRateLimit": true,
-    "RateLimit": [400,800],
+    "RateLimit": [385,770],
     "RateChangeInterval": [900]
   },
   "FilePath": [
@@ -84,7 +89,7 @@
   "IsWarmUp": false,
   "LoadWarmUpData": true,
   "EnablePendingBatchTimeout":false,
-  "CalculateCellIdParallelism": 4,
+  "CalculateCellIdParallelism":8,
   "MovingMedianTripTimeParallelism": 4,
   "Top10RouteParallelism": 8,
   "SinkParallelism": 1,
@@ -106,6 +111,11 @@
     "source: 10.10.1.10",
     "source: 10.10.1.11",
     "source: 10.10.1.12",
+
+    "calculateCellId: 10.10.1.9",
+    "calculateCellId: 10.10.1.10",
+    "calculateCellId: 10.10.1.11",
+    "calculateCellId: 10.10.1.12",
 
     "calculateCellId: 10.10.1.9",
     "calculateCellId: 10.10.1.10",

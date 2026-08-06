@@ -200,15 +200,6 @@ func (s *APIServer) rescaleLazy(rescaleConfig *pb.RescaleConfig) {
 		upstreamTasks,
 	)
 
-	// Step 4.5: [eventual migration for cancelling task] Notify remaining
-	// tasks to eventually fetch all state from cancelling tasks. Only applies
-	// when (i) there are removed workers, and (ii) the cancelling task
-	// migration mode is "eventual".
-	migrationMode := s.Coordinator.Config.LazyByKeyCancellingTaskMigrationMode
-	if len(removedWorkers) > 0 && migrationMode == "eventual" {
-		s.notifyEventualStateMigration(targetOperator, removedWorkers)
-	}
-
 	// Step 5: Wait for termination signal from all target tasks
 	s.waitAllTasksReconfigDone(updatedWorkers, removedWorkers)
 

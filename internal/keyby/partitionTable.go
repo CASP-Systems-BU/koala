@@ -1,6 +1,7 @@
 package keyby
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
@@ -132,6 +133,14 @@ func (table *PartitionTable) Reconfigure(
 		updatedWorkers,
 		buckets,
 	)
+
+	fmt.Println("newBuckets:", newBuckets, " bucketOwnerChanges", bucketOwnerChanges)
+
+	/*
+		// Hard coded the reconfigured bucket list for skew mitigationexperiment
+		newBuckets :=
+		bucketOwnerChanges :=
+	*/
 	table.Buckets = make([]uint16, len(newBuckets))
 	for i, bucket := range newBuckets {
 		table.Buckets[i] = bucket.WorkerID

@@ -6,13 +6,14 @@
     "10.10.1.2",
     "10.10.1.3",
     "10.10.1.4",
-
+    "10.10.1.5",
+    "10.10.1.6",
+    "10.10.1.7",
+    "10.10.1.8",
     "10.10.1.9",
     "10.10.1.10",
     "10.10.1.11",
-    "10.10.1.12",
-    "10.10.1.13",
-    "10.10.1.14"
+    "10.10.1.12"
   ],
   "KafkaClusterIPs": [
     "10.10.1.1",
@@ -29,6 +30,7 @@
     "10.10.1.3",
     "10.10.1.4",
     "10.10.1.4",
+    
     "10.10.1.1",
     "10.10.1.1",
     "10.10.1.2",
@@ -65,28 +67,29 @@
     "10.10.1.10",
     "10.10.1.11",
     "10.10.1.12",
-    "10.10.1.13",
-    "10.10.1.14",
 
     "10.10.1.9",
     "10.10.1.10",
     "10.10.1.11",
     "10.10.1.12",
-    "10.10.1.13",
-    "10.10.1.14"
+
+    "10.10.1.9",
+    "10.10.1.10",
+    "10.10.1.11",
+    "10.10.1.12"
   ],
   "NexmarkLogicalSourceConfigs": [
     {
       "EventType": "ClosedAuction",
       "NexmarkSourceConfig": {
-        "OutputEventNumber":57500000,
+        "OutputEventNumber":28750000,
         "NumActivePeople": 1000,
         "HotSellerRatio": 0.25,
         "HotSellerRange": 100,
         "RateLimiterConfig": {
           "UseRateLimit": true,
           "RateLimit": [
-            4000, 8000, 13500
+            2800, 5600, 8400, 5600, 2800
           ],
           "RateChangeInterval": [
             600, 900, 900, 900
@@ -95,17 +98,17 @@
       } 
     }
   ],
-  "TotalRuntimeSeconds": 600,
+  "TotalRuntimeSeconds": 900,
   "ReconfigProtocol": "lazy",
   "LazyProtocolVersion": "by-key",
   "NumBuckets": 128,
   "PartitionPolicy": "consistent-even",
-  "BufferSize": 10,
+  "BufferSize": 50,
   "BatchSize": 4096,
   "StateBackendType": "pebble",
   "PebbleEnableConcurrentGetMany": true,
-  "PebbleGetManyMaxConcurrency": 4,
-  "PebbleGetManyBatchSize": 64,
+  "PebbleGetManyMaxConcurrency": 8,
+  "PebbleGetManyBatchSize": 32,
   "IsWarmUp": false,
   "LoadWarmUpData": true,
    "WarmUpDataFolder": {
@@ -129,18 +132,18 @@
       "TriggerTimeSeconds": 540,
       "Type": "scaledown",
       "TargetOperator": "statefulMapper",
-      "TargetParrallelism": 9
+      "TargetParrallelism": 8
     },
     {
       "TriggerTimeSeconds": 720,
       "Type": "scaledown",
       "TargetOperator": "statefulMapper",
-      "TargetParrallelism": 6
+      "TargetParrallelism": 4
     }
   ],
   "StatefulMapperParallelism": 4,
   "SinkParallelism": 1,
-  "DummyFieldSize": 2048,
+  "DummyFieldSize": 4096,
   "InitialCustomTaskPlacement": [
     "source: 10.10.1.9",
     "source: 10.10.1.10",

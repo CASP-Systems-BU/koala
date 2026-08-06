@@ -81,6 +81,15 @@ type Configuration struct {
 	// [pebble] Expected batch size per GetMany() routine executor
 	PebbleGetManyBatchSize int `yaml:"PebbleGetManyBatchSize"`
 
+	// [pebble] Max number of concurrent compactions
+	PebbleMaxConcurrentCompactions int `yaml:"PebbleMaxConcurrentCompactions"`
+
+	// [pebble] Target size of the base level (L-Base) in bytes
+	PebbleLBaseMaxBytes int64 `yaml:"PebbleLBaseMaxBytes"`
+
+	// [pebble] Number of memtables before writes are stopped to allow flushing
+	PebbleMemTableStopWritesThreshold int `yaml:"PebbleMemTableStopWritesThreshold"`
+
 	// [remote-pebble] list of remote pebble addresses (host:port)
 	RemotePebbleAddrs []string `yaml:"RemotePebbleAddrs"`
 
@@ -149,18 +158,6 @@ type Configuration struct {
 	// [lazy-by-key] state comm API type for state fetch: "grpc" or "tcp"
 	LazyByKeyStateCommAPIType string `yaml:"LazyByKeyStateCommAPIType"`
 
-	// [lazy-by-key] Eventual migration strategy for buckets from a cancelling
-	// task. Supported types:
-	// - "fetch-on-demand": no eventual migration; keys remain fetched on demand
-	// - "eventual": eventually migrate all keys from cancelling tasks
-	LazyByKeyCancellingTaskMigrationMode string `yaml:"LazyByKeyCancellingTaskMigrationMode"`
-
-	// [lazy-by-key] Max number of additional keys to fetch per batch during
-	// eventual migration from cancelling tasks. Set to -1 to fetch all keys
-	// at once. Only used when LazyByKeyCancellingTaskMigrationMode is
-	// "eventual"
-	LazyByKeyGradualMigrationBatchSize int `yaml:"LazyByKeyGradualMigrationBatchSize"`
-
 	/**************************************************************************
 								   Debug configs
 	**************************************************************************/
@@ -210,6 +207,9 @@ func Default() *Configuration {
 		PebbleEnableConcurrentGetMany: false,
 		PebbleGetManyMaxConcurrency:   4,
 		PebbleGetManyBatchSize:        64,
+		PebbleMaxConcurrentCompactions:    1,         // pebble default: 1
+		PebbleLBaseMaxBytes:               67108864,  // pebble default: 64MB
+		PebbleMemTableStopWritesThreshold: 2,         // pebble default: 2
 		TiKVAddr:                      "192.168.1.101:2379",
 		RemotePebbleAddrs:             []string{},
 		StateMigrationChunkSize:       1048576,
@@ -223,14 +223,12 @@ func Default() *Configuration {
 		// Metric
 		MetricsInterval: 5 * time.Second,
 		// Reconfig
-		ReconfigProtocol:                     "stop-and-restart",
-		LazyProtocolVersion:                  "basic",
-		StateFlushRoutinePoolSize:            1,
-		StateReadRoutinePoolSize:             1,
-		LazyOptBucketMigrationChunkSize:      4096, // 4KB
-		LazyByKeyStateCommAPIType:            "grpc",
-		LazyByKeyCancellingTaskMigrationMode: "fetch-on-demand",
-		LazyByKeyGradualMigrationBatchSize:   100,
+		ReconfigProtocol:                "stop-and-restart",
+		LazyProtocolVersion:             "basic",
+		StateFlushRoutinePoolSize:       1,
+		StateReadRoutinePoolSize:        1,
+		LazyOptBucketMigrationChunkSize: 4096, // 4KB
+		LazyByKeyStateCommAPIType:       "grpc",
 		// Debug
 		DebugMode:      false,
 		WatermarkDebug: false,

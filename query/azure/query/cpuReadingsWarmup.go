@@ -70,18 +70,17 @@ func CPUReadingsWarmup(configFile string) *dataflow.Dataflow {
 			}
 
 			list = make([]*CpuRecord, maxListSize)
-
+			
 			for i := range list {
 				startIndex := rand.Intn(len(dummyCpuRecords))
 				d := dummyCpuRecords[(startIndex+i)%len(dummyCpuRecords)]
-				v1 := d.V1
-				v9 := d.V9
+				v1 := d.V1 
+				v9 := d.V9 
 				// Ensure all int fields stay negative for IsWarmupRecord()
 				if v1 >= 0 {
 					v1 = ^v1
 				}
 
-				// Fill the list with dummy records
 				list[i] = &CpuRecord{
 					V1: v1,
 					V2: d.V2,

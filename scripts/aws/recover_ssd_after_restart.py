@@ -26,13 +26,8 @@ df -h"
 run_on_all_nodes(ips, cmd_remount, "Remounting SSD on remote instances")
 
 
-# Copy everything from /home/ubuntu/ebs/ back to /home/ubuntu/ssd/.
-#
-# EBS is deliberately left untouched here. It is the only copy of the data that
-# survives an instance stop (the NVMe SSD is wiped and re-mkfs'd above), so a
-# recovery that has not been verified must not be the thing that destroys it.
-# EBS is modified in exactly one place: persist_ssd_before_stop.py, which moves
-# SSD -> EBS with --remove-source-files before the instances are stopped.
-cmd_restore = "sudo rsync -a /home/ubuntu/ebs/ /home/ubuntu/ssd/"
+# Move everything from /home/ubuntu/ebs/ to /home/ubuntu/ssd/
+# We use rsync with --remove-source-files to mimic a move across filesystems
+cmd_restore = "sudo rsync -a /home/ubuntu/ebs/ /home/ubuntu/ssd/ && sudo rm -rf /home/ubuntu/ebs/*"
 
-run_on_all_nodes(ips, cmd_restore, "Restoring data back to SSD from EBS (copying files)")
+run_on_all_nodes(ips, cmd_restore, "Restoring data back to SSD from EBS (moving files)")

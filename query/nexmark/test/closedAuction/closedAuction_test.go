@@ -131,7 +131,7 @@ func TestClosedAuctionCorrectness(t *testing.T) {
 	// Wait till we receive the ending watermark
 	go testutils.MonitorEndOfTest(sink, done, expectedWM)
 
-	// Wait for the test to be completed
+	// Wait for the test to be compeleted
 	<-done
 	log.Println("[E2E] Test completed")
 

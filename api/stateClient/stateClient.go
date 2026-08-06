@@ -79,6 +79,14 @@ type StateClient[K comparable] struct {
 	// [Window State Cache Only] Along with dedupedKeys, window state also needs
 	// to track the start time of each window
 	dedupedWindowStartTimes []int64
+
+	/*
+		// [Mapping bucket ID to record number]
+		bucketIdToRecordNum map[int64]int
+
+		// Last emitTime
+		lastEmitTime time.Time
+	*/
 }
 
 /******************************************************************************
@@ -92,6 +100,8 @@ func NewStateClient[K comparable](
 		curStateIdCounter: 0,
 		stateClientType:   stateClientType,
 		cache:             make(map[uint16]stateCache.StateCache[K]),
+		// bucketIdToRecordNum: make(map[int64]int),
+		// lastEmitTime:        time.Now(),
 	}
 }
 
@@ -184,11 +194,22 @@ func (sc *StateClient[K]) FetchSimpleState(keys []K, stateIDs []uint16) int {
 	keysSeen := make(map[K]struct{})
 	sc.dedupedKeys = make([]K, 0, len(keys))
 	for _, key := range keys {
+		/*
+			_, bucketID := sc.encodeSimpleKey(key, stateIDs[0])
+			sc.bucketIdToRecordNum[bucketID]++
+		*/
 		if _, ok := keysSeen[key]; !ok {
 			keysSeen[key] = struct{}{}
 			sc.dedupedKeys = append(sc.dedupedKeys, key)
 		}
 	}
+	/*
+		if time.Since(sc.lastEmitTime) > time.Second {
+			fmt.Println("Worker ", sc.stateService.WorkerID, " Record number per bucketID in last second:", sc.bucketIdToRecordNum)
+			sc.lastEmitTime = time.Now()
+			sc.bucketIdToRecordNum = make(map[int64]int)
+		}
+	*/
 	sc.stateService.MetricCollector.UpdateKeyNumberPerBatch(int64(len(sc.dedupedKeys)))
 	// Allocate space for serialized keys
 	sc.serializedKeys = make(map[uint16][][]byte)

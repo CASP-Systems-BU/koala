@@ -52,10 +52,7 @@ var resultCh chan struct{}
 
 const testListStateSize = 4
 
-func medianFromFiltered(
-	filtered []*azurequery.CpuRecord,
-	getVal func(*azurequery.CpuRecord) float64,
-) float64 {
+func medianFromFiltered(filtered []*azurequery.CpuRecord, getVal func(*azurequery.CpuRecord) float64) float64 {
 	if len(filtered) == 0 {
 		return 0.0
 	}
@@ -144,13 +141,7 @@ func cpuReadingsTestDataflow() *dataflow.Dataflow {
 		) *azurequery.CpuRecord {
 			list := state.Get()
 
-			rec := &azurequery.CpuRecord{
-				V1: in.V1,
-				V2: in.V2,
-				V3: in.V3,
-				V4: in.V4,
-				V5: in.V5,
-			}
+			rec := &azurequery.CpuRecord{V1: in.V1, V2: in.V2, V3: in.V3, V4: in.V4, V5: in.V5}
 			list = append(list, rec)
 
 			sort.Slice(list, func(i, j int) bool {

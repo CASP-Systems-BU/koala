@@ -121,7 +121,6 @@ type CoordinatorToWorker struct {
 	//	*CoordinatorToWorker_InitLazyReconfigMsg
 	//	*CoordinatorToWorker_WaitInboundPeersToConnectMsg
 	//	*CoordinatorToWorker_WaitReconfigDoneMsg
-	//	*CoordinatorToWorker_EventualStateMigrationMsg
 	Message       isCoordinatorToWorker_Message `protobuf_oneof:"message"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -272,15 +271,6 @@ func (x *CoordinatorToWorker) GetWaitReconfigDoneMsg() *WaitReconfigDone {
 	return nil
 }
 
-func (x *CoordinatorToWorker) GetEventualStateMigrationMsg() *EventualStateMigration {
-	if x != nil {
-		if x, ok := x.Message.(*CoordinatorToWorker_EventualStateMigrationMsg); ok {
-			return x.EventualStateMigrationMsg
-		}
-	}
-	return nil
-}
-
 type isCoordinatorToWorker_Message interface {
 	isCoordinatorToWorker_Message()
 }
@@ -333,10 +323,6 @@ type CoordinatorToWorker_WaitReconfigDoneMsg struct {
 	WaitReconfigDoneMsg *WaitReconfigDone `protobuf:"bytes,12,opt,name=waitReconfigDone_msg,json=waitReconfigDoneMsg,proto3,oneof"`
 }
 
-type CoordinatorToWorker_EventualStateMigrationMsg struct {
-	EventualStateMigrationMsg *EventualStateMigration `protobuf:"bytes,13,opt,name=eventualStateMigration_msg,json=eventualStateMigrationMsg,proto3,oneof"`
-}
-
 func (*CoordinatorToWorker_PauseMsg) isCoordinatorToWorker_Message() {}
 
 func (*CoordinatorToWorker_RestartMsg) isCoordinatorToWorker_Message() {}
@@ -360,8 +346,6 @@ func (*CoordinatorToWorker_InitLazyReconfigMsg) isCoordinatorToWorker_Message() 
 func (*CoordinatorToWorker_WaitInboundPeersToConnectMsg) isCoordinatorToWorker_Message() {}
 
 func (*CoordinatorToWorker_WaitReconfigDoneMsg) isCoordinatorToWorker_Message() {}
-
-func (*CoordinatorToWorker_EventualStateMigrationMsg) isCoordinatorToWorker_Message() {}
 
 type TaskAssignment struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -631,110 +615,6 @@ func (*WaitReconfigDone) Descriptor() ([]byte, []int) {
 	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{5}
 }
 
-// [lazy-by-key] Notify remaining tasks to eventually fetch all state from
-// cancelling tasks. Sent between upstream routing update and wait reconfig done.
-type EventualStateMigration struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// List of affected bucket info: which buckets may have state on cancelling
-	// workers and need eventual migration
-	AffectedBuckets []*AffectedBucketInfo `protobuf:"bytes,1,rep,name=affectedBuckets,proto3" json:"affectedBuckets,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *EventualStateMigration) Reset() {
-	*x = EventualStateMigration{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *EventualStateMigration) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*EventualStateMigration) ProtoMessage() {}
-
-func (x *EventualStateMigration) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use EventualStateMigration.ProtoReflect.Descriptor instead.
-func (*EventualStateMigration) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *EventualStateMigration) GetAffectedBuckets() []*AffectedBucketInfo {
-	if x != nil {
-		return x.AffectedBuckets
-	}
-	return nil
-}
-
-// A bucket that may have state residing on cancelling workers due to lazy
-// migration across past reconfigurations
-type AffectedBucketInfo struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Bucket index
-	BucketId int64 `protobuf:"varint,1,opt,name=bucketId,proto3" json:"bucketId,omitempty"`
-	// Cancelling worker IDs that may hold state for keys in this bucket
-	CancellingWorkerIds []uint32 `protobuf:"varint,2,rep,packed,name=cancellingWorkerIds,proto3" json:"cancellingWorkerIds,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
-}
-
-func (x *AffectedBucketInfo) Reset() {
-	*x = AffectedBucketInfo{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AffectedBucketInfo) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AffectedBucketInfo) ProtoMessage() {}
-
-func (x *AffectedBucketInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AffectedBucketInfo.ProtoReflect.Descriptor instead.
-func (*AffectedBucketInfo) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *AffectedBucketInfo) GetBucketId() int64 {
-	if x != nil {
-		return x.BucketId
-	}
-	return 0
-}
-
-func (x *AffectedBucketInfo) GetCancellingWorkerIds() []uint32 {
-	if x != nil {
-		return x.CancellingWorkerIds
-	}
-	return nil
-}
-
 type DownstreamInfo struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Downstream WorkerId - uint16 is used but in proto only uint32 is
@@ -748,7 +628,7 @@ type DownstreamInfo struct {
 
 func (x *DownstreamInfo) Reset() {
 	*x = DownstreamInfo{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[8]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -760,7 +640,7 @@ func (x *DownstreamInfo) String() string {
 func (*DownstreamInfo) ProtoMessage() {}
 
 func (x *DownstreamInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[8]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -773,7 +653,7 @@ func (x *DownstreamInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DownstreamInfo.ProtoReflect.Descriptor instead.
 func (*DownstreamInfo) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{8}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DownstreamInfo) GetWorkerId() uint32 {
@@ -800,7 +680,7 @@ type PeerStateService struct {
 
 func (x *PeerStateService) Reset() {
 	*x = PeerStateService{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[9]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -812,7 +692,7 @@ func (x *PeerStateService) String() string {
 func (*PeerStateService) ProtoMessage() {}
 
 func (x *PeerStateService) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[9]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -825,7 +705,7 @@ func (x *PeerStateService) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeerStateService.ProtoReflect.Descriptor instead.
 func (*PeerStateService) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{9}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *PeerStateService) GetPeerStateServiceInfoList() []*PeerStateServiceInfo {
@@ -847,7 +727,7 @@ type PeerStateServiceInfo struct {
 
 func (x *PeerStateServiceInfo) Reset() {
 	*x = PeerStateServiceInfo{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[10]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -859,7 +739,7 @@ func (x *PeerStateServiceInfo) String() string {
 func (*PeerStateServiceInfo) ProtoMessage() {}
 
 func (x *PeerStateServiceInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[10]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -872,7 +752,7 @@ func (x *PeerStateServiceInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeerStateServiceInfo.ProtoReflect.Descriptor instead.
 func (*PeerStateServiceInfo) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{10}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *PeerStateServiceInfo) GetWorkerId() uint32 {
@@ -899,7 +779,7 @@ type Registration struct {
 
 func (x *Registration) Reset() {
 	*x = Registration{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[11]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -911,7 +791,7 @@ func (x *Registration) String() string {
 func (*Registration) ProtoMessage() {}
 
 func (x *Registration) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[11]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -924,7 +804,7 @@ func (x *Registration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Registration.ProtoReflect.Descriptor instead.
 func (*Registration) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{11}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Registration) GetDataPlanePort() string {
@@ -952,7 +832,7 @@ type RegistrationResponse struct {
 
 func (x *RegistrationResponse) Reset() {
 	*x = RegistrationResponse{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[12]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -964,7 +844,7 @@ func (x *RegistrationResponse) String() string {
 func (*RegistrationResponse) ProtoMessage() {}
 
 func (x *RegistrationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[12]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -977,7 +857,7 @@ func (x *RegistrationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegistrationResponse.ProtoReflect.Descriptor instead.
 func (*RegistrationResponse) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{12}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *RegistrationResponse) GetInfo() string {
@@ -1003,7 +883,7 @@ type Response struct {
 
 func (x *Response) Reset() {
 	*x = Response{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[13]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1015,7 +895,7 @@ func (x *Response) String() string {
 func (*Response) ProtoMessage() {}
 
 func (x *Response) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[13]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1028,7 +908,7 @@ func (x *Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Response.ProtoReflect.Descriptor instead.
 func (*Response) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{13}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Response) GetInfo() string {
@@ -1049,7 +929,7 @@ type StateMigration struct {
 
 func (x *StateMigration) Reset() {
 	*x = StateMigration{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[14]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1061,7 +941,7 @@ func (x *StateMigration) String() string {
 func (*StateMigration) ProtoMessage() {}
 
 func (x *StateMigration) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[14]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1074,7 +954,7 @@ func (x *StateMigration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StateMigration.ProtoReflect.Descriptor instead.
 func (*StateMigration) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{14}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *StateMigration) GetMigrationInfoList() []*MigrationInfo {
@@ -1098,7 +978,7 @@ type MigrationInfo struct {
 
 func (x *MigrationInfo) Reset() {
 	*x = MigrationInfo{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[15]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1110,7 +990,7 @@ func (x *MigrationInfo) String() string {
 func (*MigrationInfo) ProtoMessage() {}
 
 func (x *MigrationInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[15]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1123,7 +1003,7 @@ func (x *MigrationInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MigrationInfo.ProtoReflect.Descriptor instead.
 func (*MigrationInfo) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{15}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *MigrationInfo) GetTargetWorkerAddr() string {
@@ -1157,7 +1037,7 @@ type UpdateDownstreamRouting struct {
 
 func (x *UpdateDownstreamRouting) Reset() {
 	*x = UpdateDownstreamRouting{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[16]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1169,7 +1049,7 @@ func (x *UpdateDownstreamRouting) String() string {
 func (*UpdateDownstreamRouting) ProtoMessage() {}
 
 func (x *UpdateDownstreamRouting) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[16]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1182,7 +1062,7 @@ func (x *UpdateDownstreamRouting) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateDownstreamRouting.ProtoReflect.Descriptor instead.
 func (*UpdateDownstreamRouting) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{16}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *UpdateDownstreamRouting) GetDownstreamsToAdd() []*DownstreamInfo {
@@ -1214,7 +1094,7 @@ type Terminate struct {
 
 func (x *Terminate) Reset() {
 	*x = Terminate{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[17]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1226,7 +1106,7 @@ func (x *Terminate) String() string {
 func (*Terminate) ProtoMessage() {}
 
 func (x *Terminate) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[17]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1239,7 +1119,7 @@ func (x *Terminate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Terminate.ProtoReflect.Descriptor instead.
 func (*Terminate) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{17}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{15}
 }
 
 type Pause struct {
@@ -1250,7 +1130,7 @@ type Pause struct {
 
 func (x *Pause) Reset() {
 	*x = Pause{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[18]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1262,7 +1142,7 @@ func (x *Pause) String() string {
 func (*Pause) ProtoMessage() {}
 
 func (x *Pause) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[18]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1275,7 +1155,7 @@ func (x *Pause) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Pause.ProtoReflect.Descriptor instead.
 func (*Pause) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{18}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{16}
 }
 
 type Restart struct {
@@ -1286,7 +1166,7 @@ type Restart struct {
 
 func (x *Restart) Reset() {
 	*x = Restart{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[19]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1298,7 +1178,7 @@ func (x *Restart) String() string {
 func (*Restart) ProtoMessage() {}
 
 func (x *Restart) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[19]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1311,7 +1191,7 @@ func (x *Restart) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Restart.ProtoReflect.Descriptor instead.
 func (*Restart) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{19}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{17}
 }
 
 // [Lazy protocol] Notify current workers of the reconfiguring operator to
@@ -1328,7 +1208,7 @@ type StartFastForward struct {
 
 func (x *StartFastForward) Reset() {
 	*x = StartFastForward{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[20]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1340,7 +1220,7 @@ func (x *StartFastForward) String() string {
 func (*StartFastForward) ProtoMessage() {}
 
 func (x *StartFastForward) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[20]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1353,7 +1233,7 @@ func (x *StartFastForward) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartFastForward.ProtoReflect.Descriptor instead.
 func (*StartFastForward) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{20}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *StartFastForward) GetUpdatedRoutingTable() *SerializedPartitionTable {
@@ -1380,7 +1260,7 @@ type MetricBatch struct {
 
 func (x *MetricBatch) Reset() {
 	*x = MetricBatch{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[21]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1392,7 +1272,7 @@ func (x *MetricBatch) String() string {
 func (*MetricBatch) ProtoMessage() {}
 
 func (x *MetricBatch) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[21]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1405,7 +1285,7 @@ func (x *MetricBatch) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricBatch.ProtoReflect.Descriptor instead.
 func (*MetricBatch) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{21}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *MetricBatch) GetOperatorId() string {
@@ -1432,7 +1312,7 @@ type MetricData struct {
 
 func (x *MetricData) Reset() {
 	*x = MetricData{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[22]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1444,7 +1324,7 @@ func (x *MetricData) String() string {
 func (*MetricData) ProtoMessage() {}
 
 func (x *MetricData) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[22]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1457,7 +1337,7 @@ func (x *MetricData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricData.ProtoReflect.Descriptor instead.
 func (*MetricData) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{22}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *MetricData) GetMetricType() string {
@@ -1483,7 +1363,7 @@ type MetricCollectionResponse struct {
 
 func (x *MetricCollectionResponse) Reset() {
 	*x = MetricCollectionResponse{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[23]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1495,7 +1375,7 @@ func (x *MetricCollectionResponse) String() string {
 func (*MetricCollectionResponse) ProtoMessage() {}
 
 func (x *MetricCollectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[23]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1508,7 +1388,7 @@ func (x *MetricCollectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricCollectionResponse.ProtoReflect.Descriptor instead.
 func (*MetricCollectionResponse) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{23}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *MetricCollectionResponse) GetMessage() string {
@@ -1529,7 +1409,7 @@ type LazyByKeyStateRequest struct {
 
 func (x *LazyByKeyStateRequest) Reset() {
 	*x = LazyByKeyStateRequest{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[24]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1541,7 +1421,7 @@ func (x *LazyByKeyStateRequest) String() string {
 func (*LazyByKeyStateRequest) ProtoMessage() {}
 
 func (x *LazyByKeyStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[24]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1554,7 +1434,7 @@ func (x *LazyByKeyStateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LazyByKeyStateRequest.ProtoReflect.Descriptor instead.
 func (*LazyByKeyStateRequest) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{24}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *LazyByKeyStateRequest) GetStateKeyLists() []*StateKeyList {
@@ -1581,7 +1461,7 @@ type LazyOptStateRequest struct {
 
 func (x *LazyOptStateRequest) Reset() {
 	*x = LazyOptStateRequest{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[25]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1593,7 +1473,7 @@ func (x *LazyOptStateRequest) String() string {
 func (*LazyOptStateRequest) ProtoMessage() {}
 
 func (x *LazyOptStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[25]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1606,7 +1486,7 @@ func (x *LazyOptStateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LazyOptStateRequest.ProtoReflect.Descriptor instead.
 func (*LazyOptStateRequest) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{25}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *LazyOptStateRequest) GetOperatorId() uint32 {
@@ -1648,7 +1528,7 @@ type StateKeyList struct {
 
 func (x *StateKeyList) Reset() {
 	*x = StateKeyList{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[26]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1660,7 +1540,7 @@ func (x *StateKeyList) String() string {
 func (*StateKeyList) ProtoMessage() {}
 
 func (x *StateKeyList) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[26]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1673,7 +1553,7 @@ func (x *StateKeyList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StateKeyList.ProtoReflect.Descriptor instead.
 func (*StateKeyList) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{26}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *StateKeyList) GetStateId() uint32 {
@@ -1701,7 +1581,7 @@ type StateValueList struct {
 
 func (x *StateValueList) Reset() {
 	*x = StateValueList{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[27]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1713,7 +1593,7 @@ func (x *StateValueList) String() string {
 func (*StateValueList) ProtoMessage() {}
 
 func (x *StateValueList) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[27]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1726,7 +1606,7 @@ func (x *StateValueList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StateValueList.ProtoReflect.Descriptor instead.
 func (*StateValueList) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{27}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *StateValueList) GetStateId() uint32 {
@@ -1754,7 +1634,7 @@ type KeyResponse struct {
 
 func (x *KeyResponse) Reset() {
 	*x = KeyResponse{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[28]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1766,7 +1646,7 @@ func (x *KeyResponse) String() string {
 func (*KeyResponse) ProtoMessage() {}
 
 func (x *KeyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[28]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1779,7 +1659,7 @@ func (x *KeyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KeyResponse.ProtoReflect.Descriptor instead.
 func (*KeyResponse) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{28}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *KeyResponse) GetStateValueLists() []*StateValueList {
@@ -1803,7 +1683,7 @@ type LazyOptStateResponse struct {
 
 func (x *LazyOptStateResponse) Reset() {
 	*x = LazyOptStateResponse{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[29]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1815,7 +1695,7 @@ func (x *LazyOptStateResponse) String() string {
 func (*LazyOptStateResponse) ProtoMessage() {}
 
 func (x *LazyOptStateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[29]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1828,7 +1708,7 @@ func (x *LazyOptStateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LazyOptStateResponse.ProtoReflect.Descriptor instead.
 func (*LazyOptStateResponse) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{29}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *LazyOptStateResponse) GetMessage() isLazyOptStateResponse_Message {
@@ -1884,7 +1764,7 @@ type BucketsToBePulled struct {
 
 func (x *BucketsToBePulled) Reset() {
 	*x = BucketsToBePulled{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[30]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1896,7 +1776,7 @@ func (x *BucketsToBePulled) String() string {
 func (*BucketsToBePulled) ProtoMessage() {}
 
 func (x *BucketsToBePulled) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[30]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1909,7 +1789,7 @@ func (x *BucketsToBePulled) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BucketsToBePulled.ProtoReflect.Descriptor instead.
 func (*BucketsToBePulled) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{30}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *BucketsToBePulled) GetBucketRanges() []*BucketRange {
@@ -1934,7 +1814,7 @@ type StateChunk struct {
 
 func (x *StateChunk) Reset() {
 	*x = StateChunk{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[31]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1946,7 +1826,7 @@ func (x *StateChunk) String() string {
 func (*StateChunk) ProtoMessage() {}
 
 func (x *StateChunk) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[31]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1959,7 +1839,7 @@ func (x *StateChunk) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StateChunk.ProtoReflect.Descriptor instead.
 func (*StateChunk) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{31}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *StateChunk) GetEndOfStream() bool {
@@ -1994,7 +1874,7 @@ type TaskMetadata struct {
 
 func (x *TaskMetadata) Reset() {
 	*x = TaskMetadata{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[32]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2006,7 +1886,7 @@ func (x *TaskMetadata) String() string {
 func (*TaskMetadata) ProtoMessage() {}
 
 func (x *TaskMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[32]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2019,7 +1899,7 @@ func (x *TaskMetadata) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskMetadata.ProtoReflect.Descriptor instead.
 func (*TaskMetadata) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{32}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *TaskMetadata) GetMetadata() []byte {
@@ -2044,7 +1924,7 @@ type BucketMigrationRequest struct {
 
 func (x *BucketMigrationRequest) Reset() {
 	*x = BucketMigrationRequest{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[33]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2056,7 +1936,7 @@ func (x *BucketMigrationRequest) String() string {
 func (*BucketMigrationRequest) ProtoMessage() {}
 
 func (x *BucketMigrationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[33]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2069,7 +1949,7 @@ func (x *BucketMigrationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BucketMigrationRequest.ProtoReflect.Descriptor instead.
 func (*BucketMigrationRequest) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{33}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *BucketMigrationRequest) GetOperatorId() uint32 {
@@ -2106,7 +1986,7 @@ type ReadRequest struct {
 
 func (x *ReadRequest) Reset() {
 	*x = ReadRequest{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[34]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2118,7 +1998,7 @@ func (x *ReadRequest) String() string {
 func (*ReadRequest) ProtoMessage() {}
 
 func (x *ReadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[34]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2131,7 +2011,7 @@ func (x *ReadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadRequest.ProtoReflect.Descriptor instead.
 func (*ReadRequest) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{34}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *ReadRequest) GetOperatorId() uint32 {
@@ -2159,7 +2039,7 @@ type ReadResponse struct {
 
 func (x *ReadResponse) Reset() {
 	*x = ReadResponse{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[35]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2171,7 +2051,7 @@ func (x *ReadResponse) String() string {
 func (*ReadResponse) ProtoMessage() {}
 
 func (x *ReadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[35]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2184,7 +2064,7 @@ func (x *ReadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadResponse.ProtoReflect.Descriptor instead.
 func (*ReadResponse) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{35}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *ReadResponse) GetValues() [][]byte {
@@ -2209,7 +2089,7 @@ type WriteRequest struct {
 
 func (x *WriteRequest) Reset() {
 	*x = WriteRequest{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[36]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2221,7 +2101,7 @@ func (x *WriteRequest) String() string {
 func (*WriteRequest) ProtoMessage() {}
 
 func (x *WriteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[36]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2234,7 +2114,7 @@ func (x *WriteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteRequest.ProtoReflect.Descriptor instead.
 func (*WriteRequest) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{36}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *WriteRequest) GetOperatorId() uint32 {
@@ -2271,7 +2151,7 @@ type DeleteRequest struct {
 
 func (x *DeleteRequest) Reset() {
 	*x = DeleteRequest{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[37]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2283,7 +2163,7 @@ func (x *DeleteRequest) String() string {
 func (*DeleteRequest) ProtoMessage() {}
 
 func (x *DeleteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[37]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2296,7 +2176,7 @@ func (x *DeleteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRequest.ProtoReflect.Descriptor instead.
 func (*DeleteRequest) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{37}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *DeleteRequest) GetOperatorId() uint32 {
@@ -2323,7 +2203,7 @@ type PebbleReadRequest struct {
 
 func (x *PebbleReadRequest) Reset() {
 	*x = PebbleReadRequest{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[38]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2335,7 +2215,7 @@ func (x *PebbleReadRequest) String() string {
 func (*PebbleReadRequest) ProtoMessage() {}
 
 func (x *PebbleReadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[38]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2348,7 +2228,7 @@ func (x *PebbleReadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PebbleReadRequest.ProtoReflect.Descriptor instead.
 func (*PebbleReadRequest) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{38}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *PebbleReadRequest) GetKeys() [][]byte {
@@ -2369,7 +2249,7 @@ type PebbleReadResponse struct {
 
 func (x *PebbleReadResponse) Reset() {
 	*x = PebbleReadResponse{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[39]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2381,7 +2261,7 @@ func (x *PebbleReadResponse) String() string {
 func (*PebbleReadResponse) ProtoMessage() {}
 
 func (x *PebbleReadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[39]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2394,7 +2274,7 @@ func (x *PebbleReadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PebbleReadResponse.ProtoReflect.Descriptor instead.
 func (*PebbleReadResponse) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{39}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *PebbleReadResponse) GetValues() [][]byte {
@@ -2422,7 +2302,7 @@ type PebbleWriteResponse struct {
 
 func (x *PebbleWriteResponse) Reset() {
 	*x = PebbleWriteResponse{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[40]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2434,7 +2314,7 @@ func (x *PebbleWriteResponse) String() string {
 func (*PebbleWriteResponse) ProtoMessage() {}
 
 func (x *PebbleWriteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[40]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2447,7 +2327,7 @@ func (x *PebbleWriteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PebbleWriteResponse.ProtoReflect.Descriptor instead.
 func (*PebbleWriteResponse) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{40}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *PebbleWriteResponse) GetInfo() string {
@@ -2476,7 +2356,7 @@ type PebbleWriteRequest struct {
 
 func (x *PebbleWriteRequest) Reset() {
 	*x = PebbleWriteRequest{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[41]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2488,7 +2368,7 @@ func (x *PebbleWriteRequest) String() string {
 func (*PebbleWriteRequest) ProtoMessage() {}
 
 func (x *PebbleWriteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[41]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2501,7 +2381,7 @@ func (x *PebbleWriteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PebbleWriteRequest.ProtoReflect.Descriptor instead.
 func (*PebbleWriteRequest) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{41}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *PebbleWriteRequest) GetKeys() [][]byte {
@@ -2535,7 +2415,7 @@ type PebbleDeleteRequest struct {
 
 func (x *PebbleDeleteRequest) Reset() {
 	*x = PebbleDeleteRequest{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[42]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2547,7 +2427,7 @@ func (x *PebbleDeleteRequest) String() string {
 func (*PebbleDeleteRequest) ProtoMessage() {}
 
 func (x *PebbleDeleteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[42]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2560,7 +2440,7 @@ func (x *PebbleDeleteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PebbleDeleteRequest.ProtoReflect.Descriptor instead.
 func (*PebbleDeleteRequest) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{42}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *PebbleDeleteRequest) GetKeys() [][]byte {
@@ -2581,7 +2461,7 @@ type PebbleRangeQueryRequest struct {
 
 func (x *PebbleRangeQueryRequest) Reset() {
 	*x = PebbleRangeQueryRequest{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[43]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2593,7 +2473,7 @@ func (x *PebbleRangeQueryRequest) String() string {
 func (*PebbleRangeQueryRequest) ProtoMessage() {}
 
 func (x *PebbleRangeQueryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[43]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2606,7 +2486,7 @@ func (x *PebbleRangeQueryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PebbleRangeQueryRequest.ProtoReflect.Descriptor instead.
 func (*PebbleRangeQueryRequest) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{43}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *PebbleRangeQueryRequest) GetLower() []byte {
@@ -2634,7 +2514,7 @@ type PebbleRangeQueryResponse struct {
 
 func (x *PebbleRangeQueryResponse) Reset() {
 	*x = PebbleRangeQueryResponse{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[44]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2646,7 +2526,7 @@ func (x *PebbleRangeQueryResponse) String() string {
 func (*PebbleRangeQueryResponse) ProtoMessage() {}
 
 func (x *PebbleRangeQueryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[44]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2659,7 +2539,7 @@ func (x *PebbleRangeQueryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PebbleRangeQueryResponse.ProtoReflect.Descriptor instead.
 func (*PebbleRangeQueryResponse) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{44}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *PebbleRangeQueryResponse) GetKeys() [][]byte {
@@ -2689,7 +2569,7 @@ type BucketRange struct {
 
 func (x *BucketRange) Reset() {
 	*x = BucketRange{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[45]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2701,7 +2581,7 @@ func (x *BucketRange) String() string {
 func (*BucketRange) ProtoMessage() {}
 
 func (x *BucketRange) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[45]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2714,7 +2594,7 @@ func (x *BucketRange) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BucketRange.ProtoReflect.Descriptor instead.
 func (*BucketRange) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{45}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *BucketRange) GetWorkerId() uint32 {
@@ -2748,7 +2628,7 @@ type SerializedPartitionTable struct {
 
 func (x *SerializedPartitionTable) Reset() {
 	*x = SerializedPartitionTable{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[46]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2760,7 +2640,7 @@ func (x *SerializedPartitionTable) String() string {
 func (*SerializedPartitionTable) ProtoMessage() {}
 
 func (x *SerializedPartitionTable) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[46]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2773,7 +2653,7 @@ func (x *SerializedPartitionTable) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SerializedPartitionTable.ProtoReflect.Descriptor instead.
 func (*SerializedPartitionTable) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{46}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *SerializedPartitionTable) GetBucketRanges() []*BucketRange {
@@ -2791,7 +2671,7 @@ type JobConfig struct {
 
 func (x *JobConfig) Reset() {
 	*x = JobConfig{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[47]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2803,7 +2683,7 @@ func (x *JobConfig) String() string {
 func (*JobConfig) ProtoMessage() {}
 
 func (x *JobConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[47]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2816,7 +2696,7 @@ func (x *JobConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JobConfig.ProtoReflect.Descriptor instead.
 func (*JobConfig) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{47}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{45}
 }
 
 type RescaleConfig struct {
@@ -2831,7 +2711,7 @@ type RescaleConfig struct {
 
 func (x *RescaleConfig) Reset() {
 	*x = RescaleConfig{}
-	mi := &file_internal_grpc_rpc_proto_msgTypes[48]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2843,7 +2723,7 @@ func (x *RescaleConfig) String() string {
 func (*RescaleConfig) ProtoMessage() {}
 
 func (x *RescaleConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_grpc_rpc_proto_msgTypes[48]
+	mi := &file_internal_grpc_rpc_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2856,7 +2736,7 @@ func (x *RescaleConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RescaleConfig.ProtoReflect.Descriptor instead.
 func (*RescaleConfig) Descriptor() ([]byte, []int) {
-	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{48}
+	return file_internal_grpc_rpc_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *RescaleConfig) GetTargetRescaleOp() string {
@@ -2881,7 +2761,7 @@ const file_internal_grpc_rpc_proto_rawDesc = "" +
 	"\x13WorkerToCoordinator\x12?\n" +
 	"\x10registration_msg\x18\x01 \x01(\v2\x12.grpc.RegistrationH\x00R\x0fregistrationMsg\x123\n" +
 	"\fresponse_msg\x18\x02 \x01(\v2\x0e.grpc.ResponseH\x00R\vresponseMsgB\t\n" +
-	"\amessage\"\xe2\a\n" +
+	"\amessage\"\x83\a\n" +
 	"\x13CoordinatorToWorker\x12*\n" +
 	"\tpause_msg\x18\x01 \x01(\v2\v.grpc.PauseH\x00R\bpauseMsg\x120\n" +
 	"\vrestart_msg\x18\x02 \x01(\v2\r.grpc.RestartH\x00R\n" +
@@ -2896,8 +2776,7 @@ const file_internal_grpc_rpc_proto_rawDesc = "" +
 	"\x14initLazyReconfig_msg\x18\n" +
 	" \x01(\v2\x16.grpc.InitLazyReconfigH\x00R\x13initLazyReconfigMsg\x12f\n" +
 	"\x1dwaitInboundPeersToConnect_msg\x18\v \x01(\v2\x1f.grpc.WaitInboundPeersToConnectH\x00R\x1cwaitInboundPeersToConnectMsg\x12K\n" +
-	"\x14waitReconfigDone_msg\x18\f \x01(\v2\x16.grpc.WaitReconfigDoneH\x00R\x13waitReconfigDoneMsg\x12]\n" +
-	"\x1aeventualStateMigration_msg\x18\r \x01(\v2\x1c.grpc.EventualStateMigrationH\x00R\x19eventualStateMigrationMsgB\t\n" +
+	"\x14waitReconfigDone_msg\x18\f \x01(\v2\x16.grpc.WaitReconfigDoneH\x00R\x13waitReconfigDoneMsgB\t\n" +
 	"\amessage\"\xd2\x05\n" +
 	"\x0eTaskAssignment\x12\x16\n" +
 	"\x06taskId\x18\x01 \x01(\tR\x06taskId\x12D\n" +
@@ -2921,12 +2800,7 @@ const file_internal_grpc_rpc_proto_rawDesc = "" +
 	"\x0eisShuttingDown\x18\x03 \x01(\bR\x0eisShuttingDown\x12B\n" +
 	"\x10peerStateService\x18\x04 \x01(\v2\x16.grpc.PeerStateServiceR\x10peerStateService\"\x1b\n" +
 	"\x19WaitInboundPeersToConnect\"\x12\n" +
-	"\x10WaitReconfigDone\"\\\n" +
-	"\x16EventualStateMigration\x12B\n" +
-	"\x0faffectedBuckets\x18\x01 \x03(\v2\x18.grpc.AffectedBucketInfoR\x0faffectedBuckets\"b\n" +
-	"\x12AffectedBucketInfo\x12\x1a\n" +
-	"\bbucketId\x18\x01 \x01(\x03R\bbucketId\x120\n" +
-	"\x13cancellingWorkerIds\x18\x02 \x03(\rR\x13cancellingWorkerIds\"R\n" +
+	"\x10WaitReconfigDone\"R\n" +
 	"\x0eDownstreamInfo\x12\x1a\n" +
 	"\bworkerId\x18\x01 \x01(\rR\bworkerId\x12$\n" +
 	"\rdataPlaneAddr\x18\x02 \x01(\tR\rdataPlaneAddr\"j\n" +
@@ -3096,7 +2970,7 @@ func file_internal_grpc_rpc_proto_rawDescGZIP() []byte {
 	return file_internal_grpc_rpc_proto_rawDescData
 }
 
-var file_internal_grpc_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 49)
+var file_internal_grpc_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 47)
 var file_internal_grpc_rpc_proto_goTypes = []any{
 	(*WorkerToCoordinator)(nil),       // 0: grpc.WorkerToCoordinator
 	(*CoordinatorToWorker)(nil),       // 1: grpc.CoordinatorToWorker
@@ -3104,127 +2978,123 @@ var file_internal_grpc_rpc_proto_goTypes = []any{
 	(*InitLazyReconfig)(nil),          // 3: grpc.InitLazyReconfig
 	(*WaitInboundPeersToConnect)(nil), // 4: grpc.WaitInboundPeersToConnect
 	(*WaitReconfigDone)(nil),          // 5: grpc.WaitReconfigDone
-	(*EventualStateMigration)(nil),    // 6: grpc.EventualStateMigration
-	(*AffectedBucketInfo)(nil),        // 7: grpc.AffectedBucketInfo
-	(*DownstreamInfo)(nil),            // 8: grpc.DownstreamInfo
-	(*PeerStateService)(nil),          // 9: grpc.PeerStateService
-	(*PeerStateServiceInfo)(nil),      // 10: grpc.PeerStateServiceInfo
-	(*Registration)(nil),              // 11: grpc.Registration
-	(*RegistrationResponse)(nil),      // 12: grpc.RegistrationResponse
-	(*Response)(nil),                  // 13: grpc.Response
-	(*StateMigration)(nil),            // 14: grpc.StateMigration
-	(*MigrationInfo)(nil),             // 15: grpc.MigrationInfo
-	(*UpdateDownstreamRouting)(nil),   // 16: grpc.UpdateDownstreamRouting
-	(*Terminate)(nil),                 // 17: grpc.Terminate
-	(*Pause)(nil),                     // 18: grpc.Pause
-	(*Restart)(nil),                   // 19: grpc.Restart
-	(*StartFastForward)(nil),          // 20: grpc.StartFastForward
-	(*MetricBatch)(nil),               // 21: grpc.MetricBatch
-	(*MetricData)(nil),                // 22: grpc.MetricData
-	(*MetricCollectionResponse)(nil),  // 23: grpc.MetricCollectionResponse
-	(*LazyByKeyStateRequest)(nil),     // 24: grpc.LazyByKeyStateRequest
-	(*LazyOptStateRequest)(nil),       // 25: grpc.LazyOptStateRequest
-	(*StateKeyList)(nil),              // 26: grpc.StateKeyList
-	(*StateValueList)(nil),            // 27: grpc.StateValueList
-	(*KeyResponse)(nil),               // 28: grpc.KeyResponse
-	(*LazyOptStateResponse)(nil),      // 29: grpc.LazyOptStateResponse
-	(*BucketsToBePulled)(nil),         // 30: grpc.BucketsToBePulled
-	(*StateChunk)(nil),                // 31: grpc.StateChunk
-	(*TaskMetadata)(nil),              // 32: grpc.TaskMetadata
-	(*BucketMigrationRequest)(nil),    // 33: grpc.BucketMigrationRequest
-	(*ReadRequest)(nil),               // 34: grpc.ReadRequest
-	(*ReadResponse)(nil),              // 35: grpc.ReadResponse
-	(*WriteRequest)(nil),              // 36: grpc.WriteRequest
-	(*DeleteRequest)(nil),             // 37: grpc.DeleteRequest
-	(*PebbleReadRequest)(nil),         // 38: grpc.PebbleReadRequest
-	(*PebbleReadResponse)(nil),        // 39: grpc.PebbleReadResponse
-	(*PebbleWriteResponse)(nil),       // 40: grpc.PebbleWriteResponse
-	(*PebbleWriteRequest)(nil),        // 41: grpc.PebbleWriteRequest
-	(*PebbleDeleteRequest)(nil),       // 42: grpc.PebbleDeleteRequest
-	(*PebbleRangeQueryRequest)(nil),   // 43: grpc.PebbleRangeQueryRequest
-	(*PebbleRangeQueryResponse)(nil),  // 44: grpc.PebbleRangeQueryResponse
-	(*BucketRange)(nil),               // 45: grpc.BucketRange
-	(*SerializedPartitionTable)(nil),  // 46: grpc.SerializedPartitionTable
-	(*JobConfig)(nil),                 // 47: grpc.JobConfig
-	(*RescaleConfig)(nil),             // 48: grpc.RescaleConfig
+	(*DownstreamInfo)(nil),            // 6: grpc.DownstreamInfo
+	(*PeerStateService)(nil),          // 7: grpc.PeerStateService
+	(*PeerStateServiceInfo)(nil),      // 8: grpc.PeerStateServiceInfo
+	(*Registration)(nil),              // 9: grpc.Registration
+	(*RegistrationResponse)(nil),      // 10: grpc.RegistrationResponse
+	(*Response)(nil),                  // 11: grpc.Response
+	(*StateMigration)(nil),            // 12: grpc.StateMigration
+	(*MigrationInfo)(nil),             // 13: grpc.MigrationInfo
+	(*UpdateDownstreamRouting)(nil),   // 14: grpc.UpdateDownstreamRouting
+	(*Terminate)(nil),                 // 15: grpc.Terminate
+	(*Pause)(nil),                     // 16: grpc.Pause
+	(*Restart)(nil),                   // 17: grpc.Restart
+	(*StartFastForward)(nil),          // 18: grpc.StartFastForward
+	(*MetricBatch)(nil),               // 19: grpc.MetricBatch
+	(*MetricData)(nil),                // 20: grpc.MetricData
+	(*MetricCollectionResponse)(nil),  // 21: grpc.MetricCollectionResponse
+	(*LazyByKeyStateRequest)(nil),     // 22: grpc.LazyByKeyStateRequest
+	(*LazyOptStateRequest)(nil),       // 23: grpc.LazyOptStateRequest
+	(*StateKeyList)(nil),              // 24: grpc.StateKeyList
+	(*StateValueList)(nil),            // 25: grpc.StateValueList
+	(*KeyResponse)(nil),               // 26: grpc.KeyResponse
+	(*LazyOptStateResponse)(nil),      // 27: grpc.LazyOptStateResponse
+	(*BucketsToBePulled)(nil),         // 28: grpc.BucketsToBePulled
+	(*StateChunk)(nil),                // 29: grpc.StateChunk
+	(*TaskMetadata)(nil),              // 30: grpc.TaskMetadata
+	(*BucketMigrationRequest)(nil),    // 31: grpc.BucketMigrationRequest
+	(*ReadRequest)(nil),               // 32: grpc.ReadRequest
+	(*ReadResponse)(nil),              // 33: grpc.ReadResponse
+	(*WriteRequest)(nil),              // 34: grpc.WriteRequest
+	(*DeleteRequest)(nil),             // 35: grpc.DeleteRequest
+	(*PebbleReadRequest)(nil),         // 36: grpc.PebbleReadRequest
+	(*PebbleReadResponse)(nil),        // 37: grpc.PebbleReadResponse
+	(*PebbleWriteResponse)(nil),       // 38: grpc.PebbleWriteResponse
+	(*PebbleWriteRequest)(nil),        // 39: grpc.PebbleWriteRequest
+	(*PebbleDeleteRequest)(nil),       // 40: grpc.PebbleDeleteRequest
+	(*PebbleRangeQueryRequest)(nil),   // 41: grpc.PebbleRangeQueryRequest
+	(*PebbleRangeQueryResponse)(nil),  // 42: grpc.PebbleRangeQueryResponse
+	(*BucketRange)(nil),               // 43: grpc.BucketRange
+	(*SerializedPartitionTable)(nil),  // 44: grpc.SerializedPartitionTable
+	(*JobConfig)(nil),                 // 45: grpc.JobConfig
+	(*RescaleConfig)(nil),             // 46: grpc.RescaleConfig
 }
 var file_internal_grpc_rpc_proto_depIdxs = []int32{
-	11, // 0: grpc.WorkerToCoordinator.registration_msg:type_name -> grpc.Registration
-	13, // 1: grpc.WorkerToCoordinator.response_msg:type_name -> grpc.Response
-	18, // 2: grpc.CoordinatorToWorker.pause_msg:type_name -> grpc.Pause
-	19, // 3: grpc.CoordinatorToWorker.restart_msg:type_name -> grpc.Restart
+	9,  // 0: grpc.WorkerToCoordinator.registration_msg:type_name -> grpc.Registration
+	11, // 1: grpc.WorkerToCoordinator.response_msg:type_name -> grpc.Response
+	16, // 2: grpc.CoordinatorToWorker.pause_msg:type_name -> grpc.Pause
+	17, // 3: grpc.CoordinatorToWorker.restart_msg:type_name -> grpc.Restart
 	2,  // 4: grpc.CoordinatorToWorker.taskAssignment_msg:type_name -> grpc.TaskAssignment
-	13, // 5: grpc.CoordinatorToWorker.response_msg:type_name -> grpc.Response
-	14, // 6: grpc.CoordinatorToWorker.stateMigration_msg:type_name -> grpc.StateMigration
-	16, // 7: grpc.CoordinatorToWorker.updateDownstreamRouting_msg:type_name -> grpc.UpdateDownstreamRouting
-	12, // 8: grpc.CoordinatorToWorker.registrationResponse_msg:type_name -> grpc.RegistrationResponse
-	20, // 9: grpc.CoordinatorToWorker.startFastForward_msg:type_name -> grpc.StartFastForward
-	17, // 10: grpc.CoordinatorToWorker.terminate_msg:type_name -> grpc.Terminate
+	11, // 5: grpc.CoordinatorToWorker.response_msg:type_name -> grpc.Response
+	12, // 6: grpc.CoordinatorToWorker.stateMigration_msg:type_name -> grpc.StateMigration
+	14, // 7: grpc.CoordinatorToWorker.updateDownstreamRouting_msg:type_name -> grpc.UpdateDownstreamRouting
+	10, // 8: grpc.CoordinatorToWorker.registrationResponse_msg:type_name -> grpc.RegistrationResponse
+	18, // 9: grpc.CoordinatorToWorker.startFastForward_msg:type_name -> grpc.StartFastForward
+	15, // 10: grpc.CoordinatorToWorker.terminate_msg:type_name -> grpc.Terminate
 	3,  // 11: grpc.CoordinatorToWorker.initLazyReconfig_msg:type_name -> grpc.InitLazyReconfig
 	4,  // 12: grpc.CoordinatorToWorker.waitInboundPeersToConnect_msg:type_name -> grpc.WaitInboundPeersToConnect
 	5,  // 13: grpc.CoordinatorToWorker.waitReconfigDone_msg:type_name -> grpc.WaitReconfigDone
-	6,  // 14: grpc.CoordinatorToWorker.eventualStateMigration_msg:type_name -> grpc.EventualStateMigration
-	8,  // 15: grpc.TaskAssignment.downstreamInfoList:type_name -> grpc.DownstreamInfo
-	46, // 16: grpc.TaskAssignment.keybyCollectorRoutingTable:type_name -> grpc.SerializedPartitionTable
-	46, // 17: grpc.TaskAssignment.stateLookupTable:type_name -> grpc.SerializedPartitionTable
-	9,  // 18: grpc.TaskAssignment.peerStateService:type_name -> grpc.PeerStateService
-	9,  // 19: grpc.InitLazyReconfig.peerStateService:type_name -> grpc.PeerStateService
-	7,  // 20: grpc.EventualStateMigration.affectedBuckets:type_name -> grpc.AffectedBucketInfo
-	10, // 21: grpc.PeerStateService.peerStateServiceInfoList:type_name -> grpc.PeerStateServiceInfo
-	15, // 22: grpc.StateMigration.migrationInfoList:type_name -> grpc.MigrationInfo
-	45, // 23: grpc.MigrationInfo.bucketRanges:type_name -> grpc.BucketRange
-	8,  // 24: grpc.UpdateDownstreamRouting.downstreamsToAdd:type_name -> grpc.DownstreamInfo
-	8,  // 25: grpc.UpdateDownstreamRouting.downstreamsToRemove:type_name -> grpc.DownstreamInfo
-	46, // 26: grpc.UpdateDownstreamRouting.keybyCollectorRoutingTable:type_name -> grpc.SerializedPartitionTable
-	46, // 27: grpc.StartFastForward.updatedRoutingTable:type_name -> grpc.SerializedPartitionTable
-	8,  // 28: grpc.StartFastForward.PeerInfoList:type_name -> grpc.DownstreamInfo
-	22, // 29: grpc.MetricBatch.metrics:type_name -> grpc.MetricData
-	26, // 30: grpc.LazyByKeyStateRequest.stateKeyLists:type_name -> grpc.StateKeyList
-	26, // 31: grpc.LazyOptStateRequest.stateKeyLists:type_name -> grpc.StateKeyList
-	27, // 32: grpc.KeyResponse.stateValueLists:type_name -> grpc.StateValueList
-	28, // 33: grpc.LazyOptStateResponse.keyResponse:type_name -> grpc.KeyResponse
-	31, // 34: grpc.LazyOptStateResponse.stateChunk:type_name -> grpc.StateChunk
-	45, // 35: grpc.BucketsToBePulled.bucketRanges:type_name -> grpc.BucketRange
-	45, // 36: grpc.SerializedPartitionTable.bucketRanges:type_name -> grpc.BucketRange
-	0,  // 37: grpc.CooridnatorService.RegisterToCoordinator:input_type -> grpc.WorkerToCoordinator
-	21, // 38: grpc.MetricCollectorService.CollectMetrics:input_type -> grpc.MetricBatch
-	30, // 39: grpc.StateCommService.PullStatePartition:input_type -> grpc.BucketsToBePulled
-	30, // 40: grpc.StateCommService.MigrateTaskMetadata:input_type -> grpc.BucketsToBePulled
-	33, // 41: grpc.StateCommService.RemoteBucketMigration:input_type -> grpc.BucketMigrationRequest
-	34, // 42: grpc.StateCommService.RemoteRead:input_type -> grpc.ReadRequest
-	36, // 43: grpc.StateCommService.RemoteOverwrite:input_type -> grpc.WriteRequest
-	36, // 44: grpc.StateCommService.RemoteMerge:input_type -> grpc.WriteRequest
-	37, // 45: grpc.StateCommService.RemoteDelete:input_type -> grpc.DeleteRequest
-	25, // 46: grpc.StateCommService.RemoteAsyncBucketMigration:input_type -> grpc.LazyOptStateRequest
-	24, // 47: grpc.StateCommService.RemoteByKeyMigration:input_type -> grpc.LazyByKeyStateRequest
-	38, // 48: grpc.RemotePebbleService.Read:input_type -> grpc.PebbleReadRequest
-	41, // 49: grpc.RemotePebbleService.Write:input_type -> grpc.PebbleWriteRequest
-	42, // 50: grpc.RemotePebbleService.Delete:input_type -> grpc.PebbleDeleteRequest
-	43, // 51: grpc.RemotePebbleService.RangeQuery:input_type -> grpc.PebbleRangeQueryRequest
-	47, // 52: grpc.APIService.RunJob:input_type -> grpc.JobConfig
-	48, // 53: grpc.APIService.Rescale:input_type -> grpc.RescaleConfig
-	1,  // 54: grpc.CooridnatorService.RegisterToCoordinator:output_type -> grpc.CoordinatorToWorker
-	23, // 55: grpc.MetricCollectorService.CollectMetrics:output_type -> grpc.MetricCollectionResponse
-	31, // 56: grpc.StateCommService.PullStatePartition:output_type -> grpc.StateChunk
-	32, // 57: grpc.StateCommService.MigrateTaskMetadata:output_type -> grpc.TaskMetadata
-	31, // 58: grpc.StateCommService.RemoteBucketMigration:output_type -> grpc.StateChunk
-	35, // 59: grpc.StateCommService.RemoteRead:output_type -> grpc.ReadResponse
-	13, // 60: grpc.StateCommService.RemoteOverwrite:output_type -> grpc.Response
-	13, // 61: grpc.StateCommService.RemoteMerge:output_type -> grpc.Response
-	13, // 62: grpc.StateCommService.RemoteDelete:output_type -> grpc.Response
-	29, // 63: grpc.StateCommService.RemoteAsyncBucketMigration:output_type -> grpc.LazyOptStateResponse
-	28, // 64: grpc.StateCommService.RemoteByKeyMigration:output_type -> grpc.KeyResponse
-	39, // 65: grpc.RemotePebbleService.Read:output_type -> grpc.PebbleReadResponse
-	40, // 66: grpc.RemotePebbleService.Write:output_type -> grpc.PebbleWriteResponse
-	13, // 67: grpc.RemotePebbleService.Delete:output_type -> grpc.Response
-	44, // 68: grpc.RemotePebbleService.RangeQuery:output_type -> grpc.PebbleRangeQueryResponse
-	13, // 69: grpc.APIService.RunJob:output_type -> grpc.Response
-	13, // 70: grpc.APIService.Rescale:output_type -> grpc.Response
-	54, // [54:71] is the sub-list for method output_type
-	37, // [37:54] is the sub-list for method input_type
-	37, // [37:37] is the sub-list for extension type_name
-	37, // [37:37] is the sub-list for extension extendee
-	0,  // [0:37] is the sub-list for field type_name
+	6,  // 14: grpc.TaskAssignment.downstreamInfoList:type_name -> grpc.DownstreamInfo
+	44, // 15: grpc.TaskAssignment.keybyCollectorRoutingTable:type_name -> grpc.SerializedPartitionTable
+	44, // 16: grpc.TaskAssignment.stateLookupTable:type_name -> grpc.SerializedPartitionTable
+	7,  // 17: grpc.TaskAssignment.peerStateService:type_name -> grpc.PeerStateService
+	7,  // 18: grpc.InitLazyReconfig.peerStateService:type_name -> grpc.PeerStateService
+	8,  // 19: grpc.PeerStateService.peerStateServiceInfoList:type_name -> grpc.PeerStateServiceInfo
+	13, // 20: grpc.StateMigration.migrationInfoList:type_name -> grpc.MigrationInfo
+	43, // 21: grpc.MigrationInfo.bucketRanges:type_name -> grpc.BucketRange
+	6,  // 22: grpc.UpdateDownstreamRouting.downstreamsToAdd:type_name -> grpc.DownstreamInfo
+	6,  // 23: grpc.UpdateDownstreamRouting.downstreamsToRemove:type_name -> grpc.DownstreamInfo
+	44, // 24: grpc.UpdateDownstreamRouting.keybyCollectorRoutingTable:type_name -> grpc.SerializedPartitionTable
+	44, // 25: grpc.StartFastForward.updatedRoutingTable:type_name -> grpc.SerializedPartitionTable
+	6,  // 26: grpc.StartFastForward.PeerInfoList:type_name -> grpc.DownstreamInfo
+	20, // 27: grpc.MetricBatch.metrics:type_name -> grpc.MetricData
+	24, // 28: grpc.LazyByKeyStateRequest.stateKeyLists:type_name -> grpc.StateKeyList
+	24, // 29: grpc.LazyOptStateRequest.stateKeyLists:type_name -> grpc.StateKeyList
+	25, // 30: grpc.KeyResponse.stateValueLists:type_name -> grpc.StateValueList
+	26, // 31: grpc.LazyOptStateResponse.keyResponse:type_name -> grpc.KeyResponse
+	29, // 32: grpc.LazyOptStateResponse.stateChunk:type_name -> grpc.StateChunk
+	43, // 33: grpc.BucketsToBePulled.bucketRanges:type_name -> grpc.BucketRange
+	43, // 34: grpc.SerializedPartitionTable.bucketRanges:type_name -> grpc.BucketRange
+	0,  // 35: grpc.CooridnatorService.RegisterToCoordinator:input_type -> grpc.WorkerToCoordinator
+	19, // 36: grpc.MetricCollectorService.CollectMetrics:input_type -> grpc.MetricBatch
+	28, // 37: grpc.StateCommService.PullStatePartition:input_type -> grpc.BucketsToBePulled
+	28, // 38: grpc.StateCommService.MigrateTaskMetadata:input_type -> grpc.BucketsToBePulled
+	31, // 39: grpc.StateCommService.RemoteBucketMigration:input_type -> grpc.BucketMigrationRequest
+	32, // 40: grpc.StateCommService.RemoteRead:input_type -> grpc.ReadRequest
+	34, // 41: grpc.StateCommService.RemoteOverwrite:input_type -> grpc.WriteRequest
+	34, // 42: grpc.StateCommService.RemoteMerge:input_type -> grpc.WriteRequest
+	35, // 43: grpc.StateCommService.RemoteDelete:input_type -> grpc.DeleteRequest
+	23, // 44: grpc.StateCommService.RemoteAsyncBucketMigration:input_type -> grpc.LazyOptStateRequest
+	22, // 45: grpc.StateCommService.RemoteByKeyMigration:input_type -> grpc.LazyByKeyStateRequest
+	36, // 46: grpc.RemotePebbleService.Read:input_type -> grpc.PebbleReadRequest
+	39, // 47: grpc.RemotePebbleService.Write:input_type -> grpc.PebbleWriteRequest
+	40, // 48: grpc.RemotePebbleService.Delete:input_type -> grpc.PebbleDeleteRequest
+	41, // 49: grpc.RemotePebbleService.RangeQuery:input_type -> grpc.PebbleRangeQueryRequest
+	45, // 50: grpc.APIService.RunJob:input_type -> grpc.JobConfig
+	46, // 51: grpc.APIService.Rescale:input_type -> grpc.RescaleConfig
+	1,  // 52: grpc.CooridnatorService.RegisterToCoordinator:output_type -> grpc.CoordinatorToWorker
+	21, // 53: grpc.MetricCollectorService.CollectMetrics:output_type -> grpc.MetricCollectionResponse
+	29, // 54: grpc.StateCommService.PullStatePartition:output_type -> grpc.StateChunk
+	30, // 55: grpc.StateCommService.MigrateTaskMetadata:output_type -> grpc.TaskMetadata
+	29, // 56: grpc.StateCommService.RemoteBucketMigration:output_type -> grpc.StateChunk
+	33, // 57: grpc.StateCommService.RemoteRead:output_type -> grpc.ReadResponse
+	11, // 58: grpc.StateCommService.RemoteOverwrite:output_type -> grpc.Response
+	11, // 59: grpc.StateCommService.RemoteMerge:output_type -> grpc.Response
+	11, // 60: grpc.StateCommService.RemoteDelete:output_type -> grpc.Response
+	27, // 61: grpc.StateCommService.RemoteAsyncBucketMigration:output_type -> grpc.LazyOptStateResponse
+	26, // 62: grpc.StateCommService.RemoteByKeyMigration:output_type -> grpc.KeyResponse
+	37, // 63: grpc.RemotePebbleService.Read:output_type -> grpc.PebbleReadResponse
+	38, // 64: grpc.RemotePebbleService.Write:output_type -> grpc.PebbleWriteResponse
+	11, // 65: grpc.RemotePebbleService.Delete:output_type -> grpc.Response
+	42, // 66: grpc.RemotePebbleService.RangeQuery:output_type -> grpc.PebbleRangeQueryResponse
+	11, // 67: grpc.APIService.RunJob:output_type -> grpc.Response
+	11, // 68: grpc.APIService.Rescale:output_type -> grpc.Response
+	52, // [52:69] is the sub-list for method output_type
+	35, // [35:52] is the sub-list for method input_type
+	35, // [35:35] is the sub-list for extension type_name
+	35, // [35:35] is the sub-list for extension extendee
+	0,  // [0:35] is the sub-list for field type_name
 }
 
 func init() { file_internal_grpc_rpc_proto_init() }
@@ -3249,11 +3119,10 @@ func file_internal_grpc_rpc_proto_init() {
 		(*CoordinatorToWorker_InitLazyReconfigMsg)(nil),
 		(*CoordinatorToWorker_WaitInboundPeersToConnectMsg)(nil),
 		(*CoordinatorToWorker_WaitReconfigDoneMsg)(nil),
-		(*CoordinatorToWorker_EventualStateMigrationMsg)(nil),
 	}
 	file_internal_grpc_rpc_proto_msgTypes[2].OneofWrappers = []any{}
-	file_internal_grpc_rpc_proto_msgTypes[16].OneofWrappers = []any{}
-	file_internal_grpc_rpc_proto_msgTypes[29].OneofWrappers = []any{
+	file_internal_grpc_rpc_proto_msgTypes[14].OneofWrappers = []any{}
+	file_internal_grpc_rpc_proto_msgTypes[27].OneofWrappers = []any{
 		(*LazyOptStateResponse_KeyResponse)(nil),
 		(*LazyOptStateResponse_StateChunk)(nil),
 	}
@@ -3263,7 +3132,7 @@ func file_internal_grpc_rpc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_grpc_rpc_proto_rawDesc), len(file_internal_grpc_rpc_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   49,
+			NumMessages:   47,
 			NumExtensions: 0,
 			NumServices:   5,
 		},

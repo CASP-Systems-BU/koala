@@ -1,17 +1,11 @@
 package state
 
 import (
-	"fmt"
-	"log"
-	"slices"
-	"strings"
 	"sync"
-	"sync/atomic"
 
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
 	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/keyby"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/syncflag"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/metric"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/state/stateBackend"
 	"github.com/panjf2000/ants/v2"
@@ -95,44 +89,6 @@ type StateService struct {
 	// [lazy-by-key] Connections for remote per-key based state migration (TCP)
 	ByKeyMigrationTcpConn     map[uint16]*LazyByKeyTcpConn
 	ByKeyMigrationTcpConnLock sync.Mutex
-
-	/**************************************************************************
-		   [lazy-by-key] Eventual migration for cancelling task
-	**************************************************************************/
-
-	// Affected buckets for eventual migration grouped by cancelling worker
-	// map[cancelling worker ID] -> list of affected bucket IDs
-	// There can be overlap in affected buckets across cancelling workers
-	eventualMigrationAffectedBuckets map[uint16][]int64
-
-	// Per-bucket RWLocks for concurrent key lookup table access during
-	// eventual migration. Multiple goroutines can read-lock the same bucket
-	// (scan for additional keys), while writes (lookup table updates) take
-	// exclusive locks. map[bucket ID] -> lock
-	eventualMigrationBucketLocks map[int64]*sync.RWMutex
-
-	// Tracks which buckets have been migrated, so we can skip them in future
-	// scans - only applied in gradual migration mode
-	// map[cancelling worker ID] -> map[bucket ID]
-	eventualMigrationFinishedBuckets map[uint16]map[int64]bool
-
-	// Tracks which cancelling workers have already decremented
-	// eventualMigrationRemainingWorkers. Prevents double decrement when
-	// fetchAdditionalKeys is re-invoked for a completed worker in a later
-	// batch (the worker remains in eventualMigrationAffectedBuckets).
-	eventualMigrationDoneWorkers sync.Map // map[uint16]bool
-
-	// Number of cancelling workers remaining. Decremented by each goroutine
-	// when a cancelling worker is fully migrated. When reaching 0, signals
-	// EventualMigrationDone.
-	eventualMigrationRemainingWorkers atomic.Int32
-
-	// Signaled when all affected are migrated from cancelling workers.
-	// The control plane handler blocks on this before ACKing.
-	EventualMigrationDone *syncflag.SyncFlag
-
-	// Atomic flag: flipped to 1 to start eventual migration process
-	EventualMigrationEnabled atomic.Int32
 }
 
 // StateService is initiated at NewWorker(): StateBackend and StateCommService
@@ -144,113 +100,7 @@ func NewStateService(
 ) *StateService {
 
 	return &StateService{
-		Config:                config,
-		StateBackendImpl:      stateBackend.NewStateBackend(config),
-		EventualMigrationDone: syncflag.NewSyncFlag(),
+		Config:           config,
+		StateBackendImpl: stateBackend.NewStateBackend(config),
 	}
-}
-
-// [eventual migration for cancelling task] Initialize eventual migration
-// process on this worker:
-// 1. Setup all affected buckets to be migrated
-// 2. Initialize synchronization primitives for each bucket
-// 3. Initialize tracking structures for migration progress
-// 4. Flip the flag to enable eventual migration logic in the data path
-func (s *StateService) SetEventualMigrationMeta(
-	affectedBuckets []*pb.AffectedBucketInfo,
-) {
-
-	if len(affectedBuckets) == 0 {
-		log.Fatalln("No affected buckets to be migrated")
-	}
-
-	// 1. Group affected buckets by cancelling worker ID
-	// affected: map[cancelling worker ID] -> list of affected bucket IDs
-	affected := make(map[uint16][]int64)
-	for _, affectedBucket := range affectedBuckets {
-		for _, wid := range affectedBucket.CancellingWorkerIds {
-			affected[uint16(wid)] = append(
-				affected[uint16(wid)],
-				affectedBucket.BucketId,
-			)
-		}
-	}
-	s.eventualMigrationAffectedBuckets = affected
-
-	// 2. Init per-bucket RWLocks for all affected buckets
-	bucketLocks := make(map[int64]*sync.RWMutex, len(affectedBuckets))
-	for _, affectedBucket := range affectedBuckets {
-		bucketLocks[affectedBucket.BucketId] = &sync.RWMutex{}
-	}
-	s.eventualMigrationBucketLocks = bucketLocks
-
-	// 3. Init tracking structures for migration progress
-	finishedBuckets := make(map[uint16]map[int64]bool, len(affected))
-	for wid := range affected {
-		finishedBuckets[wid] = make(map[int64]bool)
-	}
-	s.eventualMigrationFinishedBuckets = finishedBuckets
-	if s.eventualMigrationRemainingWorkers.Load() != 0 {
-		log.Fatalf(
-			"eventualMigrationRemainingWorkers is not 0, got %d",
-			s.eventualMigrationRemainingWorkers.Load(),
-		)
-	}
-	s.eventualMigrationDoneWorkers = sync.Map{}
-	s.eventualMigrationRemainingWorkers.Store(int32(len(affected)))
-	s.EventualMigrationDone.Reset()
-
-	// Log eventual migration details
-	log.Printf(
-		"[Eventual Migration][Worker %d] Fetching buckets from cancelling workers:\n",
-		s.WorkerID,
-	)
-	for cancellingWid, buckets := range affected {
-		log.Printf(
-			"  - [Worker %d] From cancelling worker %d, fetching %d affected buckets: %s\n",
-			s.WorkerID,
-			cancellingWid,
-			len(buckets),
-			formatBucketRanges(buckets),
-		)
-	}
-
-	// 4. Enable eventual migration by flipping the flag
-	s.EventualMigrationEnabled.Store(1)
-}
-
-// [eventual migration for cancelling task] Block until all affected buckets
-// are migrated from all cancelling workers
-func (s *StateService) WaitEventualMigrationDone() {
-	s.EventualMigrationDone.Wait()
-}
-
-/******************************************************************************
-				                      Utils
-******************************************************************************/
-
-// formatBucketRanges sorts bucket IDs and compacts consecutive runs into
-// ranges, e.g. [1-4, 6, 9-11].
-func formatBucketRanges(buckets []int64) string {
-	sorted := make([]int64, len(buckets))
-	copy(sorted, buckets)
-	slices.Sort(sorted)
-
-	var parts []string
-	i := 0
-	for i < len(sorted) {
-		start := sorted[i]
-		end := start
-		for i+1 < len(sorted) && sorted[i+1] == end+1 {
-			i++
-			end = sorted[i]
-		}
-		if start == end {
-			parts = append(parts, fmt.Sprintf("%d", start))
-		} else {
-			parts = append(parts, fmt.Sprintf("%d-%d", start, end))
-		}
-		i++
-	}
-	return "[" + strings.Join(parts, ", ") + "]"
 }

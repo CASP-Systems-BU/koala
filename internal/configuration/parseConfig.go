@@ -65,17 +65,4 @@ func validateConfig(config *Configuration) {
 			config.LazyProtocolVersion,
 		)
 	}
-
-	supportedCancellingTaskMigrationModes := map[string]bool{
-		"fetch-on-demand": true,
-		"eventual":        true,
-	}
-	if config.ReconfigProtocol == "lazy" &&
-		config.LazyProtocolVersion == "by-key" &&
-		!supportedCancellingTaskMigrationModes[config.LazyByKeyCancellingTaskMigrationMode] {
-		log.Fatalf(
-			"unsupported cancelling task migration mode: %s\n",
-			config.LazyByKeyCancellingTaskMigrationMode,
-		)
-	}
 }

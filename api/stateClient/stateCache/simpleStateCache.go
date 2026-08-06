@@ -49,7 +49,6 @@ func (s *SimpleStateCache[K, V]) SetSimpleStateCache(
 	keys []K,
 	serializedValues [][]byte,
 ) {
-
 	// Hard reset the cache
 	s.cache = make(map[K]V)
 

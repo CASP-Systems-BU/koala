@@ -277,28 +277,6 @@ func (w *ManagedWorker) WaitAllInboundPeersToConnect(wg *sync.WaitGroup) {
 	w.WaitACK(expectedAckMsg)
 }
 
-// [lazy-by-key] [eventual migration for cancelling task] Notify the worker to
-// eventually fetch all state from cancelling tasks. Blocks until the worker
-// finishes migrating all affected keys.
-func (w *ManagedWorker) EventualStateMigration(
-	msg *pb.EventualStateMigration,
-	wg *sync.WaitGroup,
-) {
-	defer wg.Done()
-
-	eventualMigrationMsg := &pb.CoordinatorToWorker{
-		Message: &pb.CoordinatorToWorker_EventualStateMigrationMsg{
-			EventualStateMigrationMsg: msg,
-		},
-	}
-	if err := w.Stream.Send(eventualMigrationMsg); err != nil {
-		log.Fatalf("Failed to send eventual state migration message: %v\n", err)
-	}
-
-	expectedAckMsg := "Eventual state migration done"
-	w.WaitACK(expectedAckMsg)
-}
-
 // [Lazy protocol] Wait all tasks to finish reconfiguration:
 // 1. All in-flight barriers from upstreams are received
 // 2. All inbound peer connections are closed

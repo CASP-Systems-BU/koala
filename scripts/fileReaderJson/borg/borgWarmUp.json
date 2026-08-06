@@ -42,7 +42,7 @@
 
     "10.10.1.9"
 ],
-  "NumEvents":7000000,
+  "NumEvents":700000,
   "RateLimiterConfig":{
     "UseRateLimit": false,
     "RateLimit": [3900,7800],

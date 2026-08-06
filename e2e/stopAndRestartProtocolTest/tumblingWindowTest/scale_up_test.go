@@ -76,7 +76,7 @@ func TestTumblingWindowStopAndRestartScaleUp(t *testing.T) {
 	expectedWM := int64(TIMEBUCKETSPAN * NUMTIMEBUCKETS)
 	go testutils.MonitorEndOfTest(sink, done, expectedWM)
 
-	// Wait for the test to be completed
+	// Wait for the test to be compeleted
 	<-done
 	log.Println("[E2E] Test completed")
 

@@ -48,18 +48,19 @@ func (s *APIServer) prepareReconfiguration(
 	}
 	curPara := int64(len(curWorkerList))
 
-	// Identify scale-up or scale-down
-	if targetPara == curPara {
+	/*
+		// Identify scale-up or scale-down
+		if targetPara == curPara {
 
-		// TODO: enable this when we support key space rebalancing and task
-		// placement change without changing parallelism
-		log.Fatalf(
-			"Invalid rescale config: targetPara=%d equals curPara=%d\n",
-			targetPara,
-			curPara,
-		)
-	}
-
+			// TODO: enable this when we support key space rebalancing and task
+			// placement change without changing parallelism
+			log.Fatalf(
+				"Invalid rescale config: targetPara=%d equals curPara=%d\n",
+				targetPara,
+				curPara,
+			)
+		}
+	*/
 	updatedWorkers := make([]*ManagedWorker, 0, int(targetPara))
 	var newWorkers []*ManagedWorker
 	var removedWorkers []*ManagedWorker
@@ -143,6 +144,8 @@ func (s *APIServer) updateKeyPartition(
 	switch s.Coordinator.Config.PartitionPolicy {
 	case "consistent-hashing":
 		policy = partition.NewHashPartitionPolicy(s.Coordinator.Config)
+	case "consistent-hashing-v2":
+		policy = partition.NewHashPartitionPolicyV2(s.Coordinator.Config)
 	case "uniform":
 		policy = partition.NewUniformPartitionPolicy(s.Coordinator.Config)
 	case "consistent-even":
@@ -166,18 +169,6 @@ func (s *APIServer) updateKeyPartition(
 	bucketOwnerChanges := curKeyPartition.Reconfigure(updatedWorkerIds, policy)
 	if len(bucketOwnerChanges) == 0 {
 		log.Fatalf("Repartition has no effect\n")
-	}
-
-	// [eventual migration for cancelling task] Update bucket ownership history
-	// with new owners from this reconfiguration
-	// history: map[bucketIdx]set(workerId)
-	history := s.Coordinator.BucketOwnerHistory[targetOperator.GetName()]
-	for _, destMap := range bucketOwnerChanges {
-		for destWorker, bucketIndices := range destMap {
-			for _, bucketIdx := range bucketIndices {
-				history[bucketIdx][destWorker] = true
-			}
-		}
 	}
 
 	// [Logging] log the bucket owner changes for debugging
@@ -844,91 +835,6 @@ func (s *APIServer) waitAllInboundPeersToConnect(
 
 	log.Printf(
 		"[Lazy Rescale INFO] Step 3: All inbound peers connected - time taken: %v\n",
-		time.Since(start),
-	)
-}
-
-// [lazy-by-key][eventual migration for cancelling task] Notify all remaining
-// tasks that need to eventually fetch all state from cancelling tasks
-func (s *APIServer) notifyEventualStateMigration(
-	targetOperator dataflow.Operator,
-	removedWorkers []*ManagedWorker,
-) {
-	start := time.Now()
-	targetOperatorName := targetOperator.GetName()
-
-	// Build set of cancelling worker IDs for quick lookup
-	cancellingWorkerSet := make(map[uint16]bool)
-	for _, worker := range removedWorkers {
-		cancellingWorkerSet[worker.WorkerId] = true
-	}
-
-	// Get the current key partition (post-reconfiguration) and bucket history
-	curPartition := s.Coordinator.KeyPartitions[targetOperatorName]
-	history := s.Coordinator.BucketOwnerHistory[targetOperatorName]
-
-	// For each bucket, check if any cancelling worker ever owned it. If so,
-	// the bucket is affected and its current owner needs to fetch state from
-	// those cancelling workers.
-	// Group affected buckets by current owner worker.
-	// affectedByOwner: map[current owner worker ID] -> []*pb.AffectedBucketInfo
-	// Each AffectedBucketInfo contains the bucket ID and the list of cancelling
-	// worker IDs that ever owned this bucket.
-	affectedByOwner := make(map[uint16][]*pb.AffectedBucketInfo)
-	for bucketIdx, ownerHistorySet := range history {
-
-		// Find which cancelling workers ever owned this bucket
-		var cancellingWorkerIds []uint32
-		for workerId := range ownerHistorySet {
-			if cancellingWorkerSet[workerId] {
-				cancellingWorkerIds = append(
-					cancellingWorkerIds,
-					uint32(workerId),
-				)
-			}
-		}
-		if len(cancellingWorkerIds) == 0 {
-			continue
-		}
-
-		// Current owner of this bucket after reconfiguration
-		currentOwner := curPartition.Buckets[bucketIdx]
-
-		affectedByOwner[currentOwner] = append(
-			affectedByOwner[currentOwner],
-			&pb.AffectedBucketInfo{
-				BucketId:            int64(bucketIdx),
-				CancellingWorkerIds: cancellingWorkerIds,
-			},
-		)
-	}
-
-	// This function is only called when there are removed workers and eventual
-	// migration is enabled — affected buckets must exist
-	if len(affectedByOwner) == 0 {
-		log.Fatalf(
-			"[Eventual Migration] No affected buckets found but removed workers exist\n",
-		)
-	}
-
-	// Send EventualStateMigration to each affected remaining worker
-	var wg sync.WaitGroup
-	for ownerWorkerId, affectedBuckets := range affectedByOwner {
-		worker := s.Coordinator.WorkerManager.GetWorker(ownerWorkerId)
-		wg.Add(1)
-		go worker.EventualStateMigration(&pb.EventualStateMigration{
-			AffectedBuckets: affectedBuckets,
-		}, &wg)
-		log.Printf(
-			"[Eventual Migration] Control msg sent to worker %d with %d affected buckets\n",
-			ownerWorkerId,
-			len(affectedBuckets),
-		)
-	}
-	wg.Wait()
-
-	log.Printf(
-		"[Lazy Rescale INFO] Step 4.5: Eventual state migration done for cancelling tasks - time taken: %v\n",
 		time.Since(start),
 	)
 }

@@ -85,9 +85,9 @@
   "IsWarmUp": false,
   "LoadWarmUpData": true,
    "WarmUpDataFolder": {
-    "Pebble": "pebble_warmup_data/nexmark_q6_mod/128_consistent_10GB"
+    "Pebble": "pebble_warmup_data/nexmark_q6_mod/128_consistent_7.5GB"
   },
-  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/nexmark_q6_mod/128ByKey_consistent_10GB",
+  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/nexmark_q6_mod/128ByKey_consistent_7.5GB",
   "Reconfigurations": [
     {
       "TriggerTimeSeconds": 180,

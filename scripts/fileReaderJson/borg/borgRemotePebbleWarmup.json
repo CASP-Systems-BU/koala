@@ -51,7 +51,7 @@
 
     "10.10.1.9"
 ],
-  "NumEvents": 7000000,
+  "NumEvents": 1000000,
   "RateLimiterConfig":{
     "UseRateLimit": false,
     "RateLimit": [4000,8000],
@@ -79,7 +79,7 @@
   "LoadWarmUpData": false,
   "JobEventStatsParallelism": 4,
   "SinkParallelism": 1,
-  "ListStateSize": 10,
+  "ListStateSize": 100,
   "WarmUpDataFolder": {
 
     "Pebble": "pebble_warmup_data/borg/128_consistent_3GBTest"

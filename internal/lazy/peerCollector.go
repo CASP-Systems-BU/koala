@@ -97,7 +97,7 @@ func NewPeerCollector[T tuple.Tuple](
 // implementation of multi-upstream operators (2 peer connections per task)
 // Only lazy-by-key needs this. Refactor this implementation in the future
 func (c *PeerCollector[T]) Activate(
-	peerList []*pb.DownstreamInfo,
+	downstreamInfoList []*pb.DownstreamInfo,
 	metricCollector *metric.MetricCollector,
 	outputChannelType uint8,
 ) {
@@ -105,36 +105,36 @@ func (c *PeerCollector[T]) Activate(
 	// Initialize empty CurBatches
 	curBatches := make(
 		map[uint16]*buffer.Batch[T],
-		len(peerList),
+		len(downstreamInfoList),
 	)
-	for _, peer := range peerList {
-		curBatches[uint16(peer.WorkerId)] = buffer.AllocateOutputBatch[T]()
+	for _, downstreamInfo := range downstreamInfoList {
+		curBatches[uint16(downstreamInfo.WorkerId)] = buffer.AllocateOutputBatch[T]()
 	}
 	c.CurBatches = curBatches
 
 	// Initialize the downstream structures
 	c.Downstreams = make(
 		map[uint16]*network.Downstream[T],
-		len(peerList),
+		len(downstreamInfoList),
 	)
 
-	for _, peer := range peerList {
+	for _, downstreamInfo := range downstreamInfoList {
 
 		log.Printf(
 			"[INFO] Op %s creating peer connection struct %s from upstream %s",
 			c.OperatorName,
-			peer.String(),
+			downstreamInfo.String(),
 			c.UpstreamName,
 		)
 
 		// Init the downstream connection using the upstream's name
 		downstream := network.NewDownStream[T](
-			peer.DataPlaneAddr,
+			downstreamInfo.DataPlaneAddr,
 			c.Config,
 			metricCollector,
 			c.UpstreamName,
 		)
-		c.Downstreams[uint16(peer.WorkerId)] = downstream
+		c.Downstreams[uint16(downstreamInfo.WorkerId)] = downstream
 	}
 
 	// Start network routines to consume the buffer

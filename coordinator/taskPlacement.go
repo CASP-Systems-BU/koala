@@ -56,6 +56,8 @@ func (c *Coordinator) InitKeyPartitions() {
 			switch c.Config.PartitionPolicy {
 			case "consistent-hashing":
 				policy = partition.NewHashPartitionPolicy(c.Config)
+			case "consistent-hashing-v2":
+				policy = partition.NewHashPartitionPolicyV2(c.Config)
 			case "uniform":
 				policy = partition.NewUniformPartitionPolicy(c.Config)
 			case "consistent-even":
@@ -74,23 +76,16 @@ func (c *Coordinator) InitKeyPartitions() {
 			)
 
 			// Print out the number of buckets assigned to each worker
-			bucketCountPerWorker := make(map[uint16]int)
 			table := c.KeyPartitions[operatorId]
+			bucketCountPerWorker := make(map[uint16]int)
 			for _, br := range table.Buckets {
 				bucketCountPerWorker[br] += 1
 			}
+
 			log.Printf(
 				"[Bucket Partition INFO] bucket count per worker: %+v\n",
 				bucketCountPerWorker,
 			)
-
-			// [eventual migration for cancelling task] Record initial bucket
-			// ownership in history
-			history := make([]map[uint16]bool, len(table.Buckets))
-			for i, ownerWorker := range table.Buckets {
-				history[i] = map[uint16]bool{ownerWorker: true}
-			}
-			c.BucketOwnerHistory[operatorId] = history
 
 			// [lazy protocol] Initialize state lookup tables
 			// StateLookupTable can differ from KeyPartition based on actual

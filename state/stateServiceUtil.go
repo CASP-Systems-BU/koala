@@ -827,15 +827,9 @@ func (s *StateService) EstablishByKeyMigrationTcpConn(
 		)
 	}
 	buf := make([]byte, constant.TcpMaxMessageSize)
-	var additionalBuf []byte
-	if s.Config.LazyByKeyCancellingTaskMigrationMode == "eventual" {
-		additionalBuf = make([]byte, constant.TcpMaxMessageSize)
-	}
-
 	tcpConn := &LazyByKeyTcpConn{
-		Conn:          conn,
-		Buf:           buf,
-		AdditionalBuf: additionalBuf,
+		Conn: conn,
+		Buf:  buf,
 	}
 
 	s.ByKeyMigrationTcpConnLock.Lock()

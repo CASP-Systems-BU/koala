@@ -37,7 +37,6 @@ message CoordinatorToWorker {
         InitLazyReconfig initLazyReconfig_msg = 10;
         WaitInboundPeersToConnect waitInboundPeersToConnect_msg = 11;
         WaitReconfigDone waitReconfigDone_msg = 12;
-        EventualStateMigration eventualStateMigration_msg = 13;
     }
 }
 
@@ -95,26 +94,6 @@ message InitLazyReconfig {
 message WaitInboundPeersToConnect {}
 
 message WaitReconfigDone {}
-
-// [lazy-by-key] Notify remaining tasks to eventually fetch all state from
-// cancelling tasks. Sent between upstream routing update and wait reconfig done.
-message EventualStateMigration {
-
-    // List of affected bucket info: which buckets may have state on cancelling
-    // workers and need eventual migration
-    repeated AffectedBucketInfo affectedBuckets = 1;
-}
-
-// A bucket that may have state residing on cancelling workers due to lazy
-// migration across past reconfigurations
-message AffectedBucketInfo {
-
-    // Bucket index
-    int64 bucketId = 1;
-
-    // Cancelling worker IDs that may hold state for keys in this bucket
-    repeated uint32 cancellingWorkerIds = 2;
-}
 
 message DownstreamInfo {
     // Downstream WorkerId - uint16 is used but in proto only uint32 is 

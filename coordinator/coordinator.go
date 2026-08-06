@@ -45,13 +45,6 @@ type Coordinator struct {
 	// track of actual state location for keys. Consider deprecate this
 	StateLookupTables map[string]*keyby.PartitionTable
 
-	// [lazy-by-key] [eventual migration for cancelling task] Bucket ownership
-	// history: tracks all workers that have ever owned each bucket across
-	// reconfigurations. Used to identify affected buckets that need eventual
-	// state migration.
-	// Map: Operator ID -> []set of worker IDs (indexed by bucket index)
-	BucketOwnerHistory map[string][]map[uint16]bool
-
 	// Atomic flag to indicate if there is an ongoing reconfiguration. We do
 	// not allow concurrent reconfigurations
 	ReconfigInProgress atomic.Bool
@@ -63,12 +56,11 @@ func NewCoordinator(
 ) *Coordinator {
 
 	coordinator := &Coordinator{
-		Config:             config,
-		Dataflow:           df,
-		WorkerManager:      NewWorkerManager(),
-		RemovedWorkers:     make(map[string][]*ManagedWorker),
-		KeyPartitions:      make(map[string]*keyby.PartitionTable),
-		BucketOwnerHistory: make(map[string][]map[uint16]bool),
+		Config:         config,
+		Dataflow:       df,
+		WorkerManager:  NewWorkerManager(),
+		RemovedWorkers: make(map[string][]*ManagedWorker),
+		KeyPartitions:  make(map[string]*keyby.PartitionTable),
 	}
 
 	// Need to maintain a centralized view of state lookup tables if lazy

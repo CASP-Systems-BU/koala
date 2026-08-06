@@ -52,11 +52,11 @@
     "10.10.1.9"
 ],
 "OutputEventNumber": 0,
-"ListLength": 10,
+"ListLength": 150,
 "RateLimiterConfig":{
     "UseRateLimit": true,
-    "RateLimit": [4000],
-    "RateChangeInterval": [900]
+    "RateLimit": [250,500],
+    "RateChangeInterval": [800]
   },
   "FilePath": [
     "scripts/fileReaderJson/taxi0.csv",
@@ -65,19 +65,19 @@
     "scripts/fileReaderJson/taxi3.csv"
 ],
   "EventType": "Taxi",
-  "ReconfigProtocol": "stop-and-restart",
-  "LazyProtocolVersion": "optimized",
-  "TotalRuntimeSeconds": 650,
+  "ReconfigProtocol": "lazy",
+  "LazyProtocolVersion": "by-key",
+  "TotalRuntimeSeconds": 640,
   "NumBuckets": 128,
   "PartitionPolicy": "consistent-even",
-  "BufferSize": 50,
+  "BufferSize": 2,
   "BatchSize": 4096,
   "StateBackendType": "pebble",
   "PebbleEnableConcurrentGetMany": true,
   "PebbleGetManyMaxConcurrency": 8,
   "PebbleGetManyBatchSize": 32,
   "IsWarmUp": false,
-  "LoadWarmUpData": false,
+  "LoadWarmUpData": true,
   "EnablePendingBatchTimeout":false,
   "CalculateCellIdParallelism":8,
   "MovingMedianTripTimeParallelism": 4,
@@ -86,16 +86,16 @@
   "WindowDuration": "10s",
   "Reconfigurations": [
     {
-      "TriggerTimeSeconds": 2400,
-      "Type": "scaleup",
+      "TriggerTimeSeconds": 220,
+      "Type": "rebalance",
       "TargetOperator": "movingMedianTripTime",
-      "TargetParrallelism": 8
+      "TargetParrallelism": 4
     }
   ],
   "WarmUpDataFolder": {
-    "Pebble": "pebble_warmup_data/taxi/128_consistent_10GBTest"
+    "Pebble": "pebble_warmup_data/taxiSkew/128_consistent_10GBTest"
   },
-  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/taxi/128ByKey_consistent_remote_10GBTest",
+  "LookupTableWarmUpDataFolder":"pebbleLookUpTable/taxiSkew/128ByKey_consistent_remote_10GBTest",
   "InitialCustomTaskPlacement": [
     "source: 10.10.1.9",
     "source: 10.10.1.10",
