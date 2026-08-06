@@ -55,7 +55,7 @@
     {
       "EventType": "ClosedAuction",
       "NexmarkSourceConfig": {
-        "OutputEventNumber":117300000,
+        "OutputEventNumber":115000000,
         "NumActivePeople": 500000,
         "HotSellerRatio": 0.25,
         "HotSellerRange": 50000,

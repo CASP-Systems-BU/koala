@@ -43,7 +43,7 @@ func TestSimpleJoin(t *testing.T) {
 	numWorkers := SOURCE1_PARALLELISM + SOURCE2_PARALLELISM + JOIN_PARALLELISM + 1
 	_, workers, _ := testutils.DeployJob(numWorkers, query, config)
 
-	// Wait for the test to be completed
+	// Wait for the test to be compeleted
 	time.Sleep(WAIT_TIME * time.Second)
 
 	log.Println("[E2E] Test completed")
@@ -233,7 +233,7 @@ func query() *dataflow.Dataflow {
 			state1 *stateType.ValueState[*tuple.Tuple1[int64]],
 			state2 *stateType.ValueState[*tuple.Tuple1[int64]],
 			co collector.Collector,
-		) {
+		) time.Duration {
 
 			// When Join receives record from source1, it increases state1 by
 			// in.V2, and decreases state2 by in.V2
@@ -259,6 +259,7 @@ func query() *dataflow.Dataflow {
 				V2: state1Val.V1,
 				V3: state2Val.V1,
 			})
+			return time.Duration(0)
 		},
 		/************************* 2nd input stream **************************/
 		source2,
@@ -268,7 +269,7 @@ func query() *dataflow.Dataflow {
 			state1 *stateType.ValueState[*tuple.Tuple1[int64]],
 			state2 *stateType.ValueState[*tuple.Tuple1[int64]],
 			co collector.Collector,
-		) {
+		) time.Duration {
 
 			// When Join receives record from source2, it increases state2 by
 			// in.V2, and decreases state1 by in.V2
@@ -294,6 +295,7 @@ func query() *dataflow.Dataflow {
 				V2: state1Val.V1,
 				V3: state2Val.V1,
 			})
+			return time.Duration(0)
 		},
 	)
 	join.SetParallelism(JOIN_PARALLELISM)

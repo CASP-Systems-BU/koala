@@ -40,7 +40,7 @@ func TestSimpleJoinRescaleLazyOptUniform(t *testing.T) {
 	}
 	log.Printf("Job rescale response: %v\n", resp.Info)
 
-	// Wait for the test to be completed
+	// Wait for the test to be compeleted
 	time.Sleep(25 * time.Second)
 
 	log.Println("[E2E] Test completed")

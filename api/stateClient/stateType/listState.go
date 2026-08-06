@@ -117,6 +117,7 @@ func (v *ListState[V]) Deserialize(
 	currPos := 0
 	for currPos < len(stateInBytes) {
 		var tuple V
+
 		tuple = tuple.New().(V)
 		usedBytes, err := tupleDecoder(tuple, stateInBytes[currPos:])
 		if err != nil {

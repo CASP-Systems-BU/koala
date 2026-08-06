@@ -60,7 +60,7 @@
 "ListLength": 150,
 "RateLimiterConfig":{
     "UseRateLimit": true,
-    "RateLimit": [400,800],
+    "RateLimit": [320,640],
     "RateChangeInterval": [900]
   },
   "FilePath": [
@@ -76,7 +76,7 @@
   "NumBuckets": 128,
   "PartitionPolicy": "consistent-even",
   "BufferSize": 2,
-  "BatchSize": 2048,
+  "BatchSize": 1024,
   "StateBackendType": "remote-pebble",
   "PebbleEnableConcurrentGetMany": true,
   "PebbleGetManyMaxConcurrency": 8,

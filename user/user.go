@@ -56,6 +56,8 @@ func DefineDataflow(
 		return taxi.Taxi(queryConfigFile)
 	case "taxi_warmup":
 		return taxi.TaxiWarmup(queryConfigFile)
+	case "taxi_skew":
+		return taxi.TaxiSkewed(queryConfigFile)
 	case "twitch":
 		return twitch.TwitchPipeline(queryConfigFile)
 	case "borg":

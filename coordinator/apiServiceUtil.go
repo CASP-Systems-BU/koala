@@ -48,17 +48,17 @@ func (s *APIServer) prepareReconfiguration(
 	}
 	curPara := int64(len(curWorkerList))
 
-	// Identify scale-up or scale-down
-	if targetPara == curPara {
+	// // Identify scale-up or scale-down
+	// if targetPara == curPara {
 
-		// TODO: enable this when we support key space rebalancing and task
-		// placement change without changing parallelism
-		log.Fatalf(
-			"Invalid rescale config: targetPara=%d equals curPara=%d\n",
-			targetPara,
-			curPara,
-		)
-	}
+	// 	// TODO: enable this when we support key space rebalancing and task
+	// 	// placement change without changing parallelism
+	// 	log.Fatalf(
+	// 		"Invalid rescale config: targetPara=%d equals curPara=%d\n",
+	// 		targetPara,
+	// 		curPara,
+	// 	)
+	// }
 
 	updatedWorkers := make([]*ManagedWorker, 0, int(targetPara))
 	var newWorkers []*ManagedWorker
@@ -78,14 +78,34 @@ func (s *APIServer) prepareReconfiguration(
 			updatedWorkers = append(updatedWorkers, worker)
 		}
 	} else {
-
-		// Scale-down case: remove (curPara - targetPara) workers
-		// Deterministically remove the last few workers in the current list
-		for i, worker := range curWorkerList {
-			if int64(i) < targetPara {
+		// Task migration case:
+		if targetPara == curPara {
+			newWorkers = s.Coordinator.WorkerManager.AllocateRandomWorkers(
+				1,
+			)
+			// Build the updated worker list with new workers
+			for _, worker := range curWorkerList {
+				if worker.WorkerId != 9 {
+					updatedWorkers = append(updatedWorkers, worker)
+				}
+			}
+			for _, worker := range newWorkers {
 				updatedWorkers = append(updatedWorkers, worker)
-			} else {
-				removedWorkers = append(removedWorkers, worker)
+			}
+			for _, worker := range curWorkerList {
+				if worker.WorkerId == 9 {
+					removedWorkers = append(removedWorkers, worker)
+				}
+			}
+		} else {
+			// Scale-down case: remove (curPara - targetPara) workers
+			// Deterministically remove the last few workers in the current list
+			for i, worker := range curWorkerList {
+				if int64(i) < targetPara {
+					updatedWorkers = append(updatedWorkers, worker)
+				} else {
+					removedWorkers = append(removedWorkers, worker)
+				}
 			}
 		}
 	}
@@ -143,6 +163,8 @@ func (s *APIServer) updateKeyPartition(
 	switch s.Coordinator.Config.PartitionPolicy {
 	case "consistent-hashing":
 		policy = partition.NewHashPartitionPolicy(s.Coordinator.Config)
+	case "consistent-hashing-v2":
+		policy = partition.NewHashPartitionPolicyV2(s.Coordinator.Config)
 	case "uniform":
 		policy = partition.NewUniformPartitionPolicy(s.Coordinator.Config)
 	case "consistent-even":

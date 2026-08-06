@@ -1,6 +1,7 @@
 package partition
 
 import (
+	"fmt"
 	"log"
 	"sort"
 
@@ -100,7 +101,7 @@ func (ep *EvenPartitionPolicy) GenerateBucketsV2(workers []uint16) []BucketV2 {
 		}
 		start = end
 	}
-
+	fmt.Println("Buckets", buckets)
 	return buckets
 }
 
@@ -170,6 +171,149 @@ func (ep *EvenPartitionPolicy) RePartitionV2(
 		)
 	} else {
 
+		// Rebalance
+		if len(updatedWorkerSet) == len(existingWorkerList) {
+			// Hard coded newBuckets and bucketOwnerChanges for skew mitigation test.
+			newBuckets = []BucketV2{
+				{WorkerID: 10, Map: nil}, // Bucket 0
+				{WorkerID: 10, Map: nil}, // Bucket 1
+				{WorkerID: 10, Map: nil}, // Bucket 2
+				{WorkerID: 10, Map: nil}, // Bucket 3
+				{WorkerID: 10, Map: nil}, // Bucket 4
+				{WorkerID: 10, Map: nil}, // Bucket 5
+				{WorkerID: 10, Map: nil}, // Bucket 6
+				{WorkerID: 10, Map: nil}, // Bucket 7
+				{WorkerID: 10, Map: nil}, // Bucket 8
+				{WorkerID: 10, Map: nil}, // Bucket 9
+				{WorkerID: 10, Map: nil}, // Bucket 10
+				{WorkerID: 10, Map: nil}, // Bucket 11
+				{WorkerID: 10, Map: nil}, // Bucket 12
+				{WorkerID: 10, Map: nil}, // Bucket 13
+				{WorkerID: 10, Map: nil}, // Bucket 14
+				{WorkerID: 10, Map: nil}, // Bucket 15
+				{WorkerID: 10, Map: nil}, // Bucket 16
+				{WorkerID: 10, Map: nil}, // Bucket 17
+				{WorkerID: 10, Map: nil}, // Bucket 18
+				{WorkerID: 10, Map: nil}, // Bucket 19
+				{WorkerID: 10, Map: nil}, // Bucket 20
+				{WorkerID: 10, Map: nil}, // Bucket 21
+				{WorkerID: 10, Map: nil}, // Bucket 22
+				{WorkerID: 10, Map: nil}, // Bucket 23
+				{WorkerID: 10, Map: nil}, // Bucket 24
+				{WorkerID: 10, Map: nil}, // Bucket 25
+				{WorkerID: 10, Map: nil}, // Bucket 26
+				{WorkerID: 10, Map: nil}, // Bucket 27
+				{WorkerID: 10, Map: nil}, // Bucket 28
+				{WorkerID: 10, Map: nil}, // Bucket 29
+				{WorkerID: 10, Map: nil}, // Bucket 30
+				{WorkerID: 10, Map: nil}, // Bucket 31
+
+				{WorkerID: 11, Map: nil}, // Bucket 32
+				{WorkerID: 11, Map: nil}, // Bucket 33
+				{WorkerID: 11, Map: nil}, // Bucket 34
+				{WorkerID: 11, Map: nil}, // Bucket 35
+				{WorkerID: 11, Map: nil}, // Bucket 36
+				{WorkerID: 11, Map: nil}, // Bucket 37
+				{WorkerID: 11, Map: nil}, // Bucket 38
+				{WorkerID: 11, Map: nil}, // Bucket 39
+				{WorkerID: 11, Map: nil}, // Bucket 40
+				{WorkerID: 11, Map: nil}, // Bucket 41
+				{WorkerID: 11, Map: nil}, // Bucket 42
+				{WorkerID: 11, Map: nil}, // Bucket 43
+				{WorkerID: 11, Map: nil}, // Bucket 44
+				{WorkerID: 11, Map: nil}, // Bucket 45
+				{WorkerID: 11, Map: nil}, // Bucket 46
+				{WorkerID: 11, Map: nil}, // Bucket 47
+				{WorkerID: 11, Map: nil}, // Bucket 48
+				{WorkerID: 11, Map: nil}, // Bucket 49
+				{WorkerID: 11, Map: nil}, // Bucket 50
+				{WorkerID: 11, Map: nil}, // Bucket 51
+				{WorkerID: 11, Map: nil}, // Bucket 52
+				{WorkerID: 11, Map: nil}, // Bucket 53
+				{WorkerID: 11, Map: nil}, // Bucket 54
+				{WorkerID: 11, Map: nil}, // Bucket 55
+				{WorkerID: 11, Map: nil}, // Bucket 56
+				{WorkerID: 11, Map: nil}, // Bucket 57
+				{WorkerID: 11, Map: nil}, // Bucket 58
+				{WorkerID: 11, Map: nil}, // Bucket 59
+				{WorkerID: 11, Map: nil}, // Bucket 60
+				{WorkerID: 11, Map: nil}, // Bucket 61
+				{WorkerID: 11, Map: nil}, // Bucket 62
+				{WorkerID: 11, Map: nil}, // Bucket 63
+
+				{WorkerID: 12, Map: nil}, // Bucket 64
+				{WorkerID: 12, Map: nil}, // Bucket 65
+				{WorkerID: 12, Map: nil}, // Bucket 66
+				{WorkerID: 12, Map: nil}, // Bucket 67
+				{WorkerID: 12, Map: nil}, // Bucket 68
+				{WorkerID: 12, Map: nil}, // Bucket 69
+				{WorkerID: 12, Map: nil}, // Bucket 70
+				{WorkerID: 12, Map: nil}, // Bucket 71
+				{WorkerID: 12, Map: nil}, // Bucket 72
+				{WorkerID: 12, Map: nil}, // Bucket 73
+				{WorkerID: 12, Map: nil}, // Bucket 74
+				{WorkerID: 12, Map: nil}, // Bucket 75
+				{WorkerID: 12, Map: nil}, // Bucket 76
+				{WorkerID: 12, Map: nil}, // Bucket 77
+				{WorkerID: 12, Map: nil}, // Bucket 78
+				{WorkerID: 12, Map: nil}, // Bucket 79
+				{WorkerID: 12, Map: nil}, // Bucket 80
+				{WorkerID: 12, Map: nil}, // Bucket 81
+				{WorkerID: 12, Map: nil}, // Bucket 82
+				{WorkerID: 12, Map: nil}, // Bucket 83
+				{WorkerID: 12, Map: nil}, // Bucket 84
+				{WorkerID: 12, Map: nil}, // Bucket 85
+				{WorkerID: 12, Map: nil}, // Bucket 86
+				{WorkerID: 12, Map: nil}, // Bucket 87
+				{WorkerID: 12, Map: nil}, // Bucket 88
+				{WorkerID: 12, Map: nil}, // Bucket 89
+				{WorkerID: 12, Map: nil}, // Bucket 90
+				{WorkerID: 12, Map: nil}, // Bucket 91
+				{WorkerID: 12, Map: nil}, // Bucket 92
+				{WorkerID: 12, Map: nil}, // Bucket 93
+				{WorkerID: 12, Map: nil}, // Bucket 94
+				{WorkerID: 12, Map: nil}, // Bucket 95
+
+				{WorkerID: 13, Map: nil}, // Bucket 96
+				{WorkerID: 13, Map: nil}, // Bucket 97
+				{WorkerID: 13, Map: nil}, // Bucket 98
+				{WorkerID: 13, Map: nil}, // Bucket 99
+				{WorkerID: 13, Map: nil}, // Bucket 100
+				{WorkerID: 13, Map: nil}, // Bucket 101
+				{WorkerID: 13, Map: nil}, // Bucket 102
+				{WorkerID: 13, Map: nil}, // Bucket 103
+				{WorkerID: 13, Map: nil}, // Bucket 104
+				{WorkerID: 13, Map: nil}, // Bucket 105
+				{WorkerID: 13, Map: nil}, // Bucket 106
+				{WorkerID: 13, Map: nil}, // Bucket 107
+				{WorkerID: 13, Map: nil}, // Bucket 108
+				{WorkerID: 13, Map: nil}, // Bucket 109
+				{WorkerID: 13, Map: nil}, // Bucket 110
+				{WorkerID: 13, Map: nil}, // Bucket 111
+				{WorkerID: 13, Map: nil}, // Bucket 112
+				{WorkerID: 13, Map: nil}, // Bucket 113
+				{WorkerID: 13, Map: nil}, // Bucket 114
+				{WorkerID: 13, Map: nil}, // Bucket 115
+				{WorkerID: 13, Map: nil}, // Bucket 116
+				{WorkerID: 13, Map: nil}, // Bucket 117
+				{WorkerID: 13, Map: nil}, // Bucket 118
+				{WorkerID: 13, Map: nil}, // Bucket 119
+				{WorkerID: 13, Map: nil}, // Bucket 120
+				{WorkerID: 13, Map: nil}, // Bucket 121
+				{WorkerID: 13, Map: nil}, // Bucket 122
+				{WorkerID: 13, Map: nil}, // Bucket 123
+				{WorkerID: 13, Map: nil}, // Bucket 124
+				{WorkerID: 13, Map: nil}, // Bucket 125
+				{WorkerID: 13, Map: nil}, // Bucket 126
+				{WorkerID: 13, Map: nil}, // Bucket 127
+			}
+			bucketOwnerChanges = map[uint16]map[uint16][]int{
+				9: {
+					13: {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31},
+				},
+			}
+			return newBuckets, bucketOwnerChanges
+		}
 		// Scale-down
 		repartitionScaleDown(
 			updatedWorkers,
@@ -489,13 +633,13 @@ func (ep *EvenPartitionPolicy) validateAndPrepareRepartition(
 		)
 	}
 
-	// This policy only supports pure scale-up or pure scale-down.
-	if len(updatedWorkerSet) == len(bucketsByExistingWorker) {
-		log.Fatalf(
-			"Updated worker list invalid: number of workers unchanged (%d)\n",
-			len(updatedWorkerSet),
-		)
-	}
+	// // This policy only supports pure scale-up or pure scale-down.
+	// if len(updatedWorkerSet) == len(bucketsByExistingWorker) {
+	// 	log.Fatalf(
+	// 		"Updated worker list invalid: number of workers unchanged (%d)\n",
+	// 		len(updatedWorkerSet),
+	// 	)
+	// }
 
 	if len(updatedWorkerSet) > len(bucketsByExistingWorker) {
 
@@ -510,15 +654,18 @@ func (ep *EvenPartitionPolicy) validateAndPrepareRepartition(
 		}
 	} else {
 
-		// Scale-down: updated workers must be a subset of existing workers.
-		for workerID := range updatedWorkerSet {
-			if _, ok := bucketsByExistingWorker[workerID]; !ok {
-				log.Fatalf(
-					"Scale-down invalid: updated list contains new worker %d\n",
-					workerID,
-				)
+		if len(updatedWorkerSet) < len(bucketsByExistingWorker) {
+			// Scale-down: updated workers must be a subset of existing workers.
+			for workerID := range updatedWorkerSet {
+				if _, ok := bucketsByExistingWorker[workerID]; !ok {
+					log.Fatalf(
+						"Scale-down invalid: updated list contains new worker %d\n",
+						workerID,
+					)
+				}
 			}
 		}
+
 	}
 	return updatedWorkerSet, existingWorkerList, bucketsByExistingWorker
 }

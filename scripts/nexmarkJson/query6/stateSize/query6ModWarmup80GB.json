@@ -55,7 +55,7 @@
     {
       "EventType": "ClosedAuction",
       "NexmarkSourceConfig": {
-        "NumEvents":5100000,
+        "NumEvents":5000000,
         "NumActivePeople": 2000000,
         "WarmupRun":true,
         "HotSellerRatio":0.25,
@@ -73,7 +73,7 @@
       } 
     }
   ],
-  "TotalRuntimeSeconds": 4000,
+  "TotalRuntimeSeconds": 2000,
   "ReconfigProtocol": "lazy",
   "LazyProtocolVersion": "by-key",
   "NumBuckets": 128,

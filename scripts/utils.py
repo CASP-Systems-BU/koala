@@ -379,6 +379,7 @@ def validateConfigJsonInput(
     # Validate partition policy
     allowedPartitionPolicies = [
         "consistent-hashing",
+        "consistent-hashing-v2",
         "uniform",
         "consistent-even",
     ]
@@ -409,7 +410,7 @@ def parseReconfigurationSettings(configMap: dict) -> list[Reconfig]:
             )
 
         # Validate reconfiguration type
-        allowedReconfigTypes = ["scaleup", "scaledown"]
+        allowedReconfigTypes = ["scaleup", "scaledown", "task-migration"]
 
         if reconfigType not in allowedReconfigTypes:
             raise Exception(

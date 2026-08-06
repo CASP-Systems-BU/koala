@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"time"
 
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/collector"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
@@ -141,9 +142,12 @@ func Query3WarmUp(configFile string) *dataflow.Dataflow {
 			// In state2, we only store the auctionId
 			state2 *stateType.ListState[*tuple.Tuple1[int64]],
 			co collector.Collector,
-		) {
+		) time.Duration {
+			generateDummyFieldTime := time.Duration(0)
 			if config.UseDummyField {
+				startGeneration := time.Now()
 				dummyFieldContent := query.RandString(config.DummyFieldSize)
+				generateDummyFieldTime = time.Since(startGeneration)
 				state1.Set(&tuple.Tuple4[string, string, string, string]{
 					V1: in.V2,
 					V2: in.V5,
@@ -164,6 +168,7 @@ func Query3WarmUp(configFile string) *dataflow.Dataflow {
 				V3: "c",
 				V4: 1,
 			})
+			return generateDummyFieldTime
 		},
 		auctionFilter,
 		auctionKeyAssigner,
@@ -174,7 +179,8 @@ func Query3WarmUp(configFile string) *dataflow.Dataflow {
 			// In state2, we only store the auctionId
 			state2 *stateType.ListState[*tuple.Tuple1[int64]],
 			co collector.Collector,
-		) {
+		) time.Duration {
+			return 0
 		},
 	)
 	join.SetParallelism(config.JoinParallelism)

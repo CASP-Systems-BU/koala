@@ -2,6 +2,7 @@ package dataflow
 
 import (
 	"log"
+	"time"
 
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/collector"
 	ka "github.com/CASP-Systems-BU/disaggregated-streaming/api/keyAssigner"
@@ -10,6 +11,7 @@ import (
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/buffer"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/supplier"
+	"github.com/CASP-Systems-BU/disaggregated-streaming/metric"
 )
 
 // Join operator accepts 2 input streams and produces 1 output stream. It
@@ -37,11 +39,11 @@ type Join[OUT, IN1, IN2 tuple.Tuple, K comparable, V1 stateType.StateType, V2 st
 
 	// UDF that takes 1 input record from the 1st upstream and output 0 or more
 	// output records
-	F1 func(IN1, V1, V2, collector.Collector)
+	F1 func(IN1, V1, V2, collector.Collector) time.Duration
 
 	// UDF that takes 1 input record from the 2nd upstream and output 0 or more
 	// output records
-	F2 func(IN2, V1, V2, collector.Collector)
+	F2 func(IN2, V1, V2, collector.Collector) time.Duration
 }
 
 // Type validation at compile time
@@ -59,11 +61,11 @@ func NewJoin[OUT, IN1, IN2 tuple.Tuple, K comparable, V1 stateType.StateType, V2
 	/*************************** 1st input stream ****************************/
 	upstream1 OperatorWith1OutputStream[IN1],
 	keyAssigner1 *ka.KeyAssigner[IN1, K],
-	f1 func(IN1, V1, V2, collector.Collector),
+	f1 func(IN1, V1, V2, collector.Collector) time.Duration,
 	/*************************** 2nd input stream ****************************/
 	upstream2 OperatorWith1OutputStream[IN2],
 	keyAssigner2 *ka.KeyAssigner[IN2, K],
-	f2 func(IN2, V1, V2, collector.Collector),
+	f2 func(IN2, V1, V2, collector.Collector) time.Duration,
 ) *Join[OUT, IN1, IN2, K, V1, V2] {
 
 	join := &Join[OUT, IN1, IN2, K, V1, V2]{
@@ -113,6 +115,7 @@ func (j *Join[OUT, IN1, IN2, K, V1, V2]) ProcessBatch(
 			j.StateID2,
 			j.F1,
 			j.Collector,
+			j.MetricCollector,
 		)
 	case j.UpstreamName2:
 		processBatchJoin(
@@ -123,6 +126,7 @@ func (j *Join[OUT, IN1, IN2, K, V1, V2]) ProcessBatch(
 			j.StateID2,
 			j.F2,
 			j.Collector,
+			j.MetricCollector,
 		)
 	default:
 		log.Fatalf(
@@ -154,8 +158,9 @@ func processBatchJoin[IN tuple.Tuple, K comparable, V1 stateType.StateType, V2 s
 	stateClient *stateClient.StateClient[K],
 	stateID1 uint16,
 	stateID2 uint16,
-	f func(IN, V1, V2, collector.Collector),
+	f func(IN, V1, V2, collector.Collector) time.Duration,
 	collector collector.Collector,
+	metricCollector *metric.MetricCollector,
 ) {
 
 	batch, ok := workUnit.(*buffer.Batch[IN])
@@ -170,10 +175,12 @@ func processBatchJoin[IN tuple.Tuple, K comparable, V1 stateType.StateType, V2 s
 	}
 
 	// Prefetch the batch state to memory before processing
+
 	stateClient.FetchSimpleState(keys, []uint16{stateID1, stateID2})
 
 	var state1 V1
 	var state2 V2
+	generateDummyFieldTime := time.Duration(0)
 	for i, record := range batch.Records[0:batch.TotalNumRecords] {
 
 		// Get state for current record
@@ -191,8 +198,10 @@ func processBatchJoin[IN tuple.Tuple, K comparable, V1 stateType.StateType, V2 s
 		collector.SetCurrentTimestamp(record.GetTimestamp())
 
 		// Execute UDF to process the input record
-		f(record, state1, state2, collector)
+		generateDummyFieldTime += f(record, state1, state2, collector)
+
 	}
+	metricCollector.UpdateGenerateDummyFieldTime(generateDummyFieldTime)
 	// Flush local cache to StateService
 	stateClient.FlushSimpleState()
 }

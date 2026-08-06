@@ -75,7 +75,7 @@ func (sm *StatefulMapper2[IN, OUT, K, V1, V2]) ProcessBatch(
 	workUnit buffer.WorkUnit,
 	subSupplierName string,
 ) {
-
+	//t1 := time.Now()
 	batch, ok := workUnit.(*buffer.Batch[IN])
 	if !ok {
 		log.Fatalln("Input to ProcessBatch() should be Batch[T]")
@@ -89,6 +89,7 @@ func (sm *StatefulMapper2[IN, OUT, K, V1, V2]) ProcessBatch(
 
 	// Prefetch the batch state to memory before processing
 	sm.StateClient.FetchSimpleState(keys, []uint16{sm.StateID1, sm.StateID2})
+	//t2 := time.Now()
 
 	var state1 V1
 	var state2 V2
@@ -115,9 +116,12 @@ func (sm *StatefulMapper2[IN, OUT, K, V1, V2]) ProcessBatch(
 		// Call collector to push the output record to the downstream
 		sm.Collector.Emit(output)
 	}
+	//t3 := time.Now()
 
 	// Flush local cache to StateService
 	sm.StateClient.FlushSimpleState()
+	//t4 := time.Now()
+	//log.Println("Batch total time:", t4.Sub(t1), "Fetch state time:", t2.Sub(t1), "Process batch time:", t3.Sub(t2), "Flush state time:", t4.Sub(t3))
 }
 
 // Validate input type at compile time

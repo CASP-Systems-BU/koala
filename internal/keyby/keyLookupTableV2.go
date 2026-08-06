@@ -305,7 +305,7 @@ func (table *KeyLookupTableV2) SerializeMigratingKeyMaps(
 ******************************************************************************/
 
 // Max allowed size for a serialized key map work unit
-var MaxKeyMapSize = 20 * 1024 * 1024 // 20 MB
+var MaxKeyMapSize = 100 * 1024 * 1024 // 50 MB
 
 // Serialized key map list under construction (per destination worker)
 // Serialized key map format:

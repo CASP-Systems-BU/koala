@@ -112,7 +112,7 @@
         "HotSellerRatio": 0.25,
         "HotSellerRange": 200000,
         "RateLimiterConfig": {
-          "UseRateLimit": true,
+          "UseRateLimit": false,
           "RateLimit": [
             5000,10000
           ],

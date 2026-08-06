@@ -60,7 +60,7 @@
 "ListLength": 150,
 "RateLimiterConfig":{
     "UseRateLimit": true,
-    "RateLimit": [385],
+    "RateLimit": [385, 770, 385],
     "RateChangeInterval": [900, 3000]
   },
   "FilePath": [
@@ -72,11 +72,11 @@
   "EventType": "Taxi",
   "ReconfigProtocol": "stop-and-restart",
   "LazyProtocolVersion": "optimized",
-  "TotalRuntimeSeconds": 600,
+  "TotalRuntimeSeconds": 1020,
   "NumBuckets": 128,
   "PartitionPolicy": "consistent-even",
   "BufferSize": 2,
-  "BatchSize": 2048,
+  "BatchSize": 1536,
   "StateBackendType": "remote-pebble",
   "PebbleEnableConcurrentGetMany": true,
   "PebbleGetManyMaxConcurrency": 8,
@@ -97,7 +97,7 @@
       "TargetParrallelism": 8
     },
     {
-      "TriggerTimeSeconds": 420,
+      "TriggerTimeSeconds": 900,
       "Type": "scaledown",
       "TargetOperator": "movingMedianTripTime",
       "TargetParrallelism": 4

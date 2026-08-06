@@ -390,24 +390,12 @@ def runExperimentImpl(
             "LazyByKeyCancellingTaskMigrationMode",
             cancellingTaskMigrationMode,
         )
-    else:
-        updateConfigYamlFile(
-                    f"{workDir}/config.yaml",
-                    "LazyByKeyCancellingTaskMigrationMode",
-                    "fetch-on-demand",
-                )
     if gradualMigrationBatchSize is not None:
         updateConfigYamlFile(
             f"{workDir}/config.yaml",
             "LazyByKeyGradualMigrationBatchSize",
             gradualMigrationBatchSize,
         )
-    else:
-        updateConfigYamlFile(
-                    f"{workDir}/config.yaml",
-                    "LazyByKeyGradualMigrationBatchSize",
-                    100,
-                )
 
 
     ###########################################################################

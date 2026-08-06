@@ -1,6 +1,8 @@
 package query3
 
 import (
+	"time"
+
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/collector"
 	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
 	ka "github.com/CASP-Systems-BU/disaggregated-streaming/api/keyAssigner"
@@ -52,9 +54,12 @@ func Query3Join(
 			// In state2, we only store the auctionId
 			state2 *stateType.ListState[*tuple.Tuple1[int64]],
 			co collector.Collector,
-		) {
+		) time.Duration {
+			generationTime := time.Duration(0)
 			if useDummyField {
+				startGeneration := time.Now()
 				dummyFieldContent = dummyFieldGenerator.GenerateDummyField()
+				generationTime = time.Since(startGeneration)
 				state1.Set(&tuple.Tuple4[string, string, string, string]{
 					V1: in.V2,
 					V2: in.V5,
@@ -84,6 +89,7 @@ func Query3Join(
 				})
 			}
 			state2.Clear()
+			return generationTime
 		},
 		auctionFilter,
 		auctionKeyAssigner,
@@ -95,7 +101,7 @@ func Query3Join(
 			// In state2, we only store the auctionId
 			state2 *stateType.ListState[*tuple.Tuple1[int64]],
 			co collector.Collector,
-		) {
+		) time.Duration {
 			personState, hasPersonState := state1.Get()
 			if hasPersonState {
 				// Output:
@@ -114,6 +120,7 @@ func Query3Join(
 					V1: in.V1,
 				})
 			}
+			return 0
 		},
 	)
 

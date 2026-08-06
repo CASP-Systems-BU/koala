@@ -50,8 +50,8 @@
 "ListLength": 150,
 "RateLimiterConfig":{
     "UseRateLimit": true,
-    "RateLimit": [635],
-    "RateChangeInterval": [900]
+    "RateLimit": [635, 1270, 635],
+    "RateChangeInterval": [900, 3000]
   },
   "FilePath": [
     "taxiData/taxi0.csv",
@@ -62,7 +62,7 @@
   "EventType": "Taxi",
   "ReconfigProtocol": "lazy",
   "LazyProtocolVersion": "by-key",
-  "TotalRuntimeSeconds": 600,
+  "TotalRuntimeSeconds": 1020,
   "NumBuckets": 128,
   "PartitionPolicy": "consistent-even",
   "BufferSize": 2,
@@ -87,7 +87,7 @@
       "TargetParrallelism": 8
     },
     {
-      "TriggerTimeSeconds": 420,
+      "TriggerTimeSeconds": 900,
       "Type": "scaledown",
       "TargetOperator": "movingMedianTripTime",
       "TargetParrallelism": 4

@@ -84,7 +84,7 @@ func requestHandler(
 				listener.Close()
 				return
 			} else {
-				log.Fatalf("Error tcp reading: %v", err)
+				log.Fatalf("Error tcp reading1: %v", err)
 			}
 		}
 		log.Println("[server] Read: ", string(buf))

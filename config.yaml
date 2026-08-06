@@ -16,14 +16,11 @@ PebbleDisableWAL: true
 PebbleMemTableSize: 67108864
 PebbleSyncOnWrite: false
 PebbleEnableConcurrentGetMany: true
-
-# [pebble] Max number of concurrency for GetMany() parallel reads
-PebbleGetManyMaxConcurrency: 8
-
-# [pebble] Expected batch size per GetMany() routine executor
-PebbleGetManyBatchSize: 32
-
-# [remote-pebble] list of remote pebble addresses (host:port)
+PebbleGetManyMaxConcurrency: 4
+PebbleGetManyBatchSize: 64
+PebbleMaxConcurrentCompactions: 1
+PebbleLBaseMaxBytes: 67108864
+PebbleMemTableStopWritesThreshold: 2
 RemotePebbleAddrs: []
 TiKVAddr: 192.168.1.101:2379
 StateMigrationChunkSize: 1048576
