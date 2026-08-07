@@ -2,29 +2,49 @@
 
 Welcome to the artifact evaluation guide for Koala, a non-disruptive reconfiguration protocol for stateful dataflow systems. Koala supports a range of reconfiguration scenarios, including scale-out, scale-in, rebalancing, and task migration. This repository contains (i) a new distributed dataflow runtime that serves as the underlying system for evaluating workload reconfigurations, (ii) an implementation of the Koala protocol, and (iii) implementations of baseline reconfiguration protocols for comparison.
 
-**We target all three badges {Available, Functional, Reproduced}:**
+**We target all three badges (Available, Functional, Reproduced):**
 
-- Available: we publish Koala on [Github](https://github.com/CASP-Systems-BU/koala).
-- Functional: we describe all artifact components and provide instructions for running a minimal working example.
-- Reproduced: we provide instructions for reproducing the key results from the evaluation section of the paper. Our main results—Figures 6, 8, 10, 11, 12, and 13—are reproducible. Figures 9, 14, 15, and 16 are also reproducible but are optional.
+- [Available](#available-badge): we publish Koala on [Github](https://github.com/CASP-Systems-BU/koala).
+- [Functional](#functional-badge): we describe all artifact components and provide instructions for running a minimal working example.
+- [Reproduced](#reproduced-badge): we provide instructions for reproducing the key results from the evaluation section of the paper. Our main results—Figures 6, 8, 10, 11, 12, and 13—are reproducible. Figures 9, 14, 15, and 16 are also reproducible but are optional.
 
----
+> All experiments run on AWS `c5d.4xlarge` instances and CloudLab `c6620` machines. To simplify the evaluation process, we provide reviewers with ready-to-use environments on both AWS and CloudLab; access credentials (SSH keys and IP addresses) will be shared via HotCRP.
+
+## Overview
+
+We summerize the experiments outlined in this document and the claims they support. The experiments in [Reproduced Badge](#reproduced-badge) section are organized by evaluation sections in the paper (sec 5.2, sec 5.3, sec 5.4).
+
+
+
+### 1. Primary claim: Sec 5.2
+
+> **Primary claim**: Koala effectively eliminates the reconfiguration disruption (e.g., throughput drop, backlog accumulation, latency spike) as compared to the baselines, while sustaining low processing latency during normal operation.
+
+Sec 5.2 scales out six large-state queries under accumulated state and backlog, supporting the primary claim, as shown in Figures 6 and 8.
+
+### 2. Secondary claim: Sec 5.3
+
+> **Secondary claim**: Koala can handle a variety of reconfiguration scenarios, including repeated reconfigurations, concurrent reconfigurations, skew-driven rebalancing, and task migration.
+
+Sec 5.3 evaluates varying reconfiguration scenarios, demonstrating the applicability and flexibility of the Koala protocol, as shown in Figures 10–13.
+
+### 3. Optional: Sec 5.4
+
+Sec 5.4 runs a set of microbenchmarks to demonstrate the efficiency of Koala's lazy state access mechanism, including the impact of total state size, key lookup overhead, and key locality/skew. This section is **optional** and not required for the main claims.
 
 ## Table of contents
 
+- [Getting Started](#hello-world)
 - [Available Badge](#available-badge)
 - [Functional Badge](#functional-badge)
 - [Reproduced Badge](#reproduced-badge)
-- [Hello world](#hello-world)
-- [Experiments](#experiments)
   - [Section 5.2 — Figures 6 and 8 (main result)](#section-52--figures-6-and-8)
   - [Section 5.3 — Figures 10–13, reconfiguration scenarios](#section-53--figures-1013-reconfiguration-scenarios)
-    - [Section 5.3.1 — Figure 9, high parallelism (optional)](#section-531--figure-9-high-parallelism-optional)
-  - [Section 5.4 — Figures 14–16, microbenchmarks (optional)](#section-54--figures-1416-microbenchmarks-optional)
+    - [[Optional] Section 5.3.1 — Figure 9, high parallelism](#section-531--figure-9-high-parallelism-optional)
+  - [[Optional] Section 5.4 — Figures 14–16, microbenchmarks](#section-54--figures-1416-microbenchmarks-optional)
 - [Appendix A: rebuilding the warm-up state](#appendix-a-rebuilding-the-warm-up-state)
 - [Appendix B: writing your own query](#appendix-b-writing-your-own-query)
 
----
 
 ## Available Badge
 
