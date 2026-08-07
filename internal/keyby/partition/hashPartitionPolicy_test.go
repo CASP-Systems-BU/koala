@@ -3,8 +3,8 @@ package partition_test
 import (
 	"testing"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/keyby/partition"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/internal/keyby/partition"
 )
 
 func TestHashPartitionPolicy_GenerateBuckets1(t *testing.T) {

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
+	"github.com/CASP-Systems-BU/koala/api/dataflow"
 )
 
 type WorkerManager struct {

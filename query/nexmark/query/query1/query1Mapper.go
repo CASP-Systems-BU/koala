@@ -1,8 +1,8 @@
 package query1
 
 import (
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/models"
+	"github.com/CASP-Systems-BU/koala/api/dataflow"
+	"github.com/CASP-Systems-BU/koala/query/nexmark/models"
 )
 
 func Query1Mapper() *dataflow.Mapper[*models.BidEvent, *models.BidEvent] {

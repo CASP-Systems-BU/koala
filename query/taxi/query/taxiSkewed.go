@@ -7,14 +7,14 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/collector"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
-	ka "github.com/CASP-Systems-BU/disaggregated-streaming/api/keyAssigner"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/stateClient/stateType"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/kafka"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/taxi/models"
-	taxiUtils "github.com/CASP-Systems-BU/disaggregated-streaming/query/taxi/utils"
+	"github.com/CASP-Systems-BU/koala/api/collector"
+	"github.com/CASP-Systems-BU/koala/api/dataflow"
+	ka "github.com/CASP-Systems-BU/koala/api/keyAssigner"
+	"github.com/CASP-Systems-BU/koala/api/stateClient/stateType"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
+	"github.com/CASP-Systems-BU/koala/kafka"
+	"github.com/CASP-Systems-BU/koala/query/taxi/models"
+	taxiUtils "github.com/CASP-Systems-BU/koala/query/taxi/utils"
 )
 
 // Find the top 10 most frequent routes during the last 30 minute.

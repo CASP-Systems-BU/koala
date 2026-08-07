@@ -1,7 +1,7 @@
 package keyAssigner
 
 import (
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
 )
 
 // KeyAssigner extracts the key field from the input tuple

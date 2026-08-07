@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/state/stateBackend"
+	testutils "github.com/CASP-Systems-BU/koala/e2e/testUtils"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/state/stateBackend"
 	"github.com/mus-format/mus-go/raw"
 )
 

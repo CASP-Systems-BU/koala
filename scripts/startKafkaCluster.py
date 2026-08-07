@@ -9,7 +9,7 @@ import signal
 # Usage:
 #   python startCluster.py <configFilePath>
 # Example:
-#   python startCluster.py ~/disaggregated-streaming/scripts/nexmarkJson/query1.json
+#   python startCluster.py ~/koala/scripts/nexmarkJson/query1.json
 
 # Time to wait after deploying Kafka cluster before checking its status
 # 15s here is for 1st time kafka installation case, otherwise it should be much faster

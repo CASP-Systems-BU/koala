@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
-	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
+	"github.com/CASP-Systems-BU/koala/api/dataflow"
+	testutils "github.com/CASP-Systems-BU/koala/e2e/testUtils"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
 )
 
 func TestTumblingWindowByKeyScaleDownTcp(t *testing.T) {

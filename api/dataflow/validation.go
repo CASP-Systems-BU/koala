@@ -3,8 +3,8 @@ package dataflow
 import (
 	"time"
 
-	ta "github.com/CASP-Systems-BU/disaggregated-streaming/api/timestampAssigner"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
+	ta "github.com/CASP-Systems-BU/koala/api/timestampAssigner"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
 )
 
 // To enforce tuple type match with respect to dataflow topology at compile

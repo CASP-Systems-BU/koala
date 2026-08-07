@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	ratelimiter "github.com/CASP-Systems-BU/disaggregated-streaming/query/rateLimiter"
+	ratelimiter "github.com/CASP-Systems-BU/koala/query/rateLimiter"
 )
 
 // All configuration parameters required to start a NexmarkKafkaProducer

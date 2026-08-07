@@ -3,7 +3,7 @@ package watermark
 import (
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/buffer"
+	"github.com/CASP-Systems-BU/koala/internal/buffer"
 )
 
 type PeriodicWatermarkGenerator struct {

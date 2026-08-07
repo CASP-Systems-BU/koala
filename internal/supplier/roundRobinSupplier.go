@@ -3,8 +3,8 @@ package supplier
 import (
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/buffer"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/utils"
+	"github.com/CASP-Systems-BU/koala/internal/buffer"
+	"github.com/CASP-Systems-BU/koala/internal/utils"
 )
 
 // RoundRobinSupplier implements Supplier interface. It applies the

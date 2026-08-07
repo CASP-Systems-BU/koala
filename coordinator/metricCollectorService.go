@@ -12,7 +12,7 @@ import (
 
 	"database/sql"
 
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
 	_ "github.com/mattn/go-sqlite3"
 	"google.golang.org/grpc"
 )

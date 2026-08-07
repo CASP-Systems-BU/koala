@@ -1,6 +1,6 @@
 package buffer
 
-import "github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
+import "github.com/CASP-Systems-BU/koala/api/tuple"
 
 // Pre-allocate a pool of batches for input buffer (deserialization)
 // The size of batch bool is configured as (buffer size n + 2). At the max

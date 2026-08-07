@@ -40,7 +40,7 @@ Notes on some important consumer configs:
 func DefaultKafkaConsumerConfig() *kafka.ConfigMap {
 	return &kafka.ConfigMap{
 		"bootstrap.servers":         "localhost:9092",
-		"group.id":                  "disaggregated-streaming",
+		"group.id":                  "koala",
 		"auto.offset.reset":         "earliest",
 		"max.partition.fetch.bytes": 10485760, // 10MB
 	}
