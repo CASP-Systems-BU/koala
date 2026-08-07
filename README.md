@@ -18,7 +18,7 @@ the new task assignment warms up, rather than pausing to transfer state up front
 - [Functional Badge](#functional-badge)
 - [Reproduced Badge](#reproduced-badge)
 - [Setup](#setup) — [requirements](#1-requirements), [download](#2-download), [install](#3-install-and-build), [cluster](#4-cluster-setup)
-- [Hello world](#hello-world) — a 5-minute end-to-end run
+- [Hello world](#hello-world)
 - [Experiments](#experiments)
   - [Section 5.2 — Figures 6 and 8 (main result)](#section-52--figures-6-and-8)
   - [Section 5.3 — Figures 10–13, reconfiguration scenarios](#section-53--figures-1013-reconfiguration-scenarios)
@@ -81,7 +81,7 @@ The experimental section supports three claims:
    reconfiguration types — repeated reconfigurations, concurrent reconfiguration of
    multiple operators, skew-driven rebalancing, and scale-in with task migration
    (Section 5.3, Figures 9–13).
-3. **The mechanism is cheap.** Lazy state access migrates only the active working set, so
+3. Lazy state access migrates only the active working set, so
    cost is governed by key locality and skew rather than total state size, and the key
    lookup table stays small (Section 5.4, Figures 14–16).
 
@@ -89,11 +89,11 @@ We compare against three baselines, all implemented in this repository and run t
 same harness: **S&R** (stop-and-restart, the standard approach), **Remote** (state served
 from disaggregated storage without migration), and **DRRS**.
 
-All experiments run on Ubuntu Linux in two settings:
+All experiments run on Ubuntu Linux (22.04) in two settings:
 
 - **AWS** — used for Sections 5.2 and 5.3 (Figures 6, 8, 10–13). Working directory on the
   nodes is `~/ssd/disaggregated-streaming`.
-- **CloudLab Utah** (`c6620` nodes) — used for Sections 5.3.1 and 5.4 (Figures 9, 14–16).
+- **CloudLab Utah** (`c6620` nodes) — used for optional Sections 5.3.1 and 5.4 (Figures 9, 14–16).
   Working directory on the nodes is `~/disaggregated-streaming`.
 
 In both settings node `10.10.1.1` runs the coordinator; log in there and run everything
@@ -102,76 +102,14 @@ from that node.
 | Experiment | Figures | Claim | Setting | Run time | Section |
 |---|---|---|---|---|---|
 | Reconfiguration vs. baselines, 6 queries × 4 protocols | 6, 8 | #1 | AWS | 4–5 h | [5.2](#section-52--figures-6-and-8) |
+| Repeated / concurrent reconfiguration, skew rebalancing, task migration | 10–13 | #2 | AWS | ~2 h | [5.3](#section-53--figures-1013-reconfiguration-scenarios) |
 | Scale-out at high parallelism (16 → 32 tasks) | 9 | #2 | CloudLab | 10 min | [5.3.1](#section-531--figure-9-high-parallelism-optional) |
-| Repeated / concurrent reconfiguration, skew rebalancing, task migration | 10–13 | #2 | AWS | ~2 h | [5.3](#section-53--figures-1013-reconfiguration-scenarios-optional) |
 | State size, key lookup overhead, locality and skew | 14–16 | #3 | CloudLab | 2 h 20 min | [5.4](#section-54--figures-1416-microbenchmarks-optional) |
 
-**Section 5.2 is the main result.** Start there; the other three sections are optional and
-can be run in any order.
-
 Because the artifact needs multi-node clusters with pre-generated warm-up state, we provide
-ready-to-use clusters for both settings. If you use them, skip [Setup](#setup) — everything
-below is already installed and the warm-up data is already generated — and go straight to
-[Experiments](#experiments).
+ready-to-use clusters for both settings.
 
----
-
-## Setup
-
-Skip this section if you are using the clusters we provide.
-
-### 1. Requirements
-
-On every node:
-
-| Dependency | Version | Notes |
-|---|---|---|
-| Go | 1.25.6+ | builds the binaries; needs a C toolchain (`gcc`) for the Kafka client |
-| Java | 11 | required by Kafka (KRaft mode) |
-| Python | 3.9+ | the experiment harness |
-| Python packages | `psutil`, `kafka-python` | harness; on the coordinator also `matplotlib` and `numpy` for the figures |
-| Apache Kafka | 3.9.0 | downloaded automatically by the deploy script |
-
-The coordinator node needs passwordless SSH access to every other node. SSH is used only
-for benchmarking and orchestration, not by the system at runtime.
-
-### 2. Download
-
-```bash
-git clone git@github.com:CASP-Systems-BU/koala.git ~/disaggregated-streaming
-cd ~/disaggregated-streaming
-```
-
-Clone into `~/ssd/disaggregated-streaming` instead if you are reproducing Sections 5.2 or
-5.3 on AWS — the suite configs for those sections expect that path (`WorkDir` in the suite
-JSON).
-
-Some experiments in Sections 5.2 and 5.3 run on other branches (`drrs`, `koala_q3`,
-`drrs_q3`, `skew_mitigation`, `task_migration`). The suite runner checks these out for you
-and restores the original branch when it finishes; fetch them once up front:
-
-```bash
-git fetch --all
-```
-
-### 3. Install and build
-
-Install the OS and Python dependencies on all nodes listed as producers in a config, then
-build the binaries on the coordinator node:
-
-```bash
-cd ~/disaggregated-streaming/scripts
-python3 prepareNode.py nexmarkJson/query1.json     # installs python3-pip, openjdk-11, psutil, kafka-python
-
-cd ~/disaggregated-streaming
-make                                               # builds ./bin/{coordinator,worker,client,*Producer,remotePebble}
-```
-
-`make` compiles the coordinator, the workers, the client, the three Kafka producers, and
-the remote Pebble server into `./bin`. You only build on the coordinator node — the
-harness ships `bin/`, `config.yaml`, and `scripts/` to the other nodes.
-
-Refer to [cluster setup](https://github.com/CASP-Systems-BU/koala/wiki/Experiment-Environment-Setup)
+Refer to [cluster setup](https://github.com/CASP-Systems-BU/koala/wiki/Experiment-Environment-Setup) to setup your own cluster.
 
 
 ---
@@ -207,34 +145,24 @@ Two scripts drive everything:
 
 ```bash
 python3 runExperimentSuite.py <suite.json>     # run a section's experiments back-to-back
-    [--only name1,name2]                       #   run a subset
-    [--dry-run]                                #   validate and print the plan
-    [--verbose]                                #   echo each experiment's output
 
 python3 runAllFigures.py                       # regenerate that section's figures
-    [--only figure14] [--list] [--verbose]
 ```
 
-The suite runner retries a failed experiment (`MaxAttempts`), deletes the partial results
-of a failed attempt so the retry writes to the expected folder, checks out the branch each
-experiment needs, and restores your original branch at the end. Re-running a suite is
-always safe. It prints a summary at the end and writes it to
+ It prints a summary at the end and writes it to
 `results/suiteLogs_<timestamp>/summary.json`, with per-experiment logs alongside it.
 
 ### Section 5.2 — Figures 6 and 8
 
 *(Human time: 10 minutes, run time: 4–5 hours. AWS. **This is the main result.**)*
 
-Supports claim #1: Koala reconfigures without downtime, and its per-batch latency does not
+Supports claim #1: Koala reconfigures without downtime, and its per-batch processing latency does not
 spike during reconfiguration.
 
 | Claim in the paper | Figure | Supported by |
 |---|---|---|
 | "Koala has no downtime after the scale-out, unlike S&R, and consumes the backlog much faster than the other baselines." | 6 | `Figure6/*.pdf` |
 | "Koala's per-batch latency is lower than Remote's and does not spike during reconfiguration." | 8 | `Figure8/*_latency.pdf` |
-
-The cluster is ready to use: all packages are installed and the warm-up data for every
-query is already generated, so no warm-up phase is needed.
 
 **1. Run the 24 experiments**
 
@@ -249,19 +177,12 @@ producing result folders `<query>_<lazy|SAR|Remote|DRRS>`. Check that all 24 rep
 `SUCCEEDED` in the final summary; per-experiment logs are in
 `scripts/results/suiteLogs_<timestamp>/`.
 
-The 24 entries span four branches — `main`, `koala_q3` and `drrs_q3` (Nexmark Q3's target
-operator is a join, so it needs its own implementations), and `drrs`. The suite groups
-them by branch so the run performs the minimum number of checkouts, and restores your
-original branch at the end.
-
 If some experiments fail, rerun them with the config the suite writes for you:
 
 ```bash
 cd ~/ssd/disaggregated-streaming/scripts
 python3 runExperimentSuite.py results/suiteLogs_<timestamp>/rerunFailed.json
 ```
-
-Repeat until all 24 report `SUCCEEDED`, then continue with step 2.
 
 **2. Generate the plots**
 
@@ -281,8 +202,57 @@ Exits non-zero if any figure fails. Output:
 
 | Figure | What you should see |
 |---|---|
-| 6 | Koala's throughput does not drop to zero at the scale-out, while S&R stops entirely; Koala drains the backlog that builds up during reconfiguration faster than the other baselines. |
+| 6 | Koala's throughput does not drop to zero after scaling out, while S&R stops entirely; Koala drains the backlog that builds up during reconfiguration faster than the other baselines. |
 | 8 | Koala's per-batch latency stays below Remote's throughout and shows no spike at the reconfiguration point. |
+
+
+### Section 5.3 — Figures 10–13, reconfiguration scenarios
+
+*(Human time: 10 minutes, run time: ~2 hours. AWS.)*
+
+Supports claim #2: the same mechanism covers reconfiguration types beyond a single
+scale-out — repeated reconfigurations, concurrent reconfiguration of several operators,
+skew-driven rebalancing, and scale-in with task migration.
+
+| Claim in the paper | Figure | Supported by |
+|---|---|---|
+| Koala maintains nondisruptive processing both when scaling-out and when scalingin, demonstrating robustness under repeated reconfigurations| 10 | `Figure10.pdf` |
+| After rebalance, Koala quickly resolves the bottleneck, converging to a stable and balanced throughput | 11 | `Figure11.pdf` |
+| Fetch-on-demand and progressive-default sustain the input rate without disruption, and the latter completes the migration in the background | 12 | `Figure12.pdf` |
+| Koala can also support cases where multiple target operators need to be reconfigured at once.  | 13 | `Figure13.pdf` |
+
+**1. Run the experiments**
+
+```bash
+cd ~/ssd/disaggregated-streaming/scripts
+python3 runExperimentSuite.py nsdi27/evaluation/Section5.3/AWS/fullSuite.json
+```
+
+If some experiments fail, rerun them with the config the suite writes for you:
+
+```bash
+cd ~/ssd/disaggregated-streaming/scripts
+python3 runExperimentSuite.py results/suiteLogs_<timestamp>/rerunFailed.json
+```
+
+**2. Generate the figures**
+
+```bash
+cd ~/ssd/disaggregated-streaming/scripts/nsdi27/evaluation/Section5.3/AWS
+python3 runAllFigures.py
+```
+
+**3. Compare with the paper**
+
+As above, the claims are about trends rather than exact numbers.
+
+| Figure | What you should see |
+|---|---|
+| 10 | Throughput holds across all four reconfiguration points (t≈180, 360, 540, 720s); the volume of state transferred spikes at each one and then decays to zero as the working set is fetched. |
+| 11 | Before the rebalance, one task of the target operator carries most of the throughput; afterwards, per-task throughput evens out and Kafka lag returns to its steady-state level. |
+| 12 | Fetch-on-demand keeps throughput steady and spreads migration over a longer window; progressive migration moves state faster, and the larger chunk size shortens the migration at the cost of a larger disturbance to throughput. |
+| 13 | Reconfiguring two operators at the same time does not stall the pipeline: aggregate throughput stays flat and the Kafka queue does not build up. |
+
 
 ### Section 5.3.1 — Figure 9, high parallelism (optional)
 
@@ -304,31 +274,9 @@ parallelism. The experiment runs Nexmark Q6\* (`nexmark_query6_modified`) under 
 | Generate the figure | 1 min | 1 min |
 | Compare with the paper | 10 min | — |
 
-**1. Cluster access**
+**1. Run the experiment**
 
-The cluster has 20 `c6620` nodes on CloudLab Utah.
-
-| Node | Role |
-|---|---|
-| `10.10.1.1` | Kafka broker, 2 producers, coordinator. Log in here and run everything from this node. |
-| `10.10.1.2`, `10.10.1.3`, `10.10.1.4` | Kafka broker and 2 producers each |
-| `10.10.1.5` – `10.10.1.20` | Workers. 16 worker processes initially: 16 sources, 16 stateful mapper tasks, and 1 sink; scale-out adds 16 more mapper tasks (32 total). |
-
-```bash
-ssh <user>@10.10.1.1
-sudo -i
-cd ~/disaggregated-streaming
-git status -sb                     # should report main
-for ip in 10.10.1.2 10.10.1.3 10.10.1.4 10.10.1.9 10.10.1.10 10.10.1.11 10.10.1.12 10.10.1.13 10.10.1.14 10.10.1.15 10.10.1.16 10.10.1.17 10.10.1.18 10.10.1.19 10.10.1.20 10.10.1.21 10.10.1.22 10.10.1.23 10.10.1.24; do
-  ssh -o BatchMode=yes $ip 'hostname' || echo "UNREACHABLE $ip"
-done
-ssh 10.10.1.9 'du -sh ~/disaggregated-streaming/pebble_warmup_data/nexmark_q6_mod/128_consistent_80GB_16'
-```
-
-You should see all 16 worker nodes respond, and the 80 GB warm-up snapshot for
-parallelism-16 on the worker.
-
-**2. Run the experiment**
+We run the experiment on CloudLab Utah `c6620` with 20  nodes.
 
 ```bash
 cd ~/disaggregated-streaming/scripts
@@ -350,6 +298,13 @@ The experiment should say `SUCCEEDED`. The full output is in
 `results/suiteLogs_<timestamp>/<NN>_parallelism_16_to_32_attemptN.log`. A failed
 experiment is retried twice before the suite gives up, and re-running the suite is safe.
 
+If some experiments fail, rerun them with the config the suite writes for you:
+
+```bash
+cd ~/ssd/disaggregated-streaming/scripts
+python3 runExperimentSuite.py results/suiteLogs_<timestamp>/rerunFailed.json
+```
+
 **3. Generate the figure**
 
 ```bash
@@ -363,84 +318,11 @@ Absolute values depend on the machines and on how Kafka and the producer happen 
 during a run, so the claims are about trends and stability rather than exact numbers. The
 reference values below come from the run used for the paper.
 
-| Figure | What you should see | Reference values |
-|---|---|---|
-| 9a (Tput) | Throughput is flat before and after scale-out at t=180s, with no dip and no disruption to steady-state input rate | ~800,000 records/s aggregated across 16 sources before and after scale-out; minimal variance |
-| 9b (Kafka lag) | Kafka queue lag stays low throughout and does not spike during scale-out | lag under 30 seconds before and after; minimal disruption at t=180s |
-
-**Changing the experiment.** To test other parallelism levels, add a config under
-`nexmarkJson/query6/highParallelism/` and an entry in
-`nsdi27/evaluation/Section5.3/Cloudlab/fullSuite.json`.
-
-| Field | Effect |
+| Figure | Claim |
 |---|---|
-| `StatefulMapperParallelism` | Initial parallelism of the target operator |
-| `TargetParrallelism` | The scale-out (or scale-in) target parallelism. `WorkerIPs` must have enough entries for the resulting task count. |
+| 9a (Tput) | Throughput is flat before and after scale-out at t=180s, with no dip and no disruption to steady-state input rate |
+| 9b (Kafka lag) | Kafka queue lag stays low throughout and does not spike during scale-out | 
 
-### Section 5.3 — Figures 10–13, reconfiguration scenarios (optional)
-
-*(Human time: 10 minutes, run time: ~2 hours. AWS.)*
-
-Supports claim #2: the same mechanism covers reconfiguration types beyond a single
-scale-out — repeated reconfigurations, concurrent reconfiguration of several operators,
-skew-driven rebalancing, and scale-in with task migration.
-
-| Claim in the paper | Figure | Supported by |
-|---|---|---|
-| Koala sustains repeated reconfigurations, with state migration tapering off after each one | 10 | `Figure10.pdf` |
-| Rebalancing moves hot keys off the overloaded task and evens out per-task throughput | 11 | `Figure11.pdf` |
-| Scale-in with task migration: fetch-on-demand and progressive migration trade migration speed against disruption | 12 | `Figure12.pdf` |
-| Several operators can be reconfigured concurrently without disrupting throughput or the Kafka queue | 13 | `Figure13.pdf` |
-
-**1. Run the experiments**
-
-```bash
-cd ~/ssd/disaggregated-streaming/scripts
-python3 runExperimentSuite.py nsdi27/evaluation/Section5.3/AWS/fullSuite.json
-```
-
-Six experiments, spread over three branches — the suite checks each one out for you and
-restores your original branch at the end:
-
-| Suite entry | Branch | Scenario | Result folder |
-|---|---|---|---|
-| `multiReconfig` | `main` | Four reconfigurations in one run (Q6\*) | `nexmark_query6_modified_multi_reconfig` |
-| `concurrent_multi_operators_reconfig` | `main` | Two operators reconfigured concurrently (twitch) | `twitch_concurrent_multi_reconfig` |
-| `skew_mitigation` | `skew_mitigation` | Rebalancing under key skew (taxi) | `taxi_skew_rebalance` |
-| `task_migration_fetch_on_demand` | `task_migration` | Scale-in, state fetched on demand | `nexmark_query6_modified_task_migration_fetch_on_demand` |
-| `task_migration_progressive_default` | `task_migration` | Scale-in, progressive migration (default chunk) | `nexmark_query6_modified_task_migration_progressive_default` |
-| `task_migration_progressive_large` | `task_migration` | Scale-in, progressive migration (large chunk) | `nexmark_query6_modified_task_migration_progressive_large` |
-
-All six should report `SUCCEEDED`. To rerun a subset:
-
-```bash
-python3 runExperimentSuite.py nsdi27/evaluation/Section5.3/AWS/fullSuite.json --only skew_mitigation
-```
-
-**2. Generate the figures**
-
-```bash
-cd ~/ssd/disaggregated-streaming/scripts/nsdi27/evaluation/Section5.3/AWS
-python3 runAllFigures.py
-```
-
-| File | Paper figure | Reads |
-|---|---|---|
-| `Figure10.pdf` | Figure 10 — throughput and state transferred across four reconfigurations | `multi_reconfig` |
-| `Figure11.pdf` | Figure 11 — per-task throughput and Kafka lag around the rebalance | `taxi_skew_rebalance` |
-| `Figure12.pdf` | Figure 12 — throughput and state migration for the three scale-in strategies | the three `task_migration_*` folders |
-| `Figure13.pdf` | Figure 13 — throughput and Kafka lag under concurrent reconfiguration | `twitch_concurrent_multi_reconfig` |
-
-**3. Compare with the paper**
-
-As above, the claims are about trends rather than exact numbers.
-
-| Figure | What you should see |
-|---|---|
-| 10 | Throughput holds across all four reconfiguration points (t≈183, 363, 543, 723s); the volume of state transferred spikes at each one and then decays to zero as the working set is fetched. |
-| 11 | Before the rebalance, one task of the target operator carries most of the throughput; afterwards, per-task throughput evens out and Kafka lag returns to its steady-state level. |
-| 12 | Fetch-on-demand keeps throughput steady and spreads migration over a longer window; progressive migration moves state faster, and the larger chunk size shortens the migration at the cost of a larger disturbance to throughput. |
-| 13 | Reconfiguring two operators at the same time does not stall the pipeline: aggregate throughput stays flat and the Kafka queue does not build up. |
 
 ### Section 5.4 — Figures 14–16, microbenchmarks (optional)
 
@@ -469,31 +351,7 @@ to 8 tasks.
 | Generate the figures | 1 min | 1 min |
 | Compare with the paper | 15 min | — |
 
-**1. Cluster access**
-
-The cluster has eight `c6620` nodes on CloudLab Utah.
-
-| Node | Role |
-|---|---|
-| `10.10.1.1` | Kafka broker, 2 producers, coordinator. Log in here and run everything from this node. |
-| `10.10.1.2`, `10.10.1.3`, `10.10.1.4` | Kafka broker and 2 producers each |
-| `10.10.1.5` – `10.10.1.8` | Workers. 17 worker processes in total: 8 sources, 4 mapper tasks plus 4 more for the scale-out, and 1 sink. |
-
-```bash
-ssh <user>@10.10.1.1
-sudo -i
-cd ~/disaggregated-streaming
-git status -sb                     # should report main
-for ip in 10.10.1.2 10.10.1.3 10.10.1.4 10.10.1.8 10.10.1.9 10.10.1.10 10.10.1.12; do
-  ssh -o BatchMode=yes $ip 'hostname' || echo "UNREACHABLE $ip"
-done
-ssh 10.10.1.9 'du -sh ~/disaggregated-streaming/pebble_warmup_data/nexmark_q6_mod/*'
-```
-
-You should see all eight nodes respond, and four warm-up snapshots (10, 20, 40 and 80 GB)
-on the worker.
-
-**2. Run the experiments**
+**1. Run the experiments**
 
 ```bash
 cd ~/disaggregated-streaming/scripts
@@ -521,30 +379,12 @@ The script shows intermediate results:
   Results: /home/<user>/disaggregated-streaming/scripts/results
 ```
 
-All twelve should say `SUCCEEDED`. To repeat only the entries that failed, pass their names
-to `--only`.
-
 **3. Generate the figures**
 
 ```bash
 cd ~/disaggregated-streaming/scripts/nsdi27/evaluation/Section5.4
 python3 runAllFigures.py
 ```
-
-This runs `figure14.py`, `figure15.py` and `figure16.py`, which:
-
-1. Read the result folders from the experiments.
-2. For Figure 15, extract worker IPs from the experiment config files and measure key
-   lookup table sizes from `~/disaggregated-streaming/pebbleLookUpTable/` on each worker.
-   To skip the SSH measurement, pass the sizes directly:
-   `python3 figure15.py --klt-sizes 17,34,67,134`
-3. Write one PDF per figure next to the scripts:
-
-| File | Paper figure |
-|---|---|
-| `Figure14.pdf` | Figure 14 |
-| `Figure15.pdf` | Figure 15 |
-| `Figure16.pdf` | Figure 16 (both rows) |
 
 **4. Compare with the paper**
 
@@ -560,16 +400,6 @@ The reference values below come from the run used for the paper.
 | 15b (KLT size) | The key lookup table grows with the key space but stays small | 17, 34, 67, 134 MB for 10–80 GB state |
 | 16a (Locality) | Both the volume migrated and the time it takes grow with the active key space, close to linearly | 468, 936, 1824, 3696 MB for 500K, 1M, 2M and 4M active keys |
 | 16b (Skew) | More skew means less state migrated and a shorter tail | 1899, 1824, 1806, 1597 MB for 0, 25, 50 and 75% hot keys |
-
-**Changing the experiments.** Adding a config to
-`nsdi27/evaluation/Section5.4/fullSuite.json` as another `Experiments` entry lets it run
-the same way as the rest.
-
-| Field | Effect |
-|---|---|
-| `NumActivePeople` | The active key space (the x-axis of Figure 16a). Keep `HotSellerRange` at about 10% of it to hold skew constant. |
-| `HotSellerRatio` | The fraction of records that hit the hot key set, between 0 and 1 (the x-axis of Figure 16b). |
-| `TargetParrallelism` | The scale-out (or scale-in) factor. `WorkerIPs` must have enough entries for the resulting task count. |
 
 ---
 
@@ -625,14 +455,3 @@ operator, when reconfigurations fire, and which protocol handles them:
 
 [scripts/README.md](scripts/README.md) documents every config field, the Kafka cluster and
 producer scripts, and custom task placement.
-
-## Troubleshooting
-
-| Symptom | What to do |
-|---|---|
-| An experiment reports `FAILED` in the suite summary | It has already been retried twice. Read `results/suiteLogs_<timestamp>/<NN>_<name>_attemptN.log`, then rerun just that entry with `--only <name>` (Section 5.2 also writes a ready-made `rerunFailed.json`). |
-| A run leaves processes behind after Ctrl-C | Ctrl-C shuts the cluster down cleanly on all nodes; if a node was unreachable, `python3 stopProducers.py <config.json>` and `python3 stopKafkaCluster.py <config.json>` clean up the rest. |
-| A figure script fails with a missing result folder | The experiment that produces it did not complete — check the suite summary for the matching result keyword in the tables above. |
-| `figure15.py` hangs or fails on SSH | Pass the key lookup table sizes directly: `python3 figure15.py --klt-sizes 17,34,67,134`. |
-| A node is missing binaries or scripts | `python3 syncRepo.py <config.json>` from the coordinator re-broadcasts `bin/`, `config.yaml`, and `scripts/`. |
-| `git status -sb` reports an unexpected branch | A suite that was interrupted may not have restored it. `git checkout main` before rerunning; the suite checks out what each experiment needs. |
