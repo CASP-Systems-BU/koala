@@ -18,7 +18,7 @@
       "Name": "drrs",
       "ConfigPath": "fileReaderJson/aws/azure/azureDrrs.json",
       "ResultKeyword": "DRRS",
-      "Branch": "DRRS_Compare"
+      "Branch": "drrs"
     }
   ]
 }

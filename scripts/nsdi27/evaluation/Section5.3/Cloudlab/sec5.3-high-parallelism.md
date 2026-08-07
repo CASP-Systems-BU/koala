@@ -38,7 +38,7 @@ Cluster check:
 ssh <user>@10.10.1.1
 sudo -i
 cd ~/disaggregated-streaming
-git status -sb                     # should report warmupStateServiceTest
+git status -sb                     # should report main
 for ip in 10.10.1.2 10.10.1.3 10.10.1.4 10.10.1.9 10.10.1.10 10.10.1.11 10.10.1.12 10.10.1.13 10.10.1.14 10.10.1.15 10.10.1.16 10.10.1.17 10.10.1.18 10.10.1.19 10.10.1.20 10.10.1.21 10.10.1.22 10.10.1.23 10.10.1.24; do
   ssh -o BatchMode=yes $ip 'hostname' || echo "UNREACHABLE $ip"
 done

@@ -2,13 +2,13 @@
   "_comment": [
     "24 experiments across 4 branches. Entries are GROUPED BY BRANCH so the run",
     "performs the minimum number of checkouts (4 groups -> 3 actual switches,",
-    "since the run starts on warmupStateServiceTest). Within a group every entry",
+    "since the run starts on main). Within a group every entry",
     "still names its Branch: switchBranch() early-returns on 'already on branch',",
     "and preflight validates a no-Branch entry against the CURRENT working tree,",
     "which would fail for any config that lives only on another branch.",
     "",
     "q3 is special: its target operator is a join, so the baselines must run on",
-    "eval_q3_on_only_auction_batch and its DRRS run on drrs_q3. Those two groups",
+    "koala_q3 and its DRRS run on drrs_q3. Those two groups",
     "are placed back-to-back so q3's four bars are measured close together in",
     "time, at no extra checkout cost.",
     "",
@@ -29,114 +29,114 @@
   "Experiments": [
     {
       "Name": "azure_lazy",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "fileReaderJson/aws/azure/azureLazy.json",
       "ResultKeyword": "lazy"
     },
     {
       "Name": "azure_sr",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "fileReaderJson/aws/azure/azureSR.json",
       "ResultKeyword": "SAR"
     },
     {
       "Name": "azure_remote",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "fileReaderJson/aws/azure/azureRemotePebble.json",
       "ResultKeyword": "Remote"
     },
 
     {
       "Name": "borg_lazy",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "fileReaderJson/aws/borg/borgLazy.json",
       "ResultKeyword": "lazy"
     },
     {
       "Name": "borg_sr",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "fileReaderJson/aws/borg/borgSR.json",
       "ResultKeyword": "SAR"
     },
     {
       "Name": "borg_remote",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "fileReaderJson/aws/borg/borgRemotePebble.json",
       "ResultKeyword": "Remote"
     },
 
     {
       "Name": "taxi_lazy",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "fileReaderJson/aws/taxi/taxiByKeyLazy.json",
       "ResultKeyword": "lazy"
     },
     {
       "Name": "taxi_sr",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "fileReaderJson/aws/taxi/taxiStopAndRestart.json",
       "ResultKeyword": "SAR"
     },
     {
       "Name": "taxi_remote",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "fileReaderJson/aws/taxi/taxiRemotePebble.json",
       "ResultKeyword": "Remote"
     },
 
     {
       "Name": "twitch_lazy",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "fileReaderJson/aws/twitch/twitchLazy.json",
       "ResultKeyword": "lazy"
     },
     {
       "Name": "twitch_sr",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "fileReaderJson/aws/twitch/twitchSR.json",
       "ResultKeyword": "SAR"
     },
     {
       "Name": "twitch_remote",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "fileReaderJson/aws/twitch/twitchRemotePebble.json",
       "ResultKeyword": "Remote"
     },
 
     {
       "Name": "q6mod_lazy",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "nexmarkJson/aws/query6/query6ModByKeyLazy.json",
       "ResultKeyword": "lazy"
     },
     {
       "Name": "q6mod_sr",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "nexmarkJson/aws/query6/query6ModStopAndRestart.json",
       "ResultKeyword": "SAR"
     },
     {
       "Name": "q6mod_remote",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "nexmarkJson/aws/query6/query6ModRemotePebble.json",
       "ResultKeyword": "Remote"
     },
 
     {
       "Name": "q3_lazy",
-      "Branch": "eval_q3_on_only_auction_batch",
+      "Branch": "koala_q3",
       "ConfigPath": "nexmarkJson/aws/query3/query3ByKeyLazy.json",
       "ResultKeyword": "lazy"
     },
     {
       "Name": "q3_sr",
-      "Branch": "eval_q3_on_only_auction_batch",
+      "Branch": "koala_q3",
       "ConfigPath": "nexmarkJson/aws/query3/query3StopAndRestart.json",
       "ResultKeyword": "SAR"
     },
     {
       "Name": "q3_remote",
-      "Branch": "eval_q3_on_only_auction_batch",
+      "Branch": "koala_q3",
       "ConfigPath": "nexmarkJson/aws/query3/query3RemotePebble.json",
       "ResultKeyword": "Remote"
     },
@@ -150,31 +150,31 @@
 
     {
       "Name": "drrs_azure",
-      "Branch": "DRRS_Compare",
+      "Branch": "drrs",
       "ConfigPath": "fileReaderJson/aws/azure/azureDrrs.json",
       "ResultKeyword": "DRRS"
     },
     {
       "Name": "drrs_borg",
-      "Branch": "DRRS_Compare",
+      "Branch": "drrs",
       "ConfigPath": "fileReaderJson/aws/borg/borgDRRS.json",
       "ResultKeyword": "DRRS"
     },
     {
       "Name": "drrs_taxi",
-      "Branch": "DRRS_Compare",
+      "Branch": "drrs",
       "ConfigPath": "fileReaderJson/aws/taxi/taxiDRRS.json",
       "ResultKeyword": "DRRS"
     },
     {
       "Name": "drrs_twitch",
-      "Branch": "DRRS_Compare",
+      "Branch": "drrs",
       "ConfigPath": "fileReaderJson/aws/twitch/twitchDRRS.json",
       "ResultKeyword": "DRRS"
     },
     {
       "Name": "drrs_q6mod",
-      "Branch": "DRRS_Compare",
+      "Branch": "drrs",
       "ConfigPath": "nexmarkJson/aws/query6/query6ModDRRS.json",
       "ResultKeyword": "DRRS"
     }

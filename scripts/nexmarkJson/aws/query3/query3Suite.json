@@ -2,13 +2,13 @@
   "_comment": [
     "24 experiments across 4 branches. Entries are GROUPED BY BRANCH so the run",
     "performs the minimum number of checkouts (4 groups -> 3 actual switches,",
-    "since the run starts on warmupStateServiceTest). Within a group every entry",
+    "since the run starts on the main branch). Within a group every entry",
     "still names its Branch: switchBranch() early-returns on 'already on branch',",
     "and preflight validates a no-Branch entry against the CURRENT working tree,",
     "which would fail for any config that lives only on another branch.",
     "",
     "q3 is special: its target operator is a join, so the baselines must run on",
-    "eval_q3_on_only_auction_batch and its DRRS run on drrs_q3. Those two groups",
+    "koala_q3 and its DRRS run on drrs_q3. Those two groups",
     "are placed back-to-back so q3's four bars are measured close together in",
     "time, at no extra checkout cost.",
     "",
@@ -29,19 +29,19 @@
   "Experiments": [
     {
       "Name": "q3_lazy",
-      "Branch": "eval_q3_on_only_auction_batch",
+      "Branch": "koala_q3",
       "ConfigPath": "nexmarkJson/aws/query3/query3ByKeyLazy.json",
       "ResultKeyword": "lazy"
     },
     {
       "Name": "q3_sr",
-      "Branch": "eval_q3_on_only_auction_batch",
+      "Branch": "koala_q3",
       "ConfigPath": "nexmarkJson/aws/query3/query3StopAndRestart.json",
       "ResultKeyword": "SAR"
     },
     {
       "Name": "q3_remote",
-      "Branch": "eval_q3_on_only_auction_batch",
+      "Branch": "koala_q3",
       "ConfigPath": "nexmarkJson/aws/query3/query3RemotePebble.json",
       "ResultKeyword": "Remote"
     },

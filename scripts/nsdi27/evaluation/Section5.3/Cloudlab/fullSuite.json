@@ -22,7 +22,7 @@
   "Experiments": [
     {
       "Name": "parallelism_16_to_32",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "nexmarkJson/query6/highParallelism/query6ModByKeyLazyParallelism16.json",
       "ResultKeyword": "parallelism_16_to_32"
     }

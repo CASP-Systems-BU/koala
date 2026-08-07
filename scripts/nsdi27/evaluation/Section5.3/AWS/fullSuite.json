@@ -11,19 +11,19 @@
   "Experiments": [
     {
       "Name": "concurrent_multi_operators_reconfig",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "fileReaderJson/aws/twitch/twitchMultiOperators.json",
       "ResultKeyword": "concurrent_multi_reconfig"
     },
     {
       "Name": "multiReconfig",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "nexmarkJson/aws/query6/query6ModMultiReconfiguration.json",
       "ResultKeyword": "multi_reconfig"
     },
     {
       "Name": "skew_mitigation",
-      "Branch": "skewMitigation",
+      "Branch": "skew_mitigation",
       "ConfigPath": "fileReaderJson/aws/taxi/taxiSkewTest.json",
       "ResultKeyword": "rebalance"
     },

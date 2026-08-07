@@ -26,75 +26,75 @@
   "Experiments": [
     {
       "Name": "state_10gb",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "nexmarkJson/query6/stateSize/query6ModByKeyLazy10GB.json",
       "ResultKeyword": "lazy_5MKeys"
     },
     {
       "Name": "state_20gb",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "nexmarkJson/query6/stateSize/query6ModByKeyLazy20GB.json",
       "ResultKeyword": "lazy_10MKeys"
     },
     {
       "Name": "state_40gb",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "nexmarkJson/query6/stateSize/query6ModByKeyLazy40GB.json",
       "ResultKeyword": "lazy_20MKeys"
     },
     {
       "Name": "state_80gb",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "nexmarkJson/query6/stateSize/query6ModByKeyLazy80GB.json",
       "ResultKeyword": "lazy_40MKeys"
     },
 
     {
       "Name": "locality_500k",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "nexmarkJson/query6/key_locality/query6ModByKeyLazyActiveKey500k.json",
       "ResultKeyword": "lazy_500k_50k_25"
     },
     {
       "Name": "locality_1m",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "nexmarkJson/query6/key_locality/query6ModByKeyLazyActiveKey1M.json",
       "ResultKeyword": "lazy_1M_100k_25"
     },
     {
       "Name": "locality_2m",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "nexmarkJson/query6/key_locality/query6ModByKeyLazyActiveKey2M.json",
       "ResultKeyword": "lazy_2M_200k_25"
     },
     {
       "Name": "locality_4m",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "nexmarkJson/query6/key_locality/query6ModByKeyLazyActiveKey4M.json",
       "ResultKeyword": "lazy_4M_400k_25"
     },
 
     {
       "Name": "skew_0",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "nexmarkJson/query6/hotKeyRatio/query6ModByKeyLazyHotKeyRatio0.json",
       "ResultKeyword": "lazy_2M_200k_0"
     },
     {
       "Name": "skew_25",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "nexmarkJson/query6/hotKeyRatio/query6ModByKeyLazyHotKeyRatio25.json",
       "ResultKeyword": "lazy_2M_200k"
     },
     {
       "Name": "skew_50",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "nexmarkJson/query6/hotKeyRatio/query6ModByKeyLazyHotKeyRatio50.json",
       "ResultKeyword": "lazy_2M_200k_50"
     },
     {
       "Name": "skew_75",
-      "Branch": "warmupStateServiceTest",
+      "Branch": "main",
       "ConfigPath": "nexmarkJson/query6/hotKeyRatio/query6ModByKeyLazyHotKeyRatio75.json",
       "ResultKeyword": "lazy_2M_200k_75"
     }
