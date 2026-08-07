@@ -88,9 +88,9 @@ from disaggregated storage without migration), and **DRRS**.
 All experiments run on Ubuntu Linux (22.04) in two settings:
 
 - **AWS** — used for Sections 5.2 and 5.3 (Figures 6, 8, 10–13). Working directory on the
-  nodes is `~/ssd/disaggregated-streaming`.
+  nodes is `~/ssd/koala`.
 - **CloudLab Utah** (`c6620` nodes) — used for optional Sections 5.3.1 and 5.4 (Figures 9, 14–16).
-  Working directory on the nodes is `~/disaggregated-streaming`.
+  Working directory on the nodes is `~/koala`.
 
 In both settings node `10.10.1.1` runs the coordinator; log in there and run everything
 from that node.
@@ -116,7 +116,7 @@ A single-node run of the whole system — Kafka broker, producer, coordinator, t
 workers, and a scale-out of the mapper from 1 to 2 tasks 30 seconds in. Takes 5 minutes:
 
 ```bash
-cd ~/koala/scripts
+cd ~/ssd/koala/scripts
 python3 runExperiment.py nexmarkJson/query1.json hello_world
 ```
 
@@ -157,14 +157,14 @@ The script shows intermediate results:
   SUCCEEDED                          672s  state_10gb  -> lazy_5MKeys
   SUCCEEDED                          681s  state_20gb  -> lazy_10MKeys
   ...
-  Logs: /home/<user>/disaggregated-streaming/scripts/results/suiteLogs_<timestamp>
-  Results: /home/<user>/disaggregated-streaming/scripts/results
+  Logs: /home/<user>/koala/scripts/results/suiteLogs_<timestamp>
+  Results: /home/<user>/koala/scripts/results
 ```
 
 If some experiments fail, rerun them with the config the suite writes for you:
 
 ```bash
-cd ~/ssd/disaggregated-streaming/scripts
+cd ~/ssd/koala/scripts
 python3 runExperimentSuite.py results/suiteLogs_<timestamp>/rerunFailed.json
 ```
 
@@ -233,14 +233,14 @@ skew-driven rebalancing, and scale-in with task migration.
 **1. Run the experiments**
 
 ```bash
-cd ~/ssd/disaggregated-streaming/scripts
+cd ~/ssd/koala/scripts
 python3 runExperimentSuite.py nsdi27/evaluation/Section5.3/AWS/fullSuite.json
 ```
 
 **2. Generate the figures**
 
 ```bash
-cd ~/ssd/disaggregated-streaming/scripts/nsdi27/evaluation/Section5.3/AWS
+cd ~/ssd/koalascripts/nsdi27/evaluation/Section5.3/AWS
 python3 runAllFigures.py
 ```
 
