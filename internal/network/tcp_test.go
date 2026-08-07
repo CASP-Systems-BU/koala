@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/network"
+	"github.com/CASP-Systems-BU/koala/internal/network"
 )
 
 // Test the connection close handling

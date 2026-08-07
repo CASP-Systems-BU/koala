@@ -1,12 +1,12 @@
 package source
 
 import (
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/config"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/models"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/randGenerator"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/rateLimiter"
+	"github.com/CASP-Systems-BU/koala/api/dataflow"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
+	"github.com/CASP-Systems-BU/koala/query/nexmark/config"
+	"github.com/CASP-Systems-BU/koala/query/nexmark/models"
+	"github.com/CASP-Systems-BU/koala/query/nexmark/randGenerator"
+	"github.com/CASP-Systems-BU/koala/query/rateLimiter"
 )
 
 // NexmarkSource operator that extends the basic Dataflow Source operator

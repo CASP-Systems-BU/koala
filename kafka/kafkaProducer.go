@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/collector"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
+	"github.com/CASP-Systems-BU/koala/api/collector"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
 

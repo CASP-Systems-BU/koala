@@ -6,13 +6,13 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/collector"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/buffer"
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/keyby"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/supplier"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/utils"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/metric"
+	"github.com/CASP-Systems-BU/koala/api/collector"
+	"github.com/CASP-Systems-BU/koala/internal/buffer"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
+	"github.com/CASP-Systems-BU/koala/internal/keyby"
+	"github.com/CASP-Systems-BU/koala/internal/supplier"
+	"github.com/CASP-Systems-BU/koala/internal/utils"
+	"github.com/CASP-Systems-BU/koala/metric"
 )
 
 type Operator interface {

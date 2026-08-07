@@ -3,7 +3,7 @@ package stateBackend
 import (
 	"log"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
 )
 
 // Define interfaces all state backend implementation should implement

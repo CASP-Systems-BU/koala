@@ -4,7 +4,7 @@ import (
 	"log"
 	"sync"
 
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
 )
 
 // Worker managed by the coordinator

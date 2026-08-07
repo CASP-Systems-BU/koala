@@ -6,12 +6,12 @@ import (
 	"net"
 	"sync"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/buffer"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/network"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/syncflag"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/utils"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/metric"
+	"github.com/CASP-Systems-BU/koala/internal/buffer"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/internal/network"
+	"github.com/CASP-Systems-BU/koala/internal/syncflag"
+	"github.com/CASP-Systems-BU/koala/internal/utils"
+	"github.com/CASP-Systems-BU/koala/metric"
 	"github.com/mus-format/mus-go/ord"
 	"github.com/mus-format/mus-go/raw"
 )

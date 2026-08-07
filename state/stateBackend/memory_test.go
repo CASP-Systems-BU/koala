@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/state/stateBackend"
+	"github.com/CASP-Systems-BU/koala/state/stateBackend"
 )
 
 func TestMemoryStateBackend(t *testing.T) {

@@ -5,8 +5,8 @@ import (
 	"log"
 	"unsafe"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constants"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/network"
+	"github.com/CASP-Systems-BU/koala/internal/constants"
+	"github.com/CASP-Systems-BU/koala/internal/network"
 )
 
 /*

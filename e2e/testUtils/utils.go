@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/coordinator"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/worker"
+	"github.com/CASP-Systems-BU/koala/api/dataflow"
+	"github.com/CASP-Systems-BU/koala/coordinator"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
+	"github.com/CASP-Systems-BU/koala/worker"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

@@ -5,16 +5,16 @@ import (
 	"log"
 	"sync/atomic"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/collector"
-	ka "github.com/CASP-Systems-BU/disaggregated-streaming/api/keyAssigner"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/stateClient"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/buffer"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/keyby"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/lazy"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/supplier"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/syncflag"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/utils"
+	"github.com/CASP-Systems-BU/koala/api/collector"
+	ka "github.com/CASP-Systems-BU/koala/api/keyAssigner"
+	"github.com/CASP-Systems-BU/koala/api/stateClient"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
+	"github.com/CASP-Systems-BU/koala/internal/buffer"
+	"github.com/CASP-Systems-BU/koala/internal/keyby"
+	"github.com/CASP-Systems-BU/koala/internal/lazy"
+	"github.com/CASP-Systems-BU/koala/internal/supplier"
+	"github.com/CASP-Systems-BU/koala/internal/syncflag"
+	"github.com/CASP-Systems-BU/koala/internal/utils"
 )
 
 // This is the base struct for all stateful operators. On top of it, we have

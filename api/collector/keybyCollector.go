@@ -5,13 +5,13 @@ import (
 	"reflect"
 	"unsafe"
 
-	ka "github.com/CASP-Systems-BU/disaggregated-streaming/api/keyAssigner"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/buffer"
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/keyby"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/network"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/utils"
+	ka "github.com/CASP-Systems-BU/koala/api/keyAssigner"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
+	"github.com/CASP-Systems-BU/koala/internal/buffer"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
+	"github.com/CASP-Systems-BU/koala/internal/keyby"
+	"github.com/CASP-Systems-BU/koala/internal/network"
+	"github.com/CASP-Systems-BU/koala/internal/utils"
 )
 
 // T: output typle type

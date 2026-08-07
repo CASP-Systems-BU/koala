@@ -6,16 +6,16 @@ import (
 	"os"
 	"time"
 
-	kk "github.com/CASP-Systems-BU/disaggregated-streaming/kafka"
-	azure "github.com/CASP-Systems-BU/disaggregated-streaming/query/azure/fileSourceFunc"
-	azureModels "github.com/CASP-Systems-BU/disaggregated-streaming/query/azure/models"
-	borg "github.com/CASP-Systems-BU/disaggregated-streaming/query/borg/fileSourceFunc"
-	borgModels "github.com/CASP-Systems-BU/disaggregated-streaming/query/borg/models"
-	ratelimiter "github.com/CASP-Systems-BU/disaggregated-streaming/query/rateLimiter"
-	taxi "github.com/CASP-Systems-BU/disaggregated-streaming/query/taxi/fileSourceFunc"
-	taxiModels "github.com/CASP-Systems-BU/disaggregated-streaming/query/taxi/models"
-	twitch "github.com/CASP-Systems-BU/disaggregated-streaming/query/twitch/fileSourceFunc"
-	twitchModels "github.com/CASP-Systems-BU/disaggregated-streaming/query/twitch/models"
+	kk "github.com/CASP-Systems-BU/koala/kafka"
+	azure "github.com/CASP-Systems-BU/koala/query/azure/fileSourceFunc"
+	azureModels "github.com/CASP-Systems-BU/koala/query/azure/models"
+	borg "github.com/CASP-Systems-BU/koala/query/borg/fileSourceFunc"
+	borgModels "github.com/CASP-Systems-BU/koala/query/borg/models"
+	ratelimiter "github.com/CASP-Systems-BU/koala/query/rateLimiter"
+	taxi "github.com/CASP-Systems-BU/koala/query/taxi/fileSourceFunc"
+	taxiModels "github.com/CASP-Systems-BU/koala/query/taxi/models"
+	twitch "github.com/CASP-Systems-BU/koala/query/twitch/fileSourceFunc"
+	twitchModels "github.com/CASP-Systems-BU/koala/query/twitch/models"
 )
 
 type FileReaderKafkaProducer struct {

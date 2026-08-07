@@ -5,8 +5,8 @@ import (
 	"io"
 	"log"
 
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/state/stateBackend"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
+	"github.com/CASP-Systems-BU/koala/state/stateBackend"
 )
 
 /******************************************************************************

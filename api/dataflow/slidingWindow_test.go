@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
+	"github.com/CASP-Systems-BU/koala/api/dataflow"
 )
 
 // ====== Test sliding window index ======

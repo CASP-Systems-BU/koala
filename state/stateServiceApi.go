@@ -6,8 +6,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constants"
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
+	"github.com/CASP-Systems-BU/koala/internal/constants"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
 )
 
 /******************************************************************************

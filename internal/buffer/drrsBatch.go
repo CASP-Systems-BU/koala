@@ -1,6 +1,6 @@
 package buffer
 
-import "github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
+import "github.com/CASP-Systems-BU/koala/api/tuple"
 
 // A batch workunit for DRRS protocol - it's stored in the wait buffer
 type DRRSBatch[T tuple.Tuple] struct {

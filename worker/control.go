@@ -6,9 +6,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/keyby"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/utils"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
+	"github.com/CASP-Systems-BU/koala/internal/keyby"
+	"github.com/CASP-Systems-BU/koala/internal/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

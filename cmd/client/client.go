@@ -6,8 +6,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"unsafe"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
 	"github.com/mus-format/mus-go/ord"
 	"github.com/mus-format/mus-go/varint"
 )

@@ -6,16 +6,16 @@ import (
 	"sync"
 	"time"
 
-	ta "github.com/CASP-Systems-BU/disaggregated-streaming/api/timestampAssigner"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/buffer"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/network"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/supplier"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/utils"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/watermark"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/metric"
+	ta "github.com/CASP-Systems-BU/koala/api/timestampAssigner"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
+	"github.com/CASP-Systems-BU/koala/internal/buffer"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
+	"github.com/CASP-Systems-BU/koala/internal/network"
+	"github.com/CASP-Systems-BU/koala/internal/supplier"
+	"github.com/CASP-Systems-BU/koala/internal/utils"
+	"github.com/CASP-Systems-BU/koala/internal/watermark"
+	"github.com/CASP-Systems-BU/koala/metric"
 )
 
 // Collector defines and manages all downstream-related structure of the

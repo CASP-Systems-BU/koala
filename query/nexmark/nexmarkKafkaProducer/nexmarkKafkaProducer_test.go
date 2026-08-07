@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/utils"
-	cfg "github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/config"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/nexmarkKafkaProducer"
+	"github.com/CASP-Systems-BU/koala/internal/utils"
+	cfg "github.com/CASP-Systems-BU/koala/query/nexmark/config"
+	"github.com/CASP-Systems-BU/koala/query/nexmark/nexmarkKafkaProducer"
 )
 
 // Test JSON reading of NexmarkProducerConfig

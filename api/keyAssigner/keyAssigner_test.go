@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/keyAssigner"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
+	"github.com/CASP-Systems-BU/koala/api/keyAssigner"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
 )
 
 func TestKeyAssignerWithSingleKeyField(t *testing.T) {

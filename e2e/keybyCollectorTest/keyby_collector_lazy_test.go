@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
+	testutils "github.com/CASP-Systems-BU/koala/e2e/testUtils"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
 )
 
 // TestKeyByCollectorLazy validates the KeyBy operation under lazy protocol

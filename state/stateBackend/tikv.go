@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
 	tikvConfig "github.com/tikv/client-go/v2/config"
 	"github.com/tikv/client-go/v2/rawkv"
 )
