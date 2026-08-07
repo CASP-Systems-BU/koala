@@ -9,7 +9,7 @@
     "EventType": "Bid",
     "NexmarkSourceConfig": {}
   }],
-  "TotalRuntimeSeconds": 300,
+  "TotalRuntimeSeconds": 60,
   "MapperParallelism": 1,
   "SinkParallelism": 1,
   "Reconfigurations": [{
