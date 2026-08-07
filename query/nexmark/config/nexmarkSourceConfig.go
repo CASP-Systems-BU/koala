@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/utils"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/rateLimiter"
+	"github.com/CASP-Systems-BU/koala/internal/utils"
+	"github.com/CASP-Systems-BU/koala/query/rateLimiter"
 )
 
 const (

@@ -5,13 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
-	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/utils"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/config"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/models"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/source"
+	"github.com/CASP-Systems-BU/koala/api/dataflow"
+	testutils "github.com/CASP-Systems-BU/koala/e2e/testUtils"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/internal/utils"
+	"github.com/CASP-Systems-BU/koala/query/nexmark/config"
+	"github.com/CASP-Systems-BU/koala/query/nexmark/models"
+	"github.com/CASP-Systems-BU/koala/query/nexmark/source"
 )
 
 // In this test we test whether the RateLimiter works correctly by setting a

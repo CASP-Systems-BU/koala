@@ -3,8 +3,8 @@ package timestampAssigner_test
 import (
 	"testing"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/timestampAssigner"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
+	"github.com/CASP-Systems-BU/koala/api/timestampAssigner"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
 )
 
 func TestTimestampAssignerWithSingleTimestampField(t *testing.T) {

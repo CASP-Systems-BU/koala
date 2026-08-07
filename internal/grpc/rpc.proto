@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc";
+option go_package = "github.com/CASP-Systems-BU/koala/internal/grpc";
 
 package grpc;
 

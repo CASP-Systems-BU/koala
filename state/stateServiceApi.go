@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
+	"github.com/CASP-Systems-BU/koala/internal/constant"
 )
 
 /******************************************************************************

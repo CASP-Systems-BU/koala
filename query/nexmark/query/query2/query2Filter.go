@@ -1,8 +1,8 @@
 package query2
 
 import (
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/models"
+	"github.com/CASP-Systems-BU/koala/api/dataflow"
+	"github.com/CASP-Systems-BU/koala/query/nexmark/models"
 )
 
 func Query2Filter() *dataflow.Filter[*models.BidEvent] {

@@ -3,8 +3,8 @@ package buffer
 import (
 	"sync/atomic"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
 )
 
 // Lock-free ring buffer implementation

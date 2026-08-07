@@ -5,9 +5,9 @@ import (
 	"log"
 	"sync"
 
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/state/stateBackend"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/worker/stateCommUtil"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
+	"github.com/CASP-Systems-BU/koala/state/stateBackend"
+	"github.com/CASP-Systems-BU/koala/worker/stateCommUtil"
 	"github.com/panjf2000/ants/v2"
 )
 

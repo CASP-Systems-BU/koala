@@ -3,7 +3,7 @@ package stateCache
 import (
 	"log"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/stateClient/stateType"
+	"github.com/CASP-Systems-BU/koala/api/stateClient/stateType"
 )
 
 type WindowStateCache[K comparable, V stateType.StateType] struct {

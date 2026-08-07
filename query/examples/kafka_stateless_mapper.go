@@ -3,8 +3,8 @@ package examples
 import (
 	"math"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
+	"github.com/CASP-Systems-BU/koala/api/dataflow"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
 
@@ -12,7 +12,7 @@ func Example_Kafka_Query1() *dataflow.Dataflow {
 	// Define query
 	kafkaConsumerConfig := &kafka.ConfigMap{
 		"bootstrap.servers":  "localhost:9092",
-		"group.id":           "disaggregated-streaming",
+		"group.id":           "koala",
 		"auto.offset.reset":  "earliest",
 		"session.timeout.ms": 6000,
 		"fetch.min.bytes":    1,

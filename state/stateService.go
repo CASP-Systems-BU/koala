@@ -8,12 +8,12 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/keyby"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/syncflag"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/metric"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/state/stateBackend"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
+	"github.com/CASP-Systems-BU/koala/internal/keyby"
+	"github.com/CASP-Systems-BU/koala/internal/syncflag"
+	"github.com/CASP-Systems-BU/koala/metric"
+	"github.com/CASP-Systems-BU/koala/state/stateBackend"
 	"github.com/panjf2000/ants/v2"
 	"google.golang.org/grpc"
 )
