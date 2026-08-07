@@ -17,11 +17,21 @@ print(f"Found {len(ips)} instances: {ips}")
 
 
 # Remount SSD on each instance
-cmd_remount = "sudo mkfs -t ext4 -F /dev/nvme1n1 && \
-sudo mount /dev/nvme1n1 /home/ubuntu/ssd && \
-sudo chmod o+w /home/ubuntu/ssd && \
-sudo chown -R ubuntu /home/ubuntu/ssd && \
-df -h"
+cmd_remount = "set -e; \
+DEVS=$(lsblk -dno NAME,MODEL | grep -F \"Amazon EC2 NVMe Instance Storage\" | sed \"s/[[:space:]].*//\"); \
+N=$(printf \"%s\\n\" \"$DEVS\" | grep -c . || true); \
+if [ \"$N\" -ne 1 ]; then echo \"ABORT: expected exactly one instance-store device, found $N: $DEVS\"; exit 1; fi; \
+DEV=/dev/$DEVS; \
+ROOT=$(findmnt -no SOURCE /); \
+case \"$ROOT\" in \"$DEV\"*) echo \"ABORT: $DEV backs the root filesystem ($ROOT)\"; exit 1;; esac; \
+BUSY=$(lsblk -no MOUNTPOINT \"$DEV\" | grep . | grep -v \"^/home/ubuntu/ssd$\" || true); \
+if [ -n \"$BUSY\" ]; then echo \"ABORT: $DEV has unexpected mounts: $BUSY\"; exit 1; fi; \
+if [ \"$(findmnt -no SOURCE /home/ubuntu/ssd || true)\" = \"$DEV\" ]; \
+then echo \"SKIP mkfs: $DEV is already mounted at /home/ubuntu/ssd\"; \
+else sudo mkfs -t ext4 -F \"$DEV\"; sudo mount \"$DEV\" /home/ubuntu/ssd; fi; \
+sudo chmod o+w /home/ubuntu/ssd; \
+sudo chown -R ubuntu /home/ubuntu/ssd; \
+df -h /home/ubuntu/ssd"
 
 run_on_all_nodes(ips, cmd_remount, "Remounting SSD on remote instances")
 
