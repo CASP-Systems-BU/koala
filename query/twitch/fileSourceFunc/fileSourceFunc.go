@@ -9,11 +9,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/collector"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query"
-	ratelimiter "github.com/CASP-Systems-BU/disaggregated-streaming/query/rateLimiter"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/twitch/models"
+	"github.com/CASP-Systems-BU/koala/api/collector"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
+	"github.com/CASP-Systems-BU/koala/query"
+	ratelimiter "github.com/CASP-Systems-BU/koala/query/rateLimiter"
+	"github.com/CASP-Systems-BU/koala/query/twitch/models"
 )
 
 func TwitchFileSourceFunc[OUT tuple.Tuple](

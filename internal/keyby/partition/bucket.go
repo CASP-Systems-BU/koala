@@ -3,7 +3,7 @@ package partition
 import (
 	"log"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
+	"github.com/CASP-Systems-BU/koala/internal/constant"
 )
 
 type Bucket struct {

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/config"
+	"github.com/CASP-Systems-BU/koala/query/nexmark/config"
 )
 
 // Test customized UnmarshalJSON method of NexmarkSourceConfig

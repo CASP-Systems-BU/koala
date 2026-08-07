@@ -5,12 +5,12 @@ import (
 	"reflect"
 	"unsafe"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/stateClient/stateCache"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/stateClient/stateType"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/keyby/hash"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/network"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/state"
+	"github.com/CASP-Systems-BU/koala/api/stateClient/stateCache"
+	"github.com/CASP-Systems-BU/koala/api/stateClient/stateType"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/internal/keyby/hash"
+	"github.com/CASP-Systems-BU/koala/internal/network"
+	"github.com/CASP-Systems-BU/koala/state"
 )
 
 /*

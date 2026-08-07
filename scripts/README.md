@@ -4,13 +4,13 @@
 Instructions to run scripts for Kafka cluster, Kafka producer, and query execution, with configurable reconfiguration actions.
 
 Note:
-- For all JSON config file path parameters below, the working directory should be `disaggregated-streaming/scripts`.
+- For all JSON config file path parameters below, the working directory should be `koala/scripts`.
 
 ## Run Experiment
 
 Before running the script, we should manually compile the repo on root node.
 ```bash
-cd ~/disaggregated-streaming
+cd ~/koala
 make
 ```
 
@@ -30,7 +30,7 @@ Run the script by providing:
 2. Config file path (in `scripts/` folder)
 3. Keyword for result folder - `<query_name>_keyword`. The experiment result folder will be stored in `/scripts/results/<query_name>_keyword`. If the exp_result folder already exists, it will create a new folder with current timestamp appended.
 ```bash
-cd ~/disaggregated-streaming/scripts
+cd ~/koala/scripts
 python3 runExperiment.py nexmark_query1 nexmarkJson/query1.json exp_key_word
 ```
 
@@ -42,7 +42,7 @@ Add experiment configurations in the config JSON file. Example: `nexmarkJson/que
 - `WorkerIPs`: IPs of all task workers (allow duplicates - indicates multiple workers on same machine)
 ```json
 {
-  "WorkDir": "~/disaggregated-streaming",
+  "WorkDir": "~/koala",
   "AllNodeIPs": ["10.10.1.1"],
   "KafkaClusterIPs": ["10.10.1.1"],
   "ProducerIPs": ["10.10.1.1"],

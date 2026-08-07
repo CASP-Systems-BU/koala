@@ -5,7 +5,7 @@ import (
 	"log"
 	"net"
 
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

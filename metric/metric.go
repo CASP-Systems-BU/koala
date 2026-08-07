@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/buffer"
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
+	"github.com/CASP-Systems-BU/koala/internal/buffer"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

@@ -4,9 +4,9 @@ import (
 	"log"
 	"os"
 
-	remotepebble "github.com/CASP-Systems-BU/disaggregated-streaming/cmd/remotePebble/remotePebbleServer"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/state/stateBackend"
+	remotepebble "github.com/CASP-Systems-BU/koala/cmd/remotePebble/remotePebbleServer"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/state/stateBackend"
 )
 
 func main() {

@@ -3,8 +3,8 @@ package worker
 import (
 	"net"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/worker/stateCommUtil"
+	"github.com/CASP-Systems-BU/koala/internal/constant"
+	"github.com/CASP-Systems-BU/koala/worker/stateCommUtil"
 )
 
 // [Lazy-by-key] Now we only support TCP API for Lazy-by-key protocol

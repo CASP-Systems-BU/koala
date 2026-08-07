@@ -1,6 +1,6 @@
 {
   "QueryName": "nexmark_query3_warmup",
-  "WorkDir": "~/disaggregated-streaming",
+  "WorkDir": "~/koala",
   "AllNodeIPs": [
     "10.10.1.1",
     "10.10.1.2",

@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
 )
 
 // [lazy-by-key] Fetch and migrate requested keys from remote state services.

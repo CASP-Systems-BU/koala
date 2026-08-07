@@ -3,8 +3,8 @@ package dataflow_test
 import (
 	"testing"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/buffer"
+	"github.com/CASP-Systems-BU/koala/api/dataflow"
+	"github.com/CASP-Systems-BU/koala/internal/buffer"
 )
 
 // Test the window index

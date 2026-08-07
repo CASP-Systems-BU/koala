@@ -3,7 +3,7 @@ package hash_test
 import (
 	"testing"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/keyby/hash"
+	"github.com/CASP-Systems-BU/koala/internal/keyby/hash"
 )
 
 func TestMurmurhash(t *testing.T) {
