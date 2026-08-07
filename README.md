@@ -1,14 +1,12 @@
-# Koala — Artifact Evaluation Guide (NSDI 2027)
+# Koala - Artifact Evaluation Guide (NSDI 2027)
 
-Welcome to the artifact evaluation guide for **Koala**. This document contains everything
-needed to download, build, and run the system, and to reproduce the results in the
-experimental section of the paper. 
+Welcome to the artifact evaluation guide for Koala, a non-disruptive reconfiguration protocol for stateful dataflow systems. Koala supports a range of reconfiguration scenarios, including scale-out, scale-in, rebalancing, and task migration. This repository contains (i) a new distributed dataflow runtime that serves as the underlying system for evaluating workload reconfigurations, (ii) an implementation of the Koala protocol, and (iii) implementations of baseline reconfiguration protocols for comparison.
 
-**We are applying for all three badges: {Available, Functional, Reproduced}.**
+**We target all three badges {Available, Functional, Reproduced}:**
 
-Koala is a disaggregated stream processing system that reconfigures (scales out, scales in,
-rebalances, migrates tasks) without stopping the dataflow. State is migrated lazily after a reconfiguration, so the system keeps consuming input while
-the new task assignment warms up, rather than pausing to transfer state up front.
+- Available: we publish Koala on [Github](https://github.com/CASP-Systems-BU/koala).
+- Functional: we describe all artifact components and provide instructions for running a minimal working example.
+- Reproduced: we provide instructions for reproducing the key results from the evaluation section of the paper. Our main results—Figures 6, 8, 10, 11, 12, and 13—are reproducible. Figures 9, 14, 15, and 16 are also reproducible but are optional.
 
 ---
 
