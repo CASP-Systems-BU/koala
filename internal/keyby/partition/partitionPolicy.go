@@ -3,7 +3,7 @@ package partition
 import (
 	"log"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
 )
 
 // Key space partitioning policy interface.

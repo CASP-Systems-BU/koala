@@ -5,12 +5,12 @@ import (
 	"log"
 	"os"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/kafka"
-	nexmarkSrcCfg "github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/config"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/models"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/nexmarkKafkaProducer"
+	"github.com/CASP-Systems-BU/koala/api/dataflow"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
+	"github.com/CASP-Systems-BU/koala/kafka"
+	nexmarkSrcCfg "github.com/CASP-Systems-BU/koala/query/nexmark/config"
+	"github.com/CASP-Systems-BU/koala/query/nexmark/models"
+	"github.com/CASP-Systems-BU/koala/query/nexmark/nexmarkKafkaProducer"
 )
 
 type Q3Config struct {

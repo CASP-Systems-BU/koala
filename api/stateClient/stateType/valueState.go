@@ -3,8 +3,8 @@ package stateType
 import (
 	"log"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/network"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
+	"github.com/CASP-Systems-BU/koala/internal/network"
 )
 
 type ValueState[V tuple.Tuple] struct {

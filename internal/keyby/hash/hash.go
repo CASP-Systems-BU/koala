@@ -3,7 +3,7 @@ package hash
 import (
 	"log"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
 )
 
 // Hash function interface for the key partition

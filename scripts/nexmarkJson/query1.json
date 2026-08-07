@@ -1,6 +1,6 @@
 {
   "QueryName": "nexmark_query1",
-  "WorkDir": "~/disaggregated-streaming",
+  "WorkDir": "~/koala",
   "AllNodeIPs": ["10.10.1.1"],
   "KafkaClusterIPs": ["10.10.1.1"],
   "ProducerIPs": ["10.10.1.1"],

@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
 )
 
 type TaxiTrip = tuple.Tuple14[

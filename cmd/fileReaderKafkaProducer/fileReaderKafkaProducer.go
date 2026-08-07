@@ -4,7 +4,7 @@ import (
 	"os"
 	"strconv"
 
-	fileReaderKafkaProducer "github.com/CASP-Systems-BU/disaggregated-streaming/query/fileReaderKafkaProducer"
+	fileReaderKafkaProducer "github.com/CASP-Systems-BU/koala/query/fileReaderKafkaProducer"
 )
 
 // Kafka producer executable for the Nexmark benchmark.
@@ -15,7 +15,7 @@ import (
 func main() {
 
 	// Specify the query config JSON file path. Assume the working
-	// directory is the disaggregated-streaming/ folder. Example:
+	// directory is the koala/ folder. Example:
 	// ./fileReaderKafkaProducer scripts/filerReaderJson/taxi.json 0
 	jsonPath := os.Args[1]
 

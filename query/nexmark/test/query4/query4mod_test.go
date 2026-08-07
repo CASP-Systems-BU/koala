@@ -5,13 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/collector"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
-	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/models"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/query/query4"
+	"github.com/CASP-Systems-BU/koala/api/collector"
+	"github.com/CASP-Systems-BU/koala/api/dataflow"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
+	testutils "github.com/CASP-Systems-BU/koala/e2e/testUtils"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/query/nexmark/models"
+	"github.com/CASP-Systems-BU/koala/query/nexmark/query/query4"
 )
 
 // [Note] UPDATE THE QUERY ACCORDINGLY IN THIS FILE IF QUERY4MOD LOGIC CHANGES

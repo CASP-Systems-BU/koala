@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/collector"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
-	ta "github.com/CASP-Systems-BU/disaggregated-streaming/api/timestampAssigner"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
-	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/api/collector"
+	"github.com/CASP-Systems-BU/koala/api/dataflow"
+	ta "github.com/CASP-Systems-BU/koala/api/timestampAssigner"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
+	testutils "github.com/CASP-Systems-BU/koala/e2e/testUtils"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
 )
 
 // In this test, we test the filter operator

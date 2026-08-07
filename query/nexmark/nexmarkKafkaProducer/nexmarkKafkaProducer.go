@@ -6,13 +6,13 @@ import (
 	"os"
 	"sync"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
-	kk "github.com/CASP-Systems-BU/disaggregated-streaming/kafka"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/config"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/models"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/randGenerator"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/source"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/rateLimiter"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
+	kk "github.com/CASP-Systems-BU/koala/kafka"
+	"github.com/CASP-Systems-BU/koala/query/nexmark/config"
+	"github.com/CASP-Systems-BU/koala/query/nexmark/models"
+	"github.com/CASP-Systems-BU/koala/query/nexmark/randGenerator"
+	"github.com/CASP-Systems-BU/koala/query/nexmark/source"
+	"github.com/CASP-Systems-BU/koala/query/rateLimiter"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )

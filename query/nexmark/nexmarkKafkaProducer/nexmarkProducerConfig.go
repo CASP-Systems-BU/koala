@@ -1,6 +1,6 @@
 package nexmarkKafkaProducer
 
-import "github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/config"
+import "github.com/CASP-Systems-BU/koala/query/nexmark/config"
 
 // This struct is read by NexmarkKafkaProducer executbale to configure how to
 // produce Nexmark events to Kafka topics

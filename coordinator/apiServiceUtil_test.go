@@ -3,7 +3,7 @@ package coordinator_test
 import (
 	"testing"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/coordinator"
+	"github.com/CASP-Systems-BU/koala/coordinator"
 )
 
 func TestGenerateMigrationPlan(t *testing.T) {
