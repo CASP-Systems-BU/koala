@@ -17,7 +17,6 @@ the new task assignment warms up, rather than pausing to transfer state up front
 - [Available Badge](#available-badge)
 - [Functional Badge](#functional-badge)
 - [Reproduced Badge](#reproduced-badge)
-- [Setup](#setup) — [requirements](#1-requirements), [download](#2-download), [install](#3-install-and-build), [cluster](#4-cluster-setup)
 - [Hello world](#hello-world)
 - [Experiments](#experiments)
   - [Section 5.2 — Figures 6 and 8 (main result)](#section-52--figures-6-and-8)
@@ -26,7 +25,6 @@ the new task assignment warms up, rather than pausing to transfer state up front
   - [Section 5.4 — Figures 14–16, microbenchmarks (optional)](#section-54--figures-1416-microbenchmarks-optional)
 - [Appendix A: rebuilding the warm-up state](#appendix-a-rebuilding-the-warm-up-state)
 - [Appendix B: writing your own query](#appendix-b-writing-your-own-query)
-- [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -149,8 +147,28 @@ python3 runExperimentSuite.py <suite.json>     # run a section's experiments bac
 python3 runAllFigures.py                       # regenerate that section's figures
 ```
 
- It prints a summary at the end and writes it to
+It prints a summary at the end and writes it to
 `results/suiteLogs_<timestamp>/summary.json`, with per-experiment logs alongside it.
+
+The script shows intermediate results:
+
+```
+============================================================
+                      Suite summary
+============================================================
+  SUCCEEDED                          672s  state_10gb  -> lazy_5MKeys
+  SUCCEEDED                          681s  state_20gb  -> lazy_10MKeys
+  ...
+  Logs: /home/<user>/disaggregated-streaming/scripts/results/suiteLogs_<timestamp>
+  Results: /home/<user>/disaggregated-streaming/scripts/results
+```
+
+If some experiments fail, rerun them with the config the suite writes for you:
+
+```bash
+cd ~/ssd/disaggregated-streaming/scripts
+python3 runExperimentSuite.py results/suiteLogs_<timestamp>/rerunFailed.json
+```
 
 ### Section 5.2 — Figures 6 and 8
 
@@ -176,13 +194,6 @@ Six queries (`azure`, `borg`, `taxi`, `twitch`, `nexmark_query3`,
 producing result folders `<query>_<lazy|SAR|Remote|DRRS>`. Check that all 24 report
 `SUCCEEDED` in the final summary; per-experiment logs are in
 `scripts/results/suiteLogs_<timestamp>/`.
-
-If some experiments fail, rerun them with the config the suite writes for you:
-
-```bash
-cd ~/ssd/disaggregated-streaming/scripts
-python3 runExperimentSuite.py results/suiteLogs_<timestamp>/rerunFailed.json
-```
 
 **2. Generate the plots**
 
@@ -228,13 +239,6 @@ cd ~/ssd/disaggregated-streaming/scripts
 python3 runExperimentSuite.py nsdi27/evaluation/Section5.3/AWS/fullSuite.json
 ```
 
-If some experiments fail, rerun them with the config the suite writes for you:
-
-```bash
-cd ~/ssd/disaggregated-streaming/scripts
-python3 runExperimentSuite.py results/suiteLogs_<timestamp>/rerunFailed.json
-```
-
 **2. Generate the figures**
 
 ```bash
@@ -269,41 +273,22 @@ parallelism. The experiment runs Nexmark Q6\* (`nexmark_query6_modified`) under 
 
 | Step | Human time | Run time |
 |---|---|---|
-| Check cluster access | 3 min | 1 min |
 | Run the experiment | 1 min | 10 min |
 | Generate the figure | 1 min | 1 min |
-| Compare with the paper | 10 min | — |
+| Compare with the paper | 2 min | — |
 
 **1. Run the experiment**
 
-We run the experiment on CloudLab Utah `c6620` with 20  nodes.
+We run the experiment on CloudLab Utah `c6620` with 20 nodes.
 
 ```bash
 cd ~/disaggregated-streaming/scripts
 python3 runExperimentSuite.py nsdi27/evaluation/Section5.3/Cloudlab/fullSuite.json
 ```
 
-About 10 minutes. The script prints a summary:
-
-```
-============================================================
-                      Suite summary
-============================================================
-  SUCCEEDED                          598s  parallelism_16_to_32  -> lazy_2M_200k
-  Logs: /home/<user>/disaggregated-streaming/scripts/results/suiteLogs_<timestamp>
-  Results: /home/<user>/disaggregated-streaming/scripts/results
-```
-
 The experiment should say `SUCCEEDED`. The full output is in
 `results/suiteLogs_<timestamp>/<NN>_parallelism_16_to_32_attemptN.log`. A failed
 experiment is retried twice before the suite gives up, and re-running the suite is safe.
-
-If some experiments fail, rerun them with the config the suite writes for you:
-
-```bash
-cd ~/ssd/disaggregated-streaming/scripts
-python3 runExperimentSuite.py results/suiteLogs_<timestamp>/rerunFailed.json
-```
 
 **3. Generate the figure**
 
@@ -346,7 +331,6 @@ to 8 tasks.
 
 | Step | Human time | Run time |
 |---|---|---|
-| Check cluster access | 3 min | 1 min |
 | Run the experiments | 1 min | 2 h 20 min |
 | Generate the figures | 1 min | 1 min |
 | Compare with the paper | 15 min | — |
@@ -360,25 +344,6 @@ python3 runExperimentSuite.py nsdi27/evaluation/Section5.4/fullSuite.json
 
 About 2 hours and 20 minutes for all twelve experiments.
 
-| Suite entries | What varies | Result folders (prefixed `nexmark_query6_modified_`) |
-|---|---|---|
-| `state_10gb` … `state_80gb` | total state: 10, 20, 40, 80 GB | `lazy_5MKeys`, `lazy_10MKeys`, `lazy_20MKeys`, `lazy_40MKeys` |
-| `locality_500k` … `locality_4m` | active key space: 500K, 1M, 2M, 4M | `lazy_500k_50k_25`, `lazy_1M_100k_25`, `lazy_2M_200k_25`, `lazy_4M_400k_25` |
-| `skew_0` … `skew_75` | hot key ratio: 0, 25, 50, 75% | `lazy_2M_200k_0`, `lazy_2M_200k`, `lazy_2M_200k_50`, `lazy_2M_200k_75` |
-
-The script shows intermediate results:
-
-```
-============================================================
-                      Suite summary
-============================================================
-  SUCCEEDED                          672s  state_10gb  -> lazy_5MKeys
-  SUCCEEDED                          681s  state_20gb  -> lazy_10MKeys
-  ...
-  Logs: /home/<user>/disaggregated-streaming/scripts/results/suiteLogs_<timestamp>
-  Results: /home/<user>/disaggregated-streaming/scripts/results
-```
-
 **3. Generate the figures**
 
 ```bash
@@ -390,17 +355,15 @@ python3 runAllFigures.py
 
 Absolute values depend on the machines and on how Kafka and Pebble happen to behave during
 a run, so the claims are about trends and orders of magnitude rather than exact numbers.
-The reference values below come from the run used for the paper.
 
-| Figure | What you should see | Reference values |
-|---|---|---|
-| 14a (Tput) | Throughput is flat across the scale-out at t=180s in all four panels, with no dip and no downtime | roughly 8,000 records/s aggregated at the source, before and after |
-| 14b (State) | At scale-out, migrated state spikes and then tapers to zero. The total state migrated stays roughly constant even as total state size grows from 10 to 80 GB. | 1.41, 1.44, 1.43, 1.43 GB |
-| 15a (Latency) | Key lookup time is flat and two orders of magnitude below per-batch processing time | key lookup 37–43 µs against per-batch 1.33–1.42 ms, under 3% |
-| 15b (KLT size) | The key lookup table grows with the key space but stays small | 17, 34, 67, 134 MB for 10–80 GB state |
-| 16a (Locality) | Both the volume migrated and the time it takes grow with the active key space, close to linearly | 468, 936, 1824, 3696 MB for 500K, 1M, 2M and 4M active keys |
-| 16b (Skew) | More skew means less state migrated and a shorter tail | 1899, 1824, 1806, 1597 MB for 0, 25, 50 and 75% hot keys |
-
+| Figure | Claim |
+|---|---|
+| 14a (Tput) | Throughput is flat across the scale-out at t=180s in all four panels, with no dip and no downtime |
+| 14b (State) | At scale-out, migrated state spikes and then tapers to zero. The total state migrated stays roughly constant even as total state size grows from 10 to 80 GB. |
+| 15a (Latency) | Key lookup time is flat and two orders of magnitude below per-batch processing time |
+| 15b (KLT size) | The key lookup table grows with the key space but stays small |
+| 16a (Locality) | Both the volume migrated and the time it takes grow with the active key space, close to linearly |
+| 16b (Skew) | More skew means less state migrated and a shorter tail |
 ---
 
 ## Appendix A: rebuilding the warm-up state
@@ -452,6 +415,3 @@ operator, when reconfigurations fire, and which protocol handles them:
     "LazyProtocolVersion": "basic"
 }
 ```
-
-[scripts/README.md](scripts/README.md) documents every config field, the Kafka cluster and
-producer scripts, and custom task placement.
