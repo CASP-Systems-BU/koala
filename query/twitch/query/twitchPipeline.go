@@ -6,15 +6,15 @@ import (
 	"os"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/collector"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
-	ka "github.com/CASP-Systems-BU/disaggregated-streaming/api/keyAssigner"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/stateClient/stateType"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/utils"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/kafka"
-	dummyfieldgenerator "github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/query/dummyFieldGenerator"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/twitch/models"
+	"github.com/CASP-Systems-BU/koala/api/collector"
+	"github.com/CASP-Systems-BU/koala/api/dataflow"
+	ka "github.com/CASP-Systems-BU/koala/api/keyAssigner"
+	"github.com/CASP-Systems-BU/koala/api/stateClient/stateType"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
+	"github.com/CASP-Systems-BU/koala/internal/utils"
+	"github.com/CASP-Systems-BU/koala/kafka"
+	dummyfieldgenerator "github.com/CASP-Systems-BU/koala/query/nexmark/query/dummyFieldGenerator"
+	"github.com/CASP-Systems-BU/koala/query/twitch/models"
 )
 
 type TwitchConfig struct {

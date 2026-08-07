@@ -3,7 +3,7 @@ package state
 import (
 	"log"
 
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
 )
 
 // [gRPC] Fetch remote state over gRPC API

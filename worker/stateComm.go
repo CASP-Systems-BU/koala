@@ -4,9 +4,9 @@ import (
 	"log"
 	"net"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/state"
+	"github.com/CASP-Systems-BU/koala/internal/constant"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
+	"github.com/CASP-Systems-BU/koala/state"
 	"google.golang.org/grpc"
 )
 

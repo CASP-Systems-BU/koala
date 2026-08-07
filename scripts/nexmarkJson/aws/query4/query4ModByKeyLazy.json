@@ -1,6 +1,6 @@
 {
   "QueryName": "nexmark_query4_modified",
-  "WorkDir": "/home/ubuntu/ssd/disaggregated-streaming",
+  "WorkDir": "/home/ubuntu/ssd/koala",
   "AllNodeIPs": [
     "10.10.1.1",
     "10.10.1.2",

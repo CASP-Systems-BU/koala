@@ -3,7 +3,7 @@ package dataflow
 import (
 	"log"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
 )
 
 type Dataflow struct {

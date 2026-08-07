@@ -7,15 +7,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/collector"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
-	ka "github.com/CASP-Systems-BU/disaggregated-streaming/api/keyAssigner"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/stateClient/stateType"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
-	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/azure/models"
-	azurequery "github.com/CASP-Systems-BU/disaggregated-streaming/query/azure/query"
+	"github.com/CASP-Systems-BU/koala/api/collector"
+	"github.com/CASP-Systems-BU/koala/api/dataflow"
+	ka "github.com/CASP-Systems-BU/koala/api/keyAssigner"
+	"github.com/CASP-Systems-BU/koala/api/stateClient/stateType"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
+	testutils "github.com/CASP-Systems-BU/koala/e2e/testUtils"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/query/azure/models"
+	azurequery "github.com/CASP-Systems-BU/koala/query/azure/query"
 )
 
 // [Note] UPDATE THE QUERY ACCORDINGLY IN THIS FILE IF cpuReadings LOGIC CHANGES

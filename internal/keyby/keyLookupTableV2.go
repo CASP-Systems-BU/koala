@@ -6,11 +6,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/buffer"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/keyby/hash"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/keyby/partition"
+	"github.com/CASP-Systems-BU/koala/internal/buffer"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/internal/grpc"
+	"github.com/CASP-Systems-BU/koala/internal/keyby/hash"
+	"github.com/CASP-Systems-BU/koala/internal/keyby/partition"
 	"github.com/mus-format/mus-go/raw"
 )
 

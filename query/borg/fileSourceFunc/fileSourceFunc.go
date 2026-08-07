@@ -11,11 +11,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/collector"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/borg/models"
-	ratelimiter "github.com/CASP-Systems-BU/disaggregated-streaming/query/rateLimiter"
+	"github.com/CASP-Systems-BU/koala/api/collector"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
+	"github.com/CASP-Systems-BU/koala/query"
+	"github.com/CASP-Systems-BU/koala/query/borg/models"
+	ratelimiter "github.com/CASP-Systems-BU/koala/query/rateLimiter"
 )
 
 func BorgFileSourceFunc[OUT tuple.Tuple](

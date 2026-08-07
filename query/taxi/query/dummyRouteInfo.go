@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/taxi/models"
+	"github.com/CASP-Systems-BU/koala/query/taxi/models"
 )
 
 //go:embed dummyRouteInfo.txt

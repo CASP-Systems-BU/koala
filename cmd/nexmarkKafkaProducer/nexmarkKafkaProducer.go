@@ -4,7 +4,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/nexmarkKafkaProducer"
+	"github.com/CASP-Systems-BU/koala/query/nexmark/nexmarkKafkaProducer"
 )
 
 // Kafka producer executable for the Nexmark benchmark.

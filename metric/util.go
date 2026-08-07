@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/buffer"
+	"github.com/CASP-Systems-BU/koala/internal/buffer"
 )
 
 // BatchWorkUnit is used to only expose the GetNumRecords,

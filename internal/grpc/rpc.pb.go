@@ -3082,7 +3082,7 @@ const file_internal_grpc_rpc_proto_rawDesc = "" +
 	"\n" +
 	"APIService\x12+\n" +
 	"\x06RunJob\x12\x0f.grpc.JobConfig\x1a\x0e.grpc.Response\"\x00\x120\n" +
-	"\aRescale\x12\x13.grpc.RescaleConfig\x1a\x0e.grpc.Response\"\x00BBZ@github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpcb\x06proto3"
+	"\aRescale\x12\x13.grpc.RescaleConfig\x1a\x0e.grpc.Response\"\x00BBZ@github.com/CASP-Systems-BU/koala/internal/grpcb\x06proto3"
 
 var (
 	file_internal_grpc_rpc_proto_rawDescOnce sync.Once

@@ -10,7 +10,7 @@
     "Runtime: 1 x ~10 min + 30s cooldown ~= 11 min (longer if retries fire)."
   ],
 
-  "WorkDir": "~/disaggregated-streaming",
+  "WorkDir": "~/koala",
 
   "CooldownSeconds": 30,
   "MaxAttempts": 2,

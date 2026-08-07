@@ -17,7 +17,7 @@
     "_Remote / _DRRS. Repeated keywords never collide across queries."
   ],
 
-  "WorkDir": "/home/ubuntu/ssd/disaggregated-streaming",
+  "WorkDir": "/home/ubuntu/ssd/koala",
 
   "CooldownSeconds": 30,
   "MaxAttempts": 2,

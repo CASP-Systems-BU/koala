@@ -37,12 +37,12 @@ Cluster check:
 ```bash
 ssh <user>@10.10.1.1
 sudo -i
-cd ~/disaggregated-streaming
+cd ~/koala
 git status -sb                     # should report main
 for ip in 10.10.1.2 10.10.1.3 10.10.1.4 10.10.1.9 10.10.1.10 10.10.1.11 10.10.1.12 10.10.1.13 10.10.1.14 10.10.1.15 10.10.1.16 10.10.1.17 10.10.1.18 10.10.1.19 10.10.1.20 10.10.1.21 10.10.1.22 10.10.1.23 10.10.1.24; do
   ssh -o BatchMode=yes $ip 'hostname' || echo "UNREACHABLE $ip"
 done
-ssh 10.10.1.9 'du -sh ~/disaggregated-streaming/pebble_warmup_data/nexmark_q6_mod/128_consistent_80GB_16'
+ssh 10.10.1.9 'du -sh ~/koala/pebble_warmup_data/nexmark_q6_mod/128_consistent_80GB_16'
 ```
 
 You should see all 16 worker nodes respond, and the 80 GB warm-up snapshot for parallelism-16
@@ -51,7 +51,7 @@ on the worker.
 ## 5. Running the experiment
 
 ```bash
-cd ~/disaggregated-streaming/scripts
+cd ~/koala/scripts
 python3 runExperimentSuite.py nsdi27/evaluation/Section5.3/Cloudlab/fullSuite.json
 ```
 
@@ -64,8 +64,8 @@ The script shows intermediate results:
                       Suite summary
 ============================================================
   SUCCEEDED                          598s  parallelism_16_to_32  -> lazy_2M_200k
-  Logs: /home/<user>/disaggregated-streaming/scripts/results/suiteLogs_<timestamp>
-  Results: /home/<user>/disaggregated-streaming/scripts/results
+  Logs: /home/<user>/koala/scripts/results/suiteLogs_<timestamp>
+  Results: /home/<user>/koala/scripts/results
 ```
 
 The experiment should say `SUCCEEDED`. The summary is saved as
@@ -80,7 +80,7 @@ and stops the suite.
 ## 6. Generating the figures
 
 ```bash
-cd ~/disaggregated-streaming/scripts/nsdi27/evaluation/Section5.3/Cloudlab
+cd ~/koala/scripts/nsdi27/evaluation/Section5.3/Cloudlab
 python3 runAllFigures.py
 ```
 

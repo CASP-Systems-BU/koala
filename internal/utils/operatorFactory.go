@@ -1,11 +1,11 @@
 package utils
 
 import (
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/keyby"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/metric"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/state"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
+	"github.com/CASP-Systems-BU/koala/internal/keyby"
+	"github.com/CASP-Systems-BU/koala/metric"
+	"github.com/CASP-Systems-BU/koala/state"
 )
 
 // Parameters passed in for operator runtime setup based on Coordinator task

@@ -1,8 +1,8 @@
 package stateCache
 
 import (
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/stateClient/stateType"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/network"
+	"github.com/CASP-Systems-BU/koala/api/stateClient/stateType"
+	"github.com/CASP-Systems-BU/koala/internal/network"
 )
 
 /*

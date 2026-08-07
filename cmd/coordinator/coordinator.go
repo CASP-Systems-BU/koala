@@ -4,10 +4,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/coordinator"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/user"
+	"github.com/CASP-Systems-BU/koala/api/dataflow"
+	"github.com/CASP-Systems-BU/koala/coordinator"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/user"
 )
 
 func main() {

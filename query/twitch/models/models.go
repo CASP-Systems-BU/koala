@@ -1,6 +1,6 @@
 package models
 
-import "github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
+import "github.com/CASP-Systems-BU/koala/api/tuple"
 
 type TwitchEvent = tuple.Tuple5[
 	string, //userId

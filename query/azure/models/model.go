@@ -1,6 +1,6 @@
 package models
 
-import "github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
+import "github.com/CASP-Systems-BU/koala/api/tuple"
 
 type AzureEvent = tuple.Tuple5[
 	int64,   // timestamp

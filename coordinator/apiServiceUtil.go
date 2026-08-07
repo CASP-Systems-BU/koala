@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/keyby/partition"
+	"github.com/CASP-Systems-BU/koala/api/dataflow"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
+	"github.com/CASP-Systems-BU/koala/internal/keyby/partition"
 )
 
 /******************************************************************************

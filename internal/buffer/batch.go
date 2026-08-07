@@ -3,7 +3,7 @@ package buffer
 import (
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
 )
 
 type Batch[T tuple.Tuple] struct {

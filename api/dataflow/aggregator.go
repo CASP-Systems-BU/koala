@@ -1,8 +1,8 @@
 package dataflow
 
 import (
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/stateClient/stateType"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
+	"github.com/CASP-Systems-BU/koala/api/stateClient/stateType"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
 )
 
 // Aggregator holds the aggregation methods for window operator

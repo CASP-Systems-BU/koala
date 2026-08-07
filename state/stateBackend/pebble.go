@@ -6,7 +6,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
 	"github.com/cockroachdb/pebble"
 	"github.com/panjf2000/ants/v2"
 )

@@ -7,9 +7,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/state/stateBackend"
+	"github.com/CASP-Systems-BU/koala/internal/constant"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
+	"github.com/CASP-Systems-BU/koala/state/stateBackend"
 	"google.golang.org/grpc"
 )
 

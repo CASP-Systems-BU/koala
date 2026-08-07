@@ -6,12 +6,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
-	ta "github.com/CASP-Systems-BU/disaggregated-streaming/api/timestampAssigner"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/utils"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/kafka"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/query/nexmark/models"
+	"github.com/CASP-Systems-BU/koala/api/dataflow"
+	ta "github.com/CASP-Systems-BU/koala/api/timestampAssigner"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
+	"github.com/CASP-Systems-BU/koala/internal/utils"
+	"github.com/CASP-Systems-BU/koala/kafka"
+	"github.com/CASP-Systems-BU/koala/query/nexmark/models"
 )
 
 type Q5ModConfig struct {

@@ -45,12 +45,12 @@ Cluster check:
 ```bash
 ssh <user>@10.10.1.1
 sudo -i
-cd ~/disaggregated-streaming
+cd ~/koala
 git status -sb                     # should report main
 for ip in 10.10.1.2 10.10.1.3 10.10.1.4 10.10.1.8 10.10.1.9 10.10.1.10 10.10.1.12; do
   ssh -o BatchMode=yes $ip 'hostname' || echo "UNREACHABLE $ip"
 done
-ssh 10.10.1.9 'du -sh ~/disaggregated-streaming/pebble_warmup_data/nexmark_q6_mod/*'
+ssh 10.10.1.9 'du -sh ~/koala/pebble_warmup_data/nexmark_q6_mod/*'
 ```
 
 You should see all eight nodes respond, and four warm-up snapshots (10, 20, 40 and 80 GB)
@@ -60,7 +60,7 @@ on the worker.
 
 
 ```bash
-cd ~/disaggregated-streaming/scripts
+cd ~/koala/scripts
 python3 runExperimentSuite.py nsdi27/evaluation/Section5.4/fullSuite.json
 ```
 
@@ -85,8 +85,8 @@ The script shows intermidiate results:
   SUCCEEDED                          672s  state_10gb  -> lazy_5MKeys
   SUCCEEDED                          681s  state_20gb  -> lazy_10MKeys
   ...
-  Logs: /home/<user>/disaggregated-streaming/scripts/results/suiteLogs_<timestamp>
-  Results: /home/<user>/disaggregated-streaming/scripts/results
+  Logs: /home/<user>/koala/scripts/results/suiteLogs_<timestamp>
+  Results: /home/<user>/koala/scripts/results
 ```
 
 All twelve should say `SUCCEEDED`. The summary is saved as
@@ -102,7 +102,7 @@ and stops the suite.
 ## 6. Generating the figures
 
 ```bash
-cd ~/disaggregated-streaming/scripts/nsdi27/evaluation/Section5.4
+cd ~/koala/scripts/nsdi27/evaluation/Section5.4
 python3 runAllFigures.py
 ```
 
@@ -110,7 +110,7 @@ This runs each figure script (`figure14.py`, `figure15.py`, `figure16.py`) and:
 1. Reads the result folders from the experiments
 2. For Figure 15, extracts worker IPs from the experiment config files and
    measures key lookup table sizes from
-   `~/disaggregated-streaming/pebbleLookUpTable/` on each worker. To skip the
+   `~/koala/pebbleLookUpTable/` on each worker. To skip the
    SSH measurement, pass the sizes directly:
    `python3 figure15.py --klt-sizes 17,34,67,134`
 3. Writes one PDF per figure next to the scripts:
@@ -164,7 +164,7 @@ worker's `data/pebble` into the snapshot folder and writes out the key lookup ta
 | 80 GB | `nexmarkJson/query6/stateSize/query6ModWarmup80GB.json` | 40M keys |
 
 ```bash
-cd ~/disaggregated-streaming/scripts
+cd ~/koala/scripts
 python3 runExperiment.py nexmarkJson/query6/stateSize/query6ModWarmup40GB.json warmup_40GB
 ```
 

@@ -3,10 +3,10 @@ package keyby
 import (
 	"log"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/keyby/hash"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/keyby/partition"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/internal/grpc"
+	"github.com/CASP-Systems-BU/koala/internal/keyby/hash"
+	"github.com/CASP-Systems-BU/koala/internal/keyby/partition"
 )
 
 // KeyLookupTable maps Key to Worker. This is the data structure for Task

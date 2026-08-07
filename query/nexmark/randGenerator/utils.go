@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/utils"
+	"github.com/CASP-Systems-BU/koala/internal/utils"
 )
 
 const MIN_STRING_LENGTH int = 3

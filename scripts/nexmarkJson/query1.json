@@ -1,6 +1,6 @@
 {
   "QueryName": "nexmark_query1",
-  "WorkDir": "~/disaggregated-streaming",
+  "WorkDir": "/home/ubuntu/ssd/koala",
   "AllNodeIPs": ["10.10.1.1"],
   "KafkaClusterIPs": ["10.10.1.1"],
   "ProducerIPs": ["10.10.1.1"],
@@ -12,15 +12,22 @@
   "TotalRuntimeSeconds": 60,
   "MapperParallelism": 1,
   "SinkParallelism": 1,
-  "Reconfigurations": [{
-    "TriggerTimeSeconds": 30,
-    "Type": "scaleup",
-    "TargetOperator": "mapper",
-    "TargetParrallelism": 2
-  }],
+  "NumBuckets": 128,
+  "PartitionPolicy": "consistent-even",
+  "StateBackendType": "pebble",
+  "PebbleEnableConcurrentGetMany": true,
+  "PebbleGetManyMaxConcurrency": 8,
+  "PebbleGetManyBatchSize": 32,
+  "BufferSize": 50,
+  "BatchSize": 4096,
+  "IsWarmUp": false,
+  "LoadWarmUpData": false,
+  "ReconfigProtocol": "lazy",
+  "LazyProtocolVersion": "by-key",
   "InitialCustomTaskPlacement": [
     "source: 10.10.1.1",
     "mapper: 10.10.1.1",
     "sink: 10.10.1.1"
   ]
+
 }

@@ -116,7 +116,7 @@ A single-node run of the whole system — Kafka broker, producer, coordinator, t
 workers, and a scale-out of the mapper from 1 to 2 tasks 30 seconds in. Takes 5 minutes:
 
 ```bash
-cd ~/disaggregated-streaming/scripts
+cd ~/koala/scripts
 python3 runExperiment.py nexmarkJson/query1.json hello_world
 ```
 
@@ -183,7 +183,7 @@ spike during reconfiguration.
 **1. Run the 24 experiments**
 
 ```bash
-cd ~/ssd/disaggregated-streaming/scripts
+cd ~/ssd/koala/scripts
 python3 runExperimentSuite.py nsdi27/evaluation/Section5.2/fullSuite.json
 ```
 
@@ -196,7 +196,7 @@ producing result folders `<query>_<lazy|SAR|Remote|DRRS>`. Check that all 24 rep
 **2. Generate the plots**
 
 ```bash
-cd ~/ssd/disaggregated-streaming/scripts/nsdi27/evaluation/Section5.2
+cd ~/ssd/koala/scripts/nsdi27/evaluation/Section5.2
 python3 runAllFigures.py
 ```
 
@@ -280,7 +280,7 @@ parallelism. The experiment runs Nexmark Q6\* (`nexmark_query6_modified`) under 
 We run the experiment on CloudLab Utah `c6620` with 20 nodes.
 
 ```bash
-cd ~/disaggregated-streaming/scripts
+cd ~/koala/scripts
 python3 runExperimentSuite.py nsdi27/evaluation/Section5.3/Cloudlab/fullSuite.json
 ```
 
@@ -291,7 +291,7 @@ experiment is retried twice before the suite gives up, and re-running the suite 
 **3. Generate the figure**
 
 ```bash
-cd ~/disaggregated-streaming/scripts/nsdi27/evaluation/Section5.3/Cloudlab
+cd ~/koala/scripts/nsdi27/evaluation/Section5.3/Cloudlab
 python3 runAllFigures.py
 ```
 
@@ -336,7 +336,7 @@ to 8 tasks.
 **1. Run the experiments**
 
 ```bash
-cd ~/disaggregated-streaming/scripts
+cd ~/koala/scripts
 python3 runExperimentSuite.py nsdi27/evaluation/Section5.4/fullSuite.json
 ```
 
@@ -345,7 +345,7 @@ About 2 hours and 20 minutes for all twelve experiments.
 **3. Generate the figures**
 
 ```bash
-cd ~/disaggregated-streaming/scripts/nsdi27/evaluation/Section5.4
+cd ~/koala/scripts/nsdi27/evaluation/Section5.4
 python3 runAllFigures.py
 ```
 
@@ -382,7 +382,7 @@ worker's `data/pebble` into the snapshot folder and writes out the key lookup ta
 | 80 GB | `nexmarkJson/query6/stateSize/query6ModWarmup80GB.json` | 40M keys |
 
 ```bash
-cd ~/disaggregated-streaming/scripts
+cd ~/koala/scripts
 python3 runExperiment.py nexmarkJson/query6/stateSize/query6ModWarmup40GB.json warmup_40GB
 ```
 

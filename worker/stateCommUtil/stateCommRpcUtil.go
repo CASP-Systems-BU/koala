@@ -3,7 +3,7 @@ package stateCommUtil
 import (
 	"log"
 
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
 	"google.golang.org/protobuf/proto"
 )
 

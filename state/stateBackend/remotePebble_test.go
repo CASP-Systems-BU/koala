@@ -7,10 +7,10 @@ import (
 	"sync"
 	"testing"
 
-	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/state/stateBackend"
+	testutils "github.com/CASP-Systems-BU/koala/e2e/testUtils"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/internal/constant"
+	"github.com/CASP-Systems-BU/koala/state/stateBackend"
 )
 
 func encodeTestKey(key []byte, bucketIdx uint32) []byte {

@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/dataflow"
-	testutils "github.com/CASP-Systems-BU/disaggregated-streaming/e2e/testUtils"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/constant"
-	pb "github.com/CASP-Systems-BU/disaggregated-streaming/internal/grpc"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/worker"
+	"github.com/CASP-Systems-BU/koala/api/dataflow"
+	testutils "github.com/CASP-Systems-BU/koala/e2e/testUtils"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/internal/constant"
+	pb "github.com/CASP-Systems-BU/koala/internal/grpc"
+	"github.com/CASP-Systems-BU/koala/worker"
 	"github.com/mus-format/mus-go/varint"
 )
 

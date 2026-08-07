@@ -4,11 +4,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/collector"
-	ta "github.com/CASP-Systems-BU/disaggregated-streaming/api/timestampAssigner"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/api/tuple"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/utils"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/watermark"
+	"github.com/CASP-Systems-BU/koala/api/collector"
+	ta "github.com/CASP-Systems-BU/koala/api/timestampAssigner"
+	"github.com/CASP-Systems-BU/koala/api/tuple"
+	"github.com/CASP-Systems-BU/koala/internal/utils"
+	"github.com/CASP-Systems-BU/koala/internal/watermark"
 )
 
 type Source[OUT tuple.Tuple] struct {

@@ -1,4 +1,4 @@
-module github.com/CASP-Systems-BU/disaggregated-streaming
+module github.com/CASP-Systems-BU/koala
 
 go 1.25.6
 

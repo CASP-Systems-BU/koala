@@ -286,7 +286,7 @@ def measure_klt_sizes_from_workers(worker_ips: list[str]) -> list[float] | None:
 
     for worker_ip in worker_ips:
         try:
-            cmd = "du -sh ~/disaggregated-streaming/pebbleLookUpTable/nexmark_q6_mod/128ByKey_consistent_*"
+            cmd = "du -sh ~/koala/pebbleLookUpTable/nexmark_q6_mod/128ByKey_consistent_*"
             result = subprocess.run(
                 f'ssh {worker_ip} "{cmd}"',
                 shell=True,

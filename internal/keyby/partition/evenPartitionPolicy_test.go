@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/configuration"
-	"github.com/CASP-Systems-BU/disaggregated-streaming/internal/keyby/partition"
+	"github.com/CASP-Systems-BU/koala/internal/configuration"
+	"github.com/CASP-Systems-BU/koala/internal/keyby/partition"
 )
 
 func TestEvenPartitionPolicy_RePartitionV2_ScaleUp(t *testing.T) {

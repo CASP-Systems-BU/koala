@@ -9,7 +9,7 @@ every query is already generated, so no warm-up phase is needed.
 ## 1. Run the 24 experiments
 
 ```bash
-cd ~/ssd/disaggregated-streaming/scripts
+cd ~/ssd/koala/scripts
 python3 runExperimentSuite.py nsdi27/evaluation/Section5.2/fullSuite.json
 ```
 
@@ -23,7 +23,7 @@ in `scripts/results/suiteLogs_<timestamp>/`).
 Rerun them with the config the suite writes for you:
 
 ```bash
-cd ~/ssd/disaggregated-streaming/scripts
+cd ~/ssd/koala/scripts
 python3 runExperimentSuite.py results/suiteLogs_<timestamp>/rerunFailed.json
 ```
 
@@ -32,7 +32,7 @@ Repeat until all 24 report `SUCCEEDED`, then continue with step 2.
 ## 2. Generate the plots
 
 ```bash
-cd ~/ssd/disaggregated-streaming/scripts/nsdi27/evaluation/Section5.2
+cd ~/ssd/koala/scripts/nsdi27/evaluation/Section5.2
 python3 runAllFigures.py
 ```
 
