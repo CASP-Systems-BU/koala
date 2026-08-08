@@ -15,8 +15,6 @@ Welcome to the artifact evaluation guide for Koala, a non-disruptive reconfigura
 
 We summerize the experiments outlined in this document and the claims they support. The experiments in [Reproduced Badge](#reproduced-badge) section are organized by evaluation sections in the paper (sec 5.2, sec 5.3, sec 5.4).
 
-
-
 ### 1. Primary claim: Sec 5.2
 
 > **Primary claim**: Koala effectively eliminates the reconfiguration disruption (e.g., throughput drop, backlog accumulation, latency spike) as compared to the baselines, while sustaining low processing latency during normal operation.
@@ -112,8 +110,8 @@ each experiment's JSON config file. [The DRRS approach](https://ieeexplore.ieee.
 | [Optional] Large-scale experiment | 9 | #2 | CloudLab | 10 min | [5.3.1](#section-531--figure-9-high-parallelism-optional) |
 | [Optional] Microbenchmarks | 14–16 | #3 | CloudLab | 2 h 20 min | [5.4](#section-54--figures-1416-microbenchmarks-optional) |
 
->**Note**: all experiments are long-running. Run them under `tmux` so a dropped SSH
-connection does not kill the run.
+> [!NOTE]
+>  All experiments are long-running. Run them under `tmux` so a dropped SSH connection does not kill the run.
 
 At the end of each experiment, the harness prints a summary of the run and writes it to
 `scripts/results/suiteLogs_<timestamp>/summary.json`, with per-experiment logs alongside it. Here is an example of the summary output:
@@ -129,11 +127,6 @@ At the end of each experiment, the harness prints a summary of the run and write
   Results: /home/<user>/koala/scripts/results
 ```
 
-<!-- All experiments run on Ubuntu Linux (22.04) in two settings:
-
-- **AWS c5d.4xlarge** (For all major experiments to be reproduced) — used for Sections 5.2 and 5.3 (Figures 6, 8, 10–13).
-- **CloudLab c6620 machines** (For all optional experiments to be reproduced) — used for optional Sections 5.3.1 and 5.4 (Figures 9, 14–16). -->
-
 ### Section 5.2 - Figures 6 and 8
 
 *(Human time: 10 minutes, run time: 4–5 hours)*
@@ -145,19 +138,12 @@ We compare against three baselines, all implemented in this repository and run t
 same harness: **S&R** (stop-and-restart, the standard approach), **Remote** (state served
 from remote storage service), and **DRRS** (existing SOTA non-disruptive reconfiguration protocol).
 
-
-<!-- Because the artifact needs multi-node clusters with pre-generated warm-up state, we provide
-ready-to-use clusters for both settings. -->
-
-
-
 <!-- If you run into failures, rerun the experiment with the config the suite writes for you:
 
 ```bash
 cd ~/ssd/koala/scripts
 python3 runExperimentSuite.py results/suiteLogs_<timestamp>/rerunFailed.json
 ``` -->
-
 
 **1. Run all 24 experiments (6 queries × 4 protocols)**
 
