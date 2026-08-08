@@ -43,12 +43,12 @@ Sec 5.4 runs a set of microbenchmarks to demonstrate the efficiency of Koala's l
 - [Available Badge](#available-badge)
 - [Functional Badge](#functional-badge)
 - [Reproduced Badge](#reproduced-badge)
-  - [Section 5.2 - Figures 6, 8](#section-52---figures-6-and-8)
+  - [Section 5.2 - Figures 6 and 8](#section-52---figures-6-and-8)
   - [Section 5.3 - Figures 10–13](#section-53---figures-1013)
-    <!-- - [[Optional] Section 5.3.1 — Figure 9, high parallelism](#optional-section-531---figure-9) -->
-  - [[Optional] Section 5.4](#optional-section-54---figures-1416)
-- [Appendix A: rebuilding the warm-up state](#appendix-a-rebuilding-the-warm-up-state)
-- [Appendix B: writing your own query](#appendix-b-writing-your-own-query)
+    <!-- - [[Optional] Section 5.3.1 - Figure 9](#optional-section-531---figure-9) -->
+  - [[Optional] Section 5.4 - Figures 14–16](#optional-section-54---figures-1416)
+- [Appendix A: rebuild the warm-up state](#appendix-a-rebuild-the-warm-up-state)
+- [Appendix B: write your own query](#appendix-b-write-your-own-query)
 
 
 ## Getting Started
@@ -142,9 +142,10 @@ At the end of each experiment, the harness prints a summary of the run and write
 Sec 5.2 runs on AWS `c5d.4xlarge` instances and supports the primary claim of the paper:
 > **Primary claim**: Koala effectively eliminates the reconfiguration disruption (e.g., throughput drop, backlog accumulation, latency spike) as compared to the baselines, while sustaining low processing latency during normal operation.
 
-We compare against three baselines, all implemented in this repository and run through the
-same harness: **S&R** (stop-and-restart, the standard approach), **Remote** (state served
-from a remote storage service), and **DRRS** (the existing SOTA non-disruptive reconfiguration protocol).
+We compare against three baselines, all implemented in this repository and run through the same harness: **S&R** (stop-and-restart, the standard approach), **Remote** (state served from a remote storage service), and **DRRS** (the existing SOTA non-disruptive reconfiguration protocol).
+
+> [!NOTE]
+> Experiments in this section require large state aaccumulated before the reconfiguration. We have pre-generated warm-up state for the queries used in the experiments. If you want to run the experiments on your own cluster, please see [Appendix A](#appendix-a-rebuild-the-warm-up-state) for instructions on how to rebuild the warm-up state.
 
 <!-- If you run into failures, rerun the experiment with the config the suite writes for you:
 
