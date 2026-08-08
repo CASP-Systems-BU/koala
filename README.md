@@ -72,7 +72,7 @@ cd ~/ssd/koala/scripts
 python3 runExperiment.py nexmarkJson/query1.json hello_world
 ```
 
-Results land in `koala/scripts/results/nexmark_query1_hello_world/`, containing collected metrics in a database file `metricCollector.db`.
+Results land in `koala/scripts/results/nexmark_query1_hello_world/metricDB`, containing collected metrics in a database file `metricCollector.db`.
 
 ## Available Badge
 
