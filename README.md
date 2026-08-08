@@ -4,7 +4,7 @@ Welcome to the artifact evaluation guide for Koala, a non-disruptive reconfigura
 
 **We target all three badges (Available, Functional, Reproduced):**
 
-- [Available](#available-badge): we publish Koala on [Github](https://github.com/CASP-Systems-BU/koala).
+- [Available](#available-badge): we publish Koala on [GitHub](https://github.com/CASP-Systems-BU/koala).
 - [Functional](#functional-badge): we describe all artifact components and provide instructions for running a minimal working example.
 - [Reproduced](#reproduced-badge): we provide instructions for reproducing the key results from the evaluation section of the paper. Our main results—Figures 6, 8, 10, 11, 12, and 13—are reproducible. Figures 9, 14, 15, and 16 are also reproducible but are optional.
 
@@ -13,7 +13,7 @@ Welcome to the artifact evaluation guide for Koala, a non-disruptive reconfigura
 
 ## Overview
 
-We summerize the experiments outlined in this document and the claims they support. The experiments in [Reproduced Badge](#reproduced-badge) section are organized by evaluation sections in the paper (sec 5.2, sec 5.3, sec 5.4).
+We summarize the experiments outlined in this document and the claims they support. The experiments in the [Reproduced Badge](#reproduced-badge) section are organized by evaluation sections in the paper (sec 5.2, sec 5.3, sec 5.4).
 
 ### 1. Primary claim: Sec 5.2
 
@@ -33,21 +33,21 @@ Sec 5.4 runs a set of microbenchmarks to demonstrate the efficiency of Koala's l
 
 ## Table of contents
 
-- [Getting Started](#hello-world)
+- [Getting Started](#getting-started)
 - [Available Badge](#available-badge)
 - [Functional Badge](#functional-badge)
 - [Reproduced Badge](#reproduced-badge)
-  - [Section 5.2 - Figures 6, 8](#section-52--figures-6-and-8)
-  - [Section 5.3 - Figures 10–13](#section-53--figures-1013-reconfiguration-scenarios)
-    <!-- - [[Optional] Section 5.3.1 — Figure 9, high parallelism](#section-531--figure-9-high-parallelism-optional) -->
-  - [[Optional] Section 5.4](#section-54--figures-1416-microbenchmarks-optional)
+  - [Section 5.2 - Figures 6, 8](#section-52---figures-6-and-8)
+  - [Section 5.3 - Figures 10–13](#section-53---figures-1013)
+    <!-- - [[Optional] Section 5.3.1 — Figure 9, high parallelism](#optional-section-531---figure-9) -->
+  - [[Optional] Section 5.4](#optional-section-54---figures-1416)
 - [Appendix A: rebuilding the warm-up state](#appendix-a-rebuilding-the-warm-up-state)
 - [Appendix B: writing your own query](#appendix-b-writing-your-own-query)
 
 
 ## Getting Started
 
-We will provide the SSH credentials and IP addresses over HotCRP. Please SSH into the machine (master node of the cluster) we provided. **We have pre-installed all dependencies and set up the environment for you**. The Koala repository is also already cloned in directory `~/ssd/koala` on AWS and `~/koala` on CloudLab.
+We will provide the SSH credentials and IP addresses over HotCRP. Please SSH into the machine (master node of the cluster) we provided. **We have pre-installed all dependencies and set up the environment for you**. The Koala repository is already cloned in directory `~/ssd/koala` on AWS and `~/koala` on CloudLab.
 
 *(You can refer to [cluster setup](https://github.com/CASP-Systems-BU/koala/wiki/Experiment-Environment-Setup) for cluster setup instructions)*
 
@@ -105,13 +105,13 @@ each experiment's JSON config file. [The DRRS approach](https://ieeexplore.ieee.
 
 | Experiment | Figures | Claim | Setting | Run time | Section |
 |---|---|---|---|---|---|
-| Koala vs. baselines on 6 queries | 6, 8 | #1 | AWS | 4–5 h | [5.2](#section-52--figures-6-and-8) |
-| Koala applicability | 10–13 | #2 | AWS | ~2 h | [5.3](#section-53--figures-1013-reconfiguration-scenarios) |
-| [Optional] Large-scale experiment | 9 | #2 | CloudLab | 10 min | [5.3.1](#section-531--figure-9-high-parallelism-optional) |
-| [Optional] Microbenchmarks | 14–16 | #3 | CloudLab | 2 h 20 min | [5.4](#section-54--figures-1416-microbenchmarks-optional) |
+| Koala vs. baselines on 6 queries | 6, 8 | #1 | AWS | 4–5 h | [5.2](#section-52---figures-6-and-8) |
+| Koala applicability | 10–13 | #2 | AWS | ~2 h | [5.3](#section-53---figures-1013) |
+| [Optional] Large-scale experiment | 9 | #2 | CloudLab | 10 min | [5.3.1](#optional-section-531---figure-9) |
+| [Optional] Microbenchmarks | 14–16 | #3 | CloudLab | 2 h 20 min | [5.4](#optional-section-54---figures-1416) |
 
 > [!NOTE]
->  All experiments are long-running. Run them under `tmux` so a dropped SSH connection does not kill the run.
+> All experiments are long-running. Run them under `tmux` so a dropped SSH connection does not kill the run.
 
 At the end of each experiment, the harness prints a summary of the run and writes it to
 `scripts/results/suiteLogs_<timestamp>/summary.json`, with per-experiment logs alongside it. Here is an example of the summary output:
@@ -136,7 +136,7 @@ Sec 5.2 runs on AWS `c5d.4xlarge` instances and supports the primary claim of th
 
 We compare against three baselines, all implemented in this repository and run through the
 same harness: **S&R** (stop-and-restart, the standard approach), **Remote** (state served
-from remote storage service), and **DRRS** (existing SOTA non-disruptive reconfiguration protocol).
+from a remote storage service), and **DRRS** (the existing SOTA non-disruptive reconfiguration protocol).
 
 <!-- If you run into failures, rerun the experiment with the config the suite writes for you:
 
@@ -152,11 +152,11 @@ cd ~/ssd/koala/scripts
 python3 runExperimentSuite.py nsdi27/evaluation/Section5.2/fullSuite.json
 ```
 
-Six queries (`azure`, `borg`, `taxi`, `twitch`, `nexmark_query3`,
+<!-- Six queries (`azure`, `borg`, `taxi`, `twitch`, `nexmark_query3`,
 `nexmark_query6_modified`) × four protocols (Koala (`lazy`), `SAR`, `Remote`, `DRRS`),
 producing result folders `<query>_<lazy|SAR|Remote|DRRS>`. Check that all 24 report
 `SUCCEEDED` in the final summary; per-experiment logs are in
-`scripts/results/suiteLogs_<timestamp>/`.
+`scripts/results/suiteLogs_<timestamp>/`. -->
 
 **2. Generate the plots**
 
@@ -164,7 +164,6 @@ producing result folders `<query>_<lazy|SAR|Remote|DRRS>`. Check that all 24 rep
 cd ~/ssd/koala/scripts/nsdi27/evaluation/Section5.2
 python3 runAllFigures.py
 ```
-
 | Files | Paper figure |
 |---|---|
 | `Section5.2/Figure6/{azure,borg,taxi,twitch,q3,q6mod}.pdf` | Figure 6 |
@@ -187,7 +186,7 @@ Sec 5.3 runs on AWS `c5d.4xlarge` instances and supports the secondary claim of 
 
 <!-- | Claim in the paper | Figure | Supported by |
 |---|---|---|
-| Koala maintains nondisruptive processing both when scaling-out and when scalingin, demonstrating robustness under repeated reconfigurations| 10 | `Figure10.pdf` |
+| Koala maintains nondisruptive processing both when scaling out and when scaling in, demonstrating robustness under repeated reconfigurations | 10 | `Figure10.pdf` |
 | After rebalance, Koala quickly resolves the bottleneck, converging to a stable and balanced throughput | 11 | `Figure11.pdf` |
 | Fetch-on-demand and progressive-default sustain the input rate without disruption, and the latter completes the migration in the background | 12 | `Figure12.pdf` |
 | Koala can also support cases where multiple target operators need to be reconfigured at once.  | 13 | `Figure13.pdf` | -->
