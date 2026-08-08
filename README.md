@@ -49,8 +49,9 @@ Sec 5.4 runs a set of microbenchmarks to demonstrate the efficiency of Koala's l
 
 ## Getting Started
 
-We will provide the SSH credentials and IP addresses over HotCRP. Please SSH into the machine (master node of the cluster) we provided.
-The Koala repository is already cloned in directory `~/ssd/koala` on AWS and `~/koala` on CloudLab.
+We will provide the SSH credentials and IP addresses over HotCRP. Please SSH into the machine (master node of the cluster) we provided. **We have pre-installed all dependencies and set up the environment for you**. The Koala repository is also already cloned in directory `~/ssd/koala` on AWS and `~/koala` on CloudLab.
+
+*(You can refer to [cluster setup](https://github.com/CASP-Systems-BU/koala/wiki/Experiment-Environment-Setup) for cluster setup instructions)*
 
 First start a tmux session (a helpful tmux reference is available [here](https://tmuxcheatsheet.com/)).
 ```bash
@@ -102,66 +103,20 @@ each experiment's JSON config file. [The DRRS approach](https://ieeexplore.ieee.
 
 ## Reproduced Badge
 
-The experimental section supports three claims:
-
-1. **Non-disruptive reconfiguration.** Koala keeps processing during a scale-out: no
-   downtime, no latency spike, and the input backlog is consumed faster than with the
-   baselines (Section 5.2, Figures 6 and 8).
-2. **Generality and scale.** The same mechanism holds at higher parallelism and across
-   reconfiguration types — repeated reconfigurations, concurrent reconfiguration of
-   multiple operators, skew-driven rebalancing, and scale-in with task migration
-   (Section 5.3, Figures 9–13).
-3. Lazy state access migrates only the active working set, so
-   cost is governed by key locality and skew rather than total state size, and the key
-   lookup table stays small (Section 5.4, Figures 14–16).
-
-We compare against three baselines, all implemented in this repository and run through the
-same harness: **S&R** (stop-and-restart, the standard approach), **Remote** (state served
-from disaggregated storage without migration), and **DRRS**.
-
-All experiments run on Ubuntu Linux (22.04) in two settings:
-
-- **AWS** — used for Sections 5.2 and 5.3 (Figures 6, 8, 10–13). Working directory on the
-  nodes is `~/ssd/koala`.
-- **CloudLab Utah** (`c6620` nodes) — used for optional Sections 5.3.1 and 5.4 (Figures 9, 14–16).
-  Working directory on the nodes is `~/koala`.
-
-In both settings node `10.10.1.1` runs the coordinator; log in there and run everything
-from that node.
+### Overview of the experiments
 
 | Experiment | Figures | Claim | Setting | Run time | Section |
 |---|---|---|---|---|---|
-| Reconfiguration vs. baselines, 6 queries × 4 protocols | 6, 8 | #1 | AWS | 4–5 h | [5.2](#section-52--figures-6-and-8) |
-| Repeated / concurrent reconfiguration, skew rebalancing, task migration | 10–13 | #2 | AWS | ~2 h | [5.3](#section-53--figures-1013-reconfiguration-scenarios) |
-| Scale-out at high parallelism (16 → 32 tasks) | 9 | #2 | CloudLab | 10 min | [5.3.1](#section-531--figure-9-high-parallelism-optional) |
-| State size, key lookup overhead, locality and skew | 14–16 | #3 | CloudLab | 2 h 20 min | [5.4](#section-54--figures-1416-microbenchmarks-optional) |
+| Koala vs. baselines on 6 queries | 6, 8 | #1 | AWS | 4–5 h | [5.2](#section-52--figures-6-and-8) |
+| Koala applicability | 10–13 | #2 | AWS | ~2 h | [5.3](#section-53--figures-1013-reconfiguration-scenarios) |
+| [Optional] Large-scale experiment | 9 | #2 | CloudLab | 10 min | [5.3.1](#section-531--figure-9-high-parallelism-optional) |
+| [Optional] Microbenchmarks | 14–16 | #3 | CloudLab | 2 h 20 min | [5.4](#section-54--figures-1416-microbenchmarks-optional) |
 
-Because the artifact needs multi-node clusters with pre-generated warm-up state, we provide
-ready-to-use clusters for both settings.
+>**Note**: all experiments are long-running. Run them under `tmux` so a dropped SSH
+connection does not kill the run.
 
-Refer to [cluster setup](https://github.com/CASP-Systems-BU/koala/wiki/Experiment-Environment-Setup) to setup your own cluster.
-
-
-
-
-## Experiments
-
-All experiments are long-running. Run them under `screen` or `tmux` so a dropped SSH
-connection does not kill the run. Every command below is run from the coordinator node
-(`10.10.1.1`).
-
-Two scripts drive everything:
-
-```bash
-python3 runExperimentSuite.py <suite.json>     # run a section's experiments back-to-back
-
-python3 runAllFigures.py                       # regenerate that section's figures
-```
-
-It prints a summary at the end and writes it to
-`results/suiteLogs_<timestamp>/summary.json`, with per-experiment logs alongside it.
-
-The script shows intermediate results:
+At the end of each experiment, the harness prints a summary of the run and writes it to
+`scripts/results/suiteLogs_<timestamp>/summary.json`, with per-experiment logs alongside it. Here is an example of the summary output:
 
 ```
 ============================================================
@@ -174,26 +129,37 @@ The script shows intermediate results:
   Results: /home/<user>/koala/scripts/results
 ```
 
-If some experiments fail, rerun them with the config the suite writes for you:
+<!-- All experiments run on Ubuntu Linux (22.04) in two settings:
+
+- **AWS c5d.4xlarge** (For all major experiments to be reproduced) — used for Sections 5.2 and 5.3 (Figures 6, 8, 10–13).
+- **CloudLab c6620 machines** (For all optional experiments to be reproduced) — used for optional Sections 5.3.1 and 5.4 (Figures 9, 14–16). -->
+
+### Section 5.2 - Figures 6 and 8
+
+*(Human time: 10 minutes, run time: 4–5 hours)*
+
+Sec 5.2 runs on AWS `c5d.4xlarge` instances and supports the primary claim of the paper:
+> **Primary claim**: Koala effectively eliminates the reconfiguration disruption (e.g., throughput drop, backlog accumulation, latency spike) as compared to the baselines, while sustaining low processing latency during normal operation.
+
+We compare against three baselines, all implemented in this repository and run through the
+same harness: **S&R** (stop-and-restart, the standard approach), **Remote** (state served
+from remote storage service), and **DRRS** (existing SOTA non-disruptive reconfiguration protocol).
+
+
+<!-- Because the artifact needs multi-node clusters with pre-generated warm-up state, we provide
+ready-to-use clusters for both settings. -->
+
+
+
+<!-- If you run into failures, rerun the experiment with the config the suite writes for you:
 
 ```bash
 cd ~/ssd/koala/scripts
 python3 runExperimentSuite.py results/suiteLogs_<timestamp>/rerunFailed.json
-```
+``` -->
 
-### Section 5.2 — Figures 6 and 8
 
-*(Human time: 10 minutes, run time: 4–5 hours. AWS. **This is the main result.**)*
-
-Supports claim #1: Koala reconfigures without downtime, and its per-batch processing latency does not
-spike during reconfiguration.
-
-| Claim in the paper | Figure | Supported by |
-|---|---|---|
-| "Koala has no downtime after the scale-out, unlike S&R, and consumes the backlog much faster than the other baselines." | 6 | `Figure6/*.pdf` |
-| "Koala's per-batch latency is lower than Remote's and does not spike during reconfiguration." | 8 | `Figure8/*_latency.pdf` |
-
-**1. Run the 24 experiments**
+**1. Run all 24 experiments (6 queries × 4 protocols)**
 
 ```bash
 cd ~/ssd/koala/scripts
@@ -213,35 +179,32 @@ cd ~/ssd/koala/scripts/nsdi27/evaluation/Section5.2
 python3 runAllFigures.py
 ```
 
-Exits non-zero if any figure fails. Output:
-
 | Files | Paper figure |
 |---|---|
-| `Figure6/{azure,borg,taxi,twitch,q3,q6mod}.pdf` | Figure 6 |
-| `Figure8/{azure,borg,taxi,twitch,q3,q6mod}_latency.pdf` | Figure 8 |
+| `Section5.2/Figure6/{azure,borg,taxi,twitch,q3,q6mod}.pdf` | Figure 6 |
+| `Section5.2/Figure8/{azure,borg,taxi,twitch,q3,q6mod}_latency.pdf` | Figure 8 |
 
-**3. Compare with the paper**
+**3. Validate the results**
 
 | Figure | What you should see |
 |---|---|
-| 6 | Koala's throughput does not drop to zero after scaling out, while S&R stops entirely; Koala drains the backlog that builds up during reconfiguration faster than the other baselines. |
-| 8 | Koala's per-batch latency stays below Remote's throughout and shows no spike at the reconfiguration point. |
+| Figure 6 | Koala's throughput does not drop to zero after scaling out, while S&R stops entirely; Koala drains the backlog that builds up during reconfiguration faster than the other baselines. |
+| Figure 8 | Koala's per-batch latency stays below Remote's throughout and shows no spike at the reconfiguration point. |
 
 
-### Section 5.3 — Figures 10–13, reconfiguration scenarios
+### Section 5.3 - Figures 10–13
 
 *(Human time: 10 minutes, run time: ~2 hours. AWS.)*
 
-Supports claim #2: the same mechanism covers reconfiguration types beyond a single
-scale-out — repeated reconfigurations, concurrent reconfiguration of several operators,
-skew-driven rebalancing, and scale-in with task migration.
+Sec 5.3 runs on AWS `c5d.4xlarge` instances and supports the secondary claim of the paper:
+>**Secondary claim**: Koala can handle a variety of reconfiguration scenarios, including repeated reconfigurations, concurrent reconfigurations, skew-driven rebalancing, and task migration.
 
-| Claim in the paper | Figure | Supported by |
+<!-- | Claim in the paper | Figure | Supported by |
 |---|---|---|
 | Koala maintains nondisruptive processing both when scaling-out and when scalingin, demonstrating robustness under repeated reconfigurations| 10 | `Figure10.pdf` |
 | After rebalance, Koala quickly resolves the bottleneck, converging to a stable and balanced throughput | 11 | `Figure11.pdf` |
 | Fetch-on-demand and progressive-default sustain the input rate without disruption, and the latter completes the migration in the background | 12 | `Figure12.pdf` |
-| Koala can also support cases where multiple target operators need to be reconfigured at once.  | 13 | `Figure13.pdf` |
+| Koala can also support cases where multiple target operators need to be reconfigured at once.  | 13 | `Figure13.pdf` | -->
 
 **1. Run the experiments**
 
@@ -257,58 +220,55 @@ cd ~/ssd/koalascripts/nsdi27/evaluation/Section5.3/AWS
 python3 runAllFigures.py
 ```
 
-**3. Compare with the paper**
+| Files | Paper figure |
+|---|---|
+| `Section5.3/Figure10.pdf` | Figure 10 |
+| `Section5.3/Figure11.pdf` | Figure 11 |
+| `Section5.3/Figure12.pdf` | Figure 12 |
+| `Section5.3/Figure13.pdf` | Figure 13 |
+
+**3. Validate the results**
 
 As above, the claims are about trends rather than exact numbers.
 
 | Figure | What you should see |
 |---|---|
-| 10 | Throughput holds across all four reconfiguration points (t≈180, 360, 540, 720s); the volume of state transferred spikes at each one and then decays to zero as the working set is fetched. |
-| 11 | Before the rebalance, one task of the target operator carries most of the throughput; afterwards, per-task throughput evens out and Kafka lag returns to its steady-state level. |
-| 12 | Fetch-on-demand keeps throughput steady and spreads migration over a longer window; progressive migration moves state faster, and the larger chunk size shortens the migration at the cost of a larger disturbance to throughput. |
-| 13 | Reconfiguring two operators at the same time does not stall the pipeline: aggregate throughput stays flat and the Kafka queue does not build up. |
+| Figure 10 | Throughput holds across all four reconfiguration points (t≈180, 360, 540, 720s); the volume of state transferred spikes at each one and then decays to zero as the working set is fetched. |
+| Figure 11 | Before the rebalance, one task of the target operator carries most of the throughput; afterwards, per-task throughput evens out and Kafka lag returns to its steady-state level. |
+| Figure 12 | Fetch-on-demand keeps throughput steady and spreads migration over a longer window; progressive migration moves state faster, and the larger chunk size shortens the migration at the cost of a larger disturbance to throughput. |
+| Figure 13 | Reconfiguring two operators at the same time does not stall the pipeline: aggregate throughput stays flat and the Kafka queue does not build up. |
 
 
-### Section 5.3.1 — Figure 9, high parallelism (optional)
+### [Optional] Section 5.3.1 - Figure 9
+
+<details>
+<summary>Click to expand the full instructions</summary>
+<br>
 
 *(Human time: 15 minutes, run time: 10 minutes. CloudLab.)*
 
-Supports claim #2: the mechanism still holds when the target operator runs at high
-parallelism. The experiment runs Nexmark Q6\* (`nexmark_query6_modified`) under Koala for
-10 minutes at a stable input rate; after three minutes the target operator scales out from
-16 to 32 tasks.
-
-| Claim in the paper | Figure | Supported by |
-|---|---|---|
-| "Koala maintains stable throughput during scale-out at high parallelism, with minimal disruption to the Kafka queue." | 9 | `Figure9.pdf` |
-
-| Step | Human time | Run time |
-|---|---|---|
-| Run the experiment | 1 min | 10 min |
-| Generate the figure | 1 min | 1 min |
-| Compare with the paper | 2 min | — |
+Sec 5.3.1 runs a single experiment with 32 tasks per operator, demonstrating that Koala scales to high parallelism without disruption. This experiment is a complement and not required for the main claims of the paper. This experiment runs on CloudLab `c6620` machines.
 
 **1. Run the experiment**
-
-We run the experiment on CloudLab Utah `c6620` with 20 nodes.
 
 ```bash
 cd ~/koala/scripts
 python3 runExperimentSuite.py nsdi27/evaluation/Section5.3/Cloudlab/fullSuite.json
 ```
 
-The experiment should say `SUCCEEDED`. The full output is in
-`results/suiteLogs_<timestamp>/<NN>_parallelism_16_to_32_attemptN.log`. A failed
-experiment is retried twice before the suite gives up, and re-running the suite is safe.
-
-**3. Generate the figure**
+**2. Generate the figure**
 
 ```bash
 cd ~/koala/scripts/nsdi27/evaluation/Section5.3/Cloudlab
 python3 runAllFigures.py
 ```
 
-**4. Compare with the paper**
+| Files | Paper figure |
+|---|---|
+| `Section5.3/Figure9.pdf` | Figure 9 |
+
+
+**3. Validate the results**
 
 Absolute values depend on the machines and on how Kafka and the producer happen to behave
 during a run, so the claims are about trends and stability rather than exact numbers. The
@@ -317,34 +277,38 @@ reference values below come from the run used for the paper.
 | Figure | Claim |
 |---|---|
 | 9a (Tput) | Throughput is flat before and after scale-out at t=180s, with no dip and no disruption to steady-state input rate |
-| 9b (Kafka lag) | Kafka queue lag stays low throughout and does not spike during scale-out | 
+| 9b (Kafka lag) | Kafka queue lag stays low throughout and does not spike during scale-out |
+
+</details>
 
 
-### Section 5.4 — Figures 14–16, microbenchmarks (optional)
+### [Optional] Section 5.4 - Figures 14–16
+
+<details>
+<summary>Click to expand the full instructions</summary>
+<br>
 
 *(Human time: 20 minutes, run time: 2 h 20 min. CloudLab.)*
 
-Supports claim #3: cost is governed by the active working set, not by total state size.
-Figure 14 varies total state size, Figure 15 measures key lookup overhead, and Figure 16
-varies key locality and skew.
+Sec 5.4 runs a set of microbenchmarks on CloudLab `c6620` machines to demonstrate the efficiency of Koala's lazy state access mechanism, including the impact of total state size, key lookup overhead, and key locality/skew. This section is **optional** and not required for the main claims of the paper.
 
-All twelve experiments run Nexmark Q6\* (`nexmark_query6_modified`) under Koala for 10
+<!-- All twelve experiments run Nexmark Q6\* (`nexmark_query6_modified`) under Koala for 10
 minutes at a stable input rate; after three minutes the target operator scales out from 4
-to 8 tasks.
+to 8 tasks. -->
 
-| Claim in the paper | Figure | Supported by |
+<!-- | Claim in the paper | Figure | Supported by |
 |---|---|---|
 | "Koala demonstrates stable behavior despite increasing state size. Across all runs, it migrates around the same amount of state, as it exploits the temporal key locality of the workload, relocating the active working set only." | 14 | `Figure14.pdf` |
 | "Key lookup takes less than 40µs per input batch across all runs, accounting for under 3% of per-batch latency." | 15a | `Figure15.pdf` |
 | "While KLT grows with the key space, it remains compact, reaching at most 60 MB for 40M keys and 80 GB of total state." | 15b | `Figure15.pdf` |
 | "Migration duration depends on the size of the active key space, as more keys from the old tasks are accessed after reconfiguration, resulting in more state being migrated on demand." | 16a | `Figure16.pdf` |
-| "Higher skew leads to smoother reconfiguration, because (i) repeated accesses to hot keys incur no additional cost after initial fetch, and (ii) batch-based state access deduplicates keys before issuing the migration request." | 16b | `Figure16.pdf` |
+| "Higher skew leads to smoother reconfiguration, because (i) repeated accesses to hot keys incur no additional cost after initial fetch, and (ii) batch-based state access deduplicates keys before issuing the migration request." | 16b | `Figure16.pdf` | -->
 
-| Step | Human time | Run time |
+<!-- | Step | Human time | Run time |
 |---|---|---|
 | Run the experiments | 1 min | 2 h 20 min |
 | Generate the figures | 1 min | 1 min |
-| Compare with the paper | 15 min | — |
+| Validate the results | 15 min | — | -->
 
 **1. Run the experiments**
 
@@ -353,16 +317,22 @@ cd ~/koala/scripts
 python3 runExperimentSuite.py nsdi27/evaluation/Section5.4/fullSuite.json
 ```
 
-About 2 hours and 20 minutes for all twelve experiments.
+<!-- About 2 hours and 20 minutes for all twelve experiments. -->
 
-**3. Generate the figures**
+**2. Generate the figures**
 
 ```bash
 cd ~/koala/scripts/nsdi27/evaluation/Section5.4
 python3 runAllFigures.py
 ```
 
-**4. Compare with the paper**
+| Files | Paper figure |
+|---|---|
+| `Section5.4/Figure14.pdf` | Figure 14 |
+| `Section5.4/Figure15.pdf` | Figure 15 |
+| `Section5.4/Figure16.pdf` | Figure 16 |
+
+**3. Validate the results**
 
 Absolute values depend on the machines and on how Kafka and Pebble happen to behave during
 a run, so the claims are about trends and orders of magnitude rather than exact numbers.
@@ -375,9 +345,14 @@ a run, so the claims are about trends and orders of magnitude rather than exact 
 | 15b (KLT size) | The key lookup table grows with the key space but stays small |
 | 16a (Locality) | Both the volume migrated and the time it takes grow with the active key space, close to linearly |
 | 16b (Skew) | More skew means less state migrated and a shorter tail |
----
+
+
+</details>
 
 ## Appendix A: rebuilding the warm-up state
+
+<details>
+<summary>Click to expand</summary>
 
 The clusters we provide already have the warm-up state generated, so this is only needed if
 you set up your own cluster. Each state size takes about 30 minutes to rebuild, and warm-up
@@ -403,7 +378,12 @@ python3 runExperiment.py nexmarkJson/query6/stateSize/query6ModWarmup40GB.json w
 generator resumes after warm-up, so if you change a warm-up's `NumEvents` you need to
 scale it by the same factor (46×): 625K maps to 28,750,000, 1.25M to 57,500,000.
 
+</details>
+
 ## Appendix B: writing your own query
+
+<details>
+<summary>Click to expand</summary>
 
 A query is a Go dataflow built from the operators in [api/dataflow/](api/dataflow/). The
 smallest complete examples are in [query/examples/](query/examples/) — `counter.go` (a
@@ -426,3 +406,5 @@ operator, when reconfigurations fire, and which protocol handles them:
     "LazyProtocolVersion": "basic"
 }
 ```
+
+</details>
