@@ -202,7 +202,7 @@ python3 runExperimentSuite.py nsdi27/evaluation/Section5.3/AWS/fullSuite.json
 **2. Generate the figures**
 
 ```bash
-cd ~/ssd/koalascripts/nsdi27/evaluation/Section5.3/AWS
+cd ~/ssd/koala/scripts/nsdi27/evaluation/Section5.3/AWS
 python3 runAllFigures.py
 ```
 
