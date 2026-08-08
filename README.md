@@ -75,37 +75,30 @@ README (dependencies, getting-started guide, and per-figure reproduction steps).
 
 ## Functional Badge
 
-Koala is a modular streaming runtime: the dataflow API, the coordinator, the workers, the
-state backends, and the reconfiguration protocols are separate components, so a protocol
-or a state backend can be swapped without touching the queries. The main claim is that
-this architecture supports non-disruptive reconfiguration for a range of workloads and
-reconfiguration scenarios.
+Please see the [Getting Started](#getting-started) section to run the "hello world" example, a minimal working run of the system. Below, we summarize the artifact structure and the configuration of the reconfiguration protocols.
 
-The artifact demonstrates this through:
+Artifact components to highlight:
 
 | Component | What it provides |
 |---|---|
 | [api/dataflow/](api/dataflow/) | The operator interface and its implementations: source, sink, map, filter, flatmap, join, custom-window join, tumbling and sliding windows, and the stateful variants (`statefulMap`, `statefulFlatmap`, `statefulMap2State`). |
 | [api/stateClient/](api/stateClient/), [state/](state/) | The state-access interface and the state backends behind it (local Pebble, remote Pebble, TiKV), plus the key lookup table used for lazy state migration. |
 | [coordinator/](coordinator/) | Job deployment, task placement, and the reconfiguration protocols. |
-| [worker/](worker/) | The task runtime: batch processing, data-plane and state-plane communication, migration of state on demand. |
+| [worker/](worker/) | The task runtime: batch processing, data-plane and state-plane communication, and on-demand state migration. |
 | [internal/](internal/) | Configuration, gRPC control plane, and shared internals. |
 | [kafka/](kafka/), [cmd/](cmd/) | Kafka source/producer integration and the binaries (`coordinator`, `worker`, `client`, the three producers, `remotePebble`). |
 | [query/](query/) | The queries used in the paper: `azure`, `borg`, `taxi`, `twitch`, and the `nexmark` suite, plus small [examples](query/examples/). |
 | [scripts/](scripts/) | The experiment harness: cluster preparation, repo sync, Kafka cluster and producer lifecycle, single-experiment and suite runners, and the figure scripts. |
 
-The reconfiguration protocol and the state backend are selected per experiment through the
-JSON config, so the same query runs under Koala and under each baseline without code
-changes:
+The reconfiguration protocols (Koala, S&R, and Remote) are configured in
+each experiment's JSON config file. [The DRRS approach](https://ieeexplore.ieee.org/document/11113181/) is implemented in a separate branch (`drrs`) as it requires major modifications to the runtime. The following table summarizes the protocol configuration.
 
-| Name in the paper | How it is configured |
+| Name in the paper | How it is configured in the JSON config file |
 |---|---|
 | Koala | `"ReconfigProtocol": "lazy"`, `"StateBackendType": "pebble"` |
 | S&R (stop-and-restart) | `"ReconfigProtocol": "stop-and-restart"`, `"StateBackendType": "pebble"` |
 | Remote | `"ReconfigProtocol": "stop-and-restart"`, `"StateBackendType": "remote-pebble"` — state stays in remote storage |
-| DRRS | its own implementation, on the `drrs` branch (`drrs_q3` for Nexmark Q3) |
-
-See [Hello world](#hello-world) for a single-node run of the full system.
+| DRRS | its own implementation, on the `drrs` branch |
 
 ## Reproduced Badge
 
