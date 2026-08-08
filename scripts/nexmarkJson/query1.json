@@ -4,12 +4,20 @@
   "AllNodeIPs": ["10.10.1.1"],
   "KafkaClusterIPs": ["10.10.1.1"],
   "ProducerIPs": ["10.10.1.1"],
-  "WorkerIPs": ["10.10.1.1", "10.10.1.1", "10.10.1.1", "10.10.1.1"],
+  "WorkerIPs": ["10.10.1.1", "10.10.1.1", "10.10.1.1", "10.10.1.1", "10.10.1.1"],
   "NexmarkLogicalSourceConfigs": [{
     "EventType": "Bid",
     "NexmarkSourceConfig": {}
   }],
   "TotalRuntimeSeconds": 60,
+  "Reconfigurations": [
+    {
+      "TriggerTimeSeconds": 30,
+      "Type": "scaleup",
+      "TargetOperator": "mapper",
+      "TargetParrallelism": 2
+    }
+  ],
   "MapperParallelism": 1,
   "SinkParallelism": 1,
   "NumBuckets": 128,
@@ -22,7 +30,7 @@
   "BatchSize": 4096,
   "IsWarmUp": false,
   "LoadWarmUpData": false,
-  "ReconfigProtocol": "lazy",
+  "ReconfigProtocol": "stop-and-restart",
   "LazyProtocolVersion": "by-key",
   "InitialCustomTaskPlacement": [
     "source: 10.10.1.1",
