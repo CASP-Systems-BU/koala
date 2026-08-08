@@ -39,13 +39,33 @@ Sec 5.4 runs a set of microbenchmarks to demonstrate the efficiency of Koala's l
 - [Available Badge](#available-badge)
 - [Functional Badge](#functional-badge)
 - [Reproduced Badge](#reproduced-badge)
-  - [Section 5.2 — Figures 6 and 8 (main result)](#section-52--figures-6-and-8)
-  - [Section 5.3 — Figures 10–13, reconfiguration scenarios](#section-53--figures-1013-reconfiguration-scenarios)
-    - [[Optional] Section 5.3.1 — Figure 9, high parallelism](#section-531--figure-9-high-parallelism-optional)
-  - [[Optional] Section 5.4 — Figures 14–16, microbenchmarks](#section-54--figures-1416-microbenchmarks-optional)
+  - [Section 5.2 - Figures 6, 8](#section-52--figures-6-and-8)
+  - [Section 5.3 - Figures 10–13](#section-53--figures-1013-reconfiguration-scenarios)
+    <!-- - [[Optional] Section 5.3.1 — Figure 9, high parallelism](#section-531--figure-9-high-parallelism-optional) -->
+  - [[Optional] Section 5.4](#section-54--figures-1416-microbenchmarks-optional)
 - [Appendix A: rebuilding the warm-up state](#appendix-a-rebuilding-the-warm-up-state)
 - [Appendix B: writing your own query](#appendix-b-writing-your-own-query)
 
+
+## Getting Started
+
+We will provide the SSH credentials and IP addresses over HotCRP. Please SSH into the machine (master node of the cluster) we provided.
+The Koala repository is already cloned in directory `~/ssd/koala` on AWS and `~/koala` on CloudLab.
+
+First start a tmux session (a helpful tmux reference is available [here](https://tmuxcheatsheet.com/)).
+```bash
+tmux
+```
+*(To detach from a running tmux session, press `Ctrl-b D`)*
+
+The following commands start a single-node run of the entire system, including the Kafka broker, producer, coordinator, and three workers. It deploys a simple streaming query (src -> mapper -> sink) and scales out the mapper operator from 1 to 2 tasks after 30 seconds. The entire process takes approximately 3 minutes.
+
+```bash
+cd ~/ssd/koala/scripts
+python3 runExperiment.py nexmarkJson/query1.json hello_world
+```
+
+Results land in `koala/scripts/results/nexmark_query1_hello_world/`, containing collected metrics in a database file `metricCollector.db`.
 
 ## Available Badge
 
@@ -129,28 +149,7 @@ ready-to-use clusters for both settings.
 Refer to [cluster setup](https://github.com/CASP-Systems-BU/koala/wiki/Experiment-Environment-Setup) to setup your own cluster.
 
 
----
 
-## Hello world
-
-A single-node run of the whole system — Kafka broker, producer, coordinator, three
-workers, and a scale-out of the mapper from 1 to 2 tasks 30 seconds in. Takes 5 minutes:
-
-```bash
-cd ~/ssd/koala/scripts
-python3 runExperiment.py nexmarkJson/query1.json hello_world
-```
-
-`runExperiment.py <configFilePath> <resultKeyword>` performs the whole lifecycle: update
-configs → sync to all nodes → start Kafka → deploy the query → start producers → monitor →
-trigger the reconfiguration → collect results → shut everything down. Ctrl-C at any point
-shuts the cluster down cleanly.
-
-Results land in `scripts/results/nexmark_query1_hello_world/`, containing the metrics
-database the figure scripts read (throughput, per-batch latency, state migrated, Kafka
-lag). If the run reports no failures and that folder exists, the installation is working.
-
----
 
 ## Experiments
 
