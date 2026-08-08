@@ -139,7 +139,7 @@ At the end of each experiment, the harness prints a summary of the run and write
 
 *(Human time: 10 minutes, run time: 4–5 hours)*
 
-Sec 5.2 runs on AWS `c5d.4xlarge` instances and supports the primary claim of the paper:
+Sec 5.2 runs on 12 AWS `c5d.4xlarge` instances (4 workers, one of which is colocated with the coordinator; 4 Kafka nodes; 4 remote state service nodes) and supports the primary claim of the paper:
 > **Primary claim**: Koala effectively eliminates the reconfiguration disruption (e.g., throughput drop, backlog accumulation, latency spike) as compared to the baselines, while sustaining low processing latency during normal operation.
 
 We compare against three baselines, all implemented in this repository and run through the same harness: **S&R** (stop-and-restart, the standard approach), **Remote** (state served from a remote storage service), and **DRRS** (the existing SOTA non-disruptive reconfiguration protocol).
@@ -190,7 +190,7 @@ python3 runAllFigures.py
 
 *(Human time: 10 minutes, run time: ~2 hours)*
 
-Sec 5.3 runs on AWS `c5d.4xlarge` instances and supports the secondary claim of the paper:
+Sec 5.3 runs on 12 AWS `c5d.4xlarge` instances (8 workers, one of which is colocated with the coordinator; 4 Kafka nodes) and supports the secondary claim of the paper:
 >**Secondary claim**: Koala can handle a variety of reconfiguration scenarios, including repeated reconfigurations, concurrent reconfigurations, skew-driven rebalancing, and task migration.
 
 <!-- | Claim in the paper | Figure | Supported by |
@@ -241,7 +241,7 @@ As above, the claims are about trends rather than exact numbers.
 
 *(Human time: 15 minutes, run time: 10 minutes)*
 
-Sec 5.3.1 runs a single experiment with 32 tasks per operator, demonstrating that Koala scales to high parallelism without disruption. This experiment is a complement and not required for the main claims of the paper. This experiment runs on CloudLab `c6620` machines.
+Sec 5.3.1 runs a single experiment with 32 tasks per operator, demonstrating that Koala scales to high parallelism without disruption. This experiment is a complement and not required for the main claims of the paper. This experiment runs on 20 CloudLab `c6620` machines (16 workers, one of which is colocated with the coordinator; 4 Kafka nodes).
 
 **1. Run the experiment**
 
@@ -284,7 +284,7 @@ reference values below come from the run used for the paper.
 
 *(Human time: 20 minutes, run time: 2 h 20 min)*
 
-Sec 5.4 runs a set of microbenchmarks on CloudLab `c6620` machines to demonstrate the efficiency of Koala's lazy state access mechanism, including the impact of total state size, key lookup overhead, and key locality/skew. This section is **optional** and not required for the main claims of the paper.
+Sec 5.4 runs a set of microbenchmarks on 8 CloudLab `c6620` machines (4 workers, one of which is colocated with the coordinator; 4 Kafka nodes) to demonstrate the efficiency of Koala's lazy state access mechanism, including the impact of total state size, key lookup overhead, and key locality/skew. This section is **optional** and not required for the main claims of the paper.
 
 <!-- All twelve experiments run Nexmark Q6\* (`nexmark_query6_modified`) under Koala for 10
 minutes at a stable input rate; after three minutes the target operator scales out from 4
