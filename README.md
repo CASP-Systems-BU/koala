@@ -8,6 +8,7 @@ Welcome to the artifact evaluation guide for Koala, a non-disruptive reconfigura
 - [Functional](#functional-badge): we describe all artifact components and provide instructions for running a minimal working example.
 - [Reproduced](#reproduced-badge): we provide instructions for reproducing the key results from the evaluation section of the paper. Our main results—Figures 6, 8, 10, 11, 12, and 13—are reproducible. Figures 9, 14, 15, and 16 are also reproducible but are optional.
 
+> [!IMPORTANT]
 > All experiments run on AWS `c5d.4xlarge` instances and CloudLab `c6620` machines. To simplify the evaluation process, we provide reviewers with ready-to-use environments on both AWS and CloudLab; access credentials (SSH keys and IP addresses) will be shared via HotCRP.
 
 ## Overview
