@@ -53,7 +53,7 @@ Sec 5.4 runs a set of microbenchmarks to demonstrate the efficiency of Koala's l
 
 ## Getting Started
 
-*(Human time: ???? minutes, run time: ???? hours)*
+*(Human time: 1 minute, run time: 2 minutes)*
 
 We will provide the SSH credentials and IP addresses over HotCRP. Please SSH into the machine (master node of the cluster) we provided. **We have pre-installed all dependencies and set up the environment for you**. The Koala repository is already cloned in directory `~/ssd/koala` on AWS and `~/koala` on CloudLab.
 
@@ -215,10 +215,10 @@ python3 runAllFigures.py
 
 | Files | Paper figure |
 |---|---|
-| `Section5.3/Figure10.pdf` | Figure 10 |
-| `Section5.3/Figure11.pdf` | Figure 11 |
-| `Section5.3/Figure12.pdf` | Figure 12 |
-| `Section5.3/Figure13.pdf` | Figure 13 |
+| `Section5.3/AWS/Figure10.pdf` | Figure 10 |
+| `Section5.3/AWS/Figure11.pdf` | Figure 11 |
+| `Section5.3/AWS/Figure12.pdf` | Figure 12 |
+| `Section5.3/AWS/Figure13.pdf` | Figure 13 |
 
 **3. Validate the results**
 
@@ -258,7 +258,7 @@ python3 runAllFigures.py
 
 | Files | Paper figure |
 |---|---|
-| `Section5.3/Figure9.pdf` | Figure 9 |
+| `Section5.3/Cloudlab/Figure9.pdf` | Figure 9 |
 
 
 **3. Validate the results**
