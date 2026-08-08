@@ -17,17 +17,23 @@ We summarize the experiments outlined in this document and the claims they suppo
 
 ### 1. Primary claim: Sec 5.2
 
+*(Human time: 10 minutes, run time: 4–5 hours)*
+
 > **Primary claim**: Koala effectively eliminates the reconfiguration disruption (e.g., throughput drop, backlog accumulation, latency spike) as compared to the baselines, while sustaining low processing latency during normal operation.
 
 Sec 5.2 scales out six large-state queries under accumulated state and backlog, supporting the primary claim, as shown in Figures 6 and 8.
 
 ### 2. Secondary claim: Sec 5.3
 
+*(Human time: 10 minutes, run time: ~2 hours)*
+
 > **Secondary claim**: Koala can handle a variety of reconfiguration scenarios, including repeated reconfigurations, concurrent reconfigurations, skew-driven rebalancing, and task migration.
 
 Sec 5.3 evaluates varying reconfiguration scenarios, demonstrating the applicability and flexibility of the Koala protocol, as shown in Figures 10–13.
 
 ### 3. Optional: Sec 5.4
+
+*(Human time: 20 minutes, run time: 2 h 20 min)*
 
 Sec 5.4 runs a set of microbenchmarks to demonstrate the efficiency of Koala's lazy state access mechanism, including the impact of total state size, key lookup overhead, and key locality/skew. This section is **optional** and not required for the main claims.
 
@@ -46,6 +52,8 @@ Sec 5.4 runs a set of microbenchmarks to demonstrate the efficiency of Koala's l
 
 
 ## Getting Started
+
+*(Human time: ???? minutes, run time: ???? hours)*
 
 We will provide the SSH credentials and IP addresses over HotCRP. Please SSH into the machine (master node of the cluster) we provided. **We have pre-installed all dependencies and set up the environment for you**. The Koala repository is already cloned in directory `~/ssd/koala` on AWS and `~/koala` on CloudLab.
 
@@ -179,7 +187,7 @@ python3 runAllFigures.py
 
 ### Section 5.3 - Figures 10–13
 
-*(Human time: 10 minutes, run time: ~2 hours. AWS.)*
+*(Human time: 10 minutes, run time: ~2 hours)*
 
 Sec 5.3 runs on AWS `c5d.4xlarge` instances and supports the secondary claim of the paper:
 >**Secondary claim**: Koala can handle a variety of reconfiguration scenarios, including repeated reconfigurations, concurrent reconfigurations, skew-driven rebalancing, and task migration.
@@ -230,7 +238,7 @@ As above, the claims are about trends rather than exact numbers.
 <summary>Click to expand the full instructions</summary>
 <br>
 
-*(Human time: 15 minutes, run time: 10 minutes. CloudLab.)*
+*(Human time: 15 minutes, run time: 10 minutes)*
 
 Sec 5.3.1 runs a single experiment with 32 tasks per operator, demonstrating that Koala scales to high parallelism without disruption. This experiment is a complement and not required for the main claims of the paper. This experiment runs on CloudLab `c6620` machines.
 
@@ -273,7 +281,7 @@ reference values below come from the run used for the paper.
 <summary>Click to expand the full instructions</summary>
 <br>
 
-*(Human time: 20 minutes, run time: 2 h 20 min. CloudLab.)*
+*(Human time: 20 minutes, run time: 2 h 20 min)*
 
 Sec 5.4 runs a set of microbenchmarks on CloudLab `c6620` machines to demonstrate the efficiency of Koala's lazy state access mechanism, including the impact of total state size, key lookup overhead, and key locality/skew. This section is **optional** and not required for the main claims of the paper.
 
@@ -334,18 +342,14 @@ a run, so the claims are about trends and orders of magnitude rather than exact 
 
 </details>
 
-## Appendix A: rebuilding the warm-up state
+## Appendix A: rebuild the warm-up state
 
 <details>
 <summary>Click to expand</summary>
 
-The clusters we provide already have the warm-up state generated, so this is only needed if
-you set up your own cluster. Each state size takes about 30 minutes to rebuild, and warm-up
-runs have to be started individually rather than through a suite.
+The clusters we provide already have the warm-up state generated, so this is only needed if you set up your own cluster. Each state size takes about 30 minutes to rebuild, and warm-up runs have to be started individually rather than through a suite.
 
-A warm-up run generates a bounded, sequential key stream, one new key per event, so the
-resulting key space is exactly `NumEvents` times the 8 producers. At the end it moves each
-worker's `data/pebble` into the snapshot folder and writes out the key lookup table.
+A warm-up run generates a bounded, sequential key stream, one new key per event, so the resulting key space is exactly `NumEvents` times the 8 producers. At the end it moves each worker's `data/pebble` into the snapshot folder and writes out the key lookup table.
 
 | State size | Config (under `scripts/`) | Key space |
 |---|---|---|
@@ -359,25 +363,18 @@ cd ~/koala/scripts
 python3 runExperiment.py nexmarkJson/query6/stateSize/query6ModWarmup40GB.json warmup_40GB
 ```
 
-`OutputEventNumber` in a measurement config is the point in the key sequence where the
-generator resumes after warm-up, so if you change a warm-up's `NumEvents` you need to
-scale it by the same factor (46×): 625K maps to 28,750,000, 1.25M to 57,500,000.
+`OutputEventNumber` in a measurement config is the point in the key sequence where the generator resumes after warm-up, so if you change a warm-up's `NumEvents` you need to scale it by the same factor (46×): 625K maps to 28,750,000, 1.25M to 57,500,000.
 
 </details>
 
-## Appendix B: writing your own query
+## Appendix B: write your own query
 
 <details>
 <summary>Click to expand</summary>
 
-A query is a Go dataflow built from the operators in [api/dataflow/](api/dataflow/). The
-smallest complete examples are in [query/examples/](query/examples/) — `counter.go` (a
-stateful count), `filter.go`, `mapper.go`, `tumblingWindow.go` — and the queries used in
-the paper are in [query/](query/) (`azure`, `borg`, `taxi`, `twitch`, `nexmark`).
+A query is a Go dataflow built from the operators in [api/dataflow/](api/dataflow/). The smallest complete examples are in [query/examples/](query/examples/) — `counter.go` (a stateful count), `filter.go`, `mapper.go`, `tumblingWindow.go` — and the queries used in the paper are in [query/](query/) (`azure`, `borg`, `taxi`, `twitch`, `nexmark`).
 
-To run one, register the query, rebuild with `make`, and point a JSON config at it via
-`QueryName`. The config controls the cluster layout, the runtime, the parallelism of each
-operator, when reconfigurations fire, and which protocol handles them:
+To run one, register the query, rebuild with `make`, and point a JSON config at it via `QueryName`. The config controls the cluster layout, the runtime, the parallelism of each operator, when reconfigurations fire, and which protocol handles them:
 
 ```json
 {
